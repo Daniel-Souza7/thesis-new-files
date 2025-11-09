@@ -1,0 +1,252 @@
+"""
+Special Randomized Fitted Q-Iteration (SRFQI) for PATH-DEPENDENT options.
+
+This is an adaptation of RFQI specifically for options that require full path history:
+- Barrier options (UpAndOut, DownAndOut, UpAndIn, DownAndIn)
+- Lookback options
+
+KEY DIFFERENCES from standard RFQI:
+1. Evaluates payoffs with FULL PATH HISTORY (not just current state)
+2. Properly handles initial barrier checks at t=0
+3. Tracks historical extrema for lookback features
+
+The fitted Q-iteration part is IDENTICAL to RFQI.
+Only the payoff evaluation differs.
+"""
+
+import numpy as np
+import torch
+import time
+import math
+from optimal_stopping.run import configs
+from optimal_stopping.algorithms.utils import randomized_neural_networks
+
+
+class SRFQI:
+    """
+    Special RFQI for path-dependent options (barriers, lookbacks).
+
+    Compatible with:
+    - All barrier options (UpAndOut, DownAndOut, etc.)
+    - All lookback options
+
+    NOT compatible with standard options (use RFQI instead).
+    """
+
+    def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
+                 factors=(1.,), train_ITM_only=True, use_payoff_as_input=False, **kwargs):
+        """
+        Initialize SRFQI pricer.
+
+        Args:
+            model: Stock model
+            payoff: Payoff function (must BE path-dependent)
+            nb_epochs: Number of training epochs
+            hidden_size: Number of neurons in hidden layer
+            factors: Tuple of (activation_slope, weight_scale, ...)
+            train_ITM_only: If True, only consider ITM paths
+            use_payoff_as_input: Not typically used for barriers
+
+        Raises:
+            ValueError: If payoff is NOT path-dependent
+        """
+        self.model = model
+        self.payoff = payoff
+        self.nb_epochs = nb_epochs
+        self.train_ITM_only = train_ITM_only
+        self.use_payoff_as_input = use_payoff_as_input
+
+        # Check for variance paths
+        self.use_var = getattr(model, 'return_var', False)
+
+        # CRITICAL: Verify this IS a path-dependent option
+        if not getattr(payoff, 'is_path_dependent', False):
+            raise ValueError(
+                f"SRFQI is for PATH-DEPENDENT options only. "
+                f"The payoff '{type(payoff).__name__}' is NOT path-dependent. "
+                f"Use RFQI for standard options."
+            )
+
+        # Initialize randomized neural network (same as RFQI)
+        if hidden_size < 0:
+            hidden_size = max(model.nb_stocks * abs(hidden_size), 5)
+
+        self.dim_out = hidden_size
+        self.nb_base_fcts = self.dim_out + 1
+
+        # State includes: stocks + time + time_to_maturity (+ optionally payoff)
+        self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1
+
+        self._init_reservoir(factors)
+
+    def _init_reservoir(self, factors):
+        """Initialize randomized neural network."""
+        self.reservoir2 = randomized_neural_networks.Reservoir2(
+            self.dim_out,
+            self.state_size,
+            factors=factors[1:] if len(factors) > 1 else (),
+            activation=torch.nn.LeakyReLU(factors[0] / 2)
+        )
+
+    def evaluate_bases_all(self, stock_price):
+        """
+        Evaluate basis functions for all paths and dates.
+
+        Args:
+            stock_price: Array of shape (nb_paths, nb_stocks, nb_dates+1)
+
+        Returns:
+            basis: Array of shape (nb_paths, nb_dates+1, nb_base_fcts)
+        """
+        stocks = torch.from_numpy(stock_price).type(torch.float32)
+        stocks = stocks.permute(0, 2, 1)  # (nb_paths, nb_dates+1, nb_stocks)
+
+        # Add time features
+        time = torch.linspace(0, 1, stocks.shape[1]).unsqueeze(0).repeat(
+            (stocks.shape[0], 1)).unsqueeze(2)
+        stocks = torch.cat([stocks, time, 1 - time], dim=-1)
+
+        # Evaluate reservoir
+        random_base = self.reservoir2(stocks)
+
+        # Add constant term
+        random_base = torch.cat([
+            random_base,
+            torch.ones([stocks.shape[0], stocks.shape[1], 1])
+        ], dim=-1)
+
+        return random_base.detach().numpy()
+
+    def _evaluate_payoffs_with_history(self, stock_paths_original):
+        """
+        Evaluate payoffs at each timestep with full path history.
+
+        CRITICAL: For path-dependent options, we need to pass history up to each date.
+
+        Args:
+            stock_paths_original: Array of shape (nb_paths, nb_stocks, nb_dates+1)
+
+        Returns:
+            payoffs: Array of shape (nb_paths, nb_dates+1)
+        """
+        nb_paths, nb_stocks, nb_dates_plus_one = stock_paths_original.shape
+        payoffs = np.zeros((nb_paths, nb_dates_plus_one))
+
+        for date in range(nb_dates_plus_one):
+            # Pass full history from t=0 to t=date (inclusive)
+            path_history = stock_paths_original[:, :, :date + 1]
+            payoffs[:, date] = self.payoff.eval(path_history)
+
+        return payoffs
+
+    def price(self, train_eval_split=2):
+        """
+        Compute option price for path-dependent options using SRFQI.
+
+        KEY DIFFERENCE: Payoffs are evaluated with full path history.
+
+        Args:
+            train_eval_split: Ratio for splitting paths
+
+        Returns:
+            tuple: (price, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Store original for path-dependent payoff evaluation
+        stock_paths_original = stock_paths.copy()
+
+        # Compute payoffs with FULL PATH HISTORY
+        payoffs = self._evaluate_payoffs_with_history(stock_paths_original)
+
+        # Optionally add payoff to state (for basis functions)
+        if self.use_payoff_as_input:
+            stock_paths = np.concatenate(
+                [stock_paths, np.expand_dims(payoffs, axis=1)], axis=1
+            )
+
+        # Add variance if needed
+        if self.use_var and var_paths is not None:
+            stock_paths = np.concatenate([stock_paths, var_paths], axis=1)
+
+        # Split
+        self.split = len(stock_paths) // train_eval_split
+
+        # Setup
+        nb_paths, _, nb_dates_plus_one = stock_paths.shape
+        nb_dates = self.model.nb_dates
+        deltaT = self.model.maturity / nb_dates
+        discount_factor = math.exp(-self.model.rate * deltaT)
+
+        # Evaluate basis functions for all paths and dates (same as RFQI)
+        eval_bases = self.evaluate_bases_all(stock_paths)
+
+        # Initialize Q-function weights
+        weights = np.zeros(self.nb_base_fcts, dtype=float)
+
+        # Fitted Q-iteration (IDENTICAL to RFQI)
+        for epoch in range(self.nb_epochs):
+            # Compute continuation values
+            continuation_value = np.dot(eval_bases[:self.split, 1:, :], weights)
+
+            # Optimal stopping: max(immediate payoff, continuation)
+            indicator_stop = np.maximum(payoffs[:self.split, 1:], continuation_value)
+
+            # Build regression matrices
+            matrixU = np.tensordot(
+                eval_bases[:self.split, :-1, :],
+                eval_bases[:self.split, :-1, :],
+                axes=([0, 1], [0, 1])
+            )
+
+            vectorV = np.sum(
+                eval_bases[:self.split, :-1, :] * discount_factor * np.repeat(
+                    np.expand_dims(indicator_stop, axis=2),
+                    self.nb_base_fcts,
+                    axis=2
+                ),
+                axis=(0, 1)
+            )
+
+            # Solve
+            weights = np.linalg.solve(matrixU, vectorV)
+
+        # Final evaluation on all paths
+        if self.train_ITM_only:
+            continuation_value = np.maximum(np.dot(eval_bases, weights), 0)
+        else:
+            continuation_value = np.dot(eval_bases, weights)
+
+        # Determine exercise decisions
+        which = (payoffs > continuation_value) * 1
+        which[:, -1] = 1  # Must exercise at maturity
+        which[:, 0] = 0  # Cannot exercise before t=1
+
+        # Find optimal exercise time
+        ex_dates = np.argmax(which, axis=1)
+
+        # Compute discounted payoffs
+        prices = np.take_along_axis(
+            payoffs,
+            np.expand_dims(ex_dates, axis=1),
+            axis=1
+        ).reshape(-1) * (discount_factor ** ex_dates)
+
+        # Return average price on evaluation set
+        price = max(np.mean(prices[self.split:]), payoffs[0, 0])
+
+        return price, time_path_gen
