@@ -42,10 +42,12 @@ from optimal_stopping.payoffs.barriers import (
     UpAndInBasketCall, UpAndInBasketPut,
     UpAndInMaxCall, UpAndInMaxPut,
     UpAndInGeometricBasketCall, UpAndInGeometricBasketPut,
+    UpAndInMinCall, UpAndInMinPut,
     # Barrier payoffs - Down-and-In
     DownAndInBasketCall, DownAndInBasketPut,
     DownAndInMaxCall, DownAndInMaxPut,
-    DownAndInGeometricBasketCall, DownAndInGeometricBasketPut)
+    DownAndInGeometricBasketCall, DownAndInGeometricBasketPut,
+    DownAndInMinCall, DownAndInMinPut)
 
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
@@ -138,7 +140,7 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
 
 # NEW PAYOFFS DICTIONARY - Updated for new structure
 _PAYOFFS = {
-    # Standard payoffs
+    # Standard payoffs (8)
     "BasketCall": BasketCall,
     "BasketPut": BasketPut,
     "MaxCall": MaxCall,
@@ -168,19 +170,23 @@ _PAYOFFS = {
     "DownAndOutGeometricBasketCall": DownAndOutGeometricBasketCall,
     "DownAndOutGeometricBasketPut": DownAndOutGeometricBasketPut,
 
-    # Barrier options - Up-and-In (6)
+    # Barrier options - Up-and-In (7 - now with Min variants)
     "UpAndInBasketCall": UpAndInBasketCall,
     "UpAndInBasketPut": UpAndInBasketPut,
     "UpAndInMaxCall": UpAndInMaxCall,
     "UpAndInMaxPut": UpAndInMaxPut,
+    "UpAndInMinCall": UpAndInMinCall,  # NEW
+    "UpAndInMinPut": UpAndInMinPut,    # NEW
     "UpAndInGeometricBasketCall": UpAndInGeometricBasketCall,
     "UpAndInGeometricBasketPut": UpAndInGeometricBasketPut,
 
-    # Barrier options - Down-and-In (6)
+    # Barrier options - Down-and-In (7 - now with Min variants)
     "DownAndInBasketCall": DownAndInBasketCall,
     "DownAndInBasketPut": DownAndInBasketPut,
     "DownAndInMaxCall": DownAndInMaxCall,
     "DownAndInMaxPut": DownAndInMaxPut,
+    "DownAndInMinCall": DownAndInMinCall,  # NEW
+    "DownAndInMinPut": DownAndInMinPut,    # NEW
     "DownAndInGeometricBasketCall": DownAndInGeometricBasketCall,
     "DownAndInGeometricBasketPut": DownAndInGeometricBasketPut,
 }

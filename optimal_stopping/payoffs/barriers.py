@@ -17,6 +17,8 @@ Underlyings:
 - Max: Maximum of stocks
 - Min: Minimum of stocks
 - GeometricBasket: Geometric mean of stocks
+
+Total: 30 barrier options (8 Out + 8 Out + 7 In + 7 In)
 """
 
 import numpy as np
@@ -24,7 +26,7 @@ from optimal_stopping.payoffs.payoff import Payoff
 
 
 # ============================================================================
-# UP-AND-OUT BARRIERS (Knocked out if max(Si) >= B)
+# UP-AND-OUT BARRIERS (Knocked out if max(Si) >= B) - 8 payoffs
 # ============================================================================
 
 class UpAndOutBasketCall(Payoff):
@@ -143,64 +145,6 @@ class UpAndOutMaxPut(Payoff):
             raise ValueError(f"Invalid dimensions: {X.ndim}")
 
 
-class UpAndOutGeometricBasketCall(Payoff):
-    """Up-and-out barrier call on geometric basket."""
-
-    is_path_dependent = True
-
-    def __init__(self, strike, barrier=None):
-        super().__init__(strike)
-        self.barrier = barrier if barrier is not None else strike * 1.2
-
-    def eval(self, X):
-        if X.ndim == 2:
-            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
-            barrier_not_hit = np.max(X, axis=1) < self.barrier
-            payoff = np.maximum(0, geo_mean - self.strike)
-            return payoff * barrier_not_hit
-        elif X.ndim == 3:
-            initial_max = np.max(X[:, :, 0], axis=1)
-            initially_knocked_out = initial_max >= self.barrier
-            max_along_path = np.max(X, axis=(1, 2))
-            barrier_hit = max_along_path >= self.barrier
-            knocked_out = initially_knocked_out | barrier_hit
-            barrier_not_hit = ~knocked_out
-            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
-            payoff = np.maximum(0, geo_mean - self.strike)
-            return payoff * barrier_not_hit
-        else:
-            raise ValueError(f"Invalid dimensions: {X.ndim}")
-
-
-class UpAndOutGeometricBasketPut(Payoff):
-    """Up-and-out barrier put on geometric basket."""
-
-    is_path_dependent = True
-
-    def __init__(self, strike, barrier=None):
-        super().__init__(strike)
-        self.barrier = barrier if barrier is not None else strike * 1.2
-
-    def eval(self, X):
-        if X.ndim == 2:
-            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
-            barrier_not_hit = np.max(X, axis=1) < self.barrier
-            payoff = np.maximum(0, self.strike - geo_mean)
-            return payoff * barrier_not_hit
-        elif X.ndim == 3:
-            initial_max = np.max(X[:, :, 0], axis=1)
-            initially_knocked_out = initial_max >= self.barrier
-            max_along_path = np.max(X, axis=(1, 2))
-            barrier_hit = max_along_path >= self.barrier
-            knocked_out = initially_knocked_out | barrier_hit
-            barrier_not_hit = ~knocked_out
-            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
-            payoff = np.maximum(0, self.strike - geo_mean)
-            return payoff * barrier_not_hit
-        else:
-            raise ValueError(f"Invalid dimensions: {X.ndim}")
-
-
 class UpAndOutMinCall(Payoff):
     """Up-and-out barrier call on minimum."""
 
@@ -259,8 +203,66 @@ class UpAndOutMinPut(Payoff):
             raise ValueError(f"Invalid dimensions: {X.ndim}")
 
 
+class UpAndOutGeometricBasketCall(Payoff):
+    """Up-and-out barrier call on geometric basket."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 1.2
+
+    def eval(self, X):
+        if X.ndim == 2:
+            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
+            barrier_not_hit = np.max(X, axis=1) < self.barrier
+            payoff = np.maximum(0, geo_mean - self.strike)
+            return payoff * barrier_not_hit
+        elif X.ndim == 3:
+            initial_max = np.max(X[:, :, 0], axis=1)
+            initially_knocked_out = initial_max >= self.barrier
+            max_along_path = np.max(X, axis=(1, 2))
+            barrier_hit = max_along_path >= self.barrier
+            knocked_out = initially_knocked_out | barrier_hit
+            barrier_not_hit = ~knocked_out
+            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
+            payoff = np.maximum(0, geo_mean - self.strike)
+            return payoff * barrier_not_hit
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
+class UpAndOutGeometricBasketPut(Payoff):
+    """Up-and-out barrier put on geometric basket."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 1.2
+
+    def eval(self, X):
+        if X.ndim == 2:
+            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
+            barrier_not_hit = np.max(X, axis=1) < self.barrier
+            payoff = np.maximum(0, self.strike - geo_mean)
+            return payoff * barrier_not_hit
+        elif X.ndim == 3:
+            initial_max = np.max(X[:, :, 0], axis=1)
+            initially_knocked_out = initial_max >= self.barrier
+            max_along_path = np.max(X, axis=(1, 2))
+            barrier_hit = max_along_path >= self.barrier
+            knocked_out = initially_knocked_out | barrier_hit
+            barrier_not_hit = ~knocked_out
+            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
+            payoff = np.maximum(0, self.strike - geo_mean)
+            return payoff * barrier_not_hit
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
 # ============================================================================
-# DOWN-AND-OUT BARRIERS (Knocked out if min(Si) <= B)
+# DOWN-AND-OUT BARRIERS (Knocked out if min(Si) <= B) - 8 payoffs
 # ============================================================================
 
 class DownAndOutBasketCall(Payoff):
@@ -379,64 +381,6 @@ class DownAndOutMaxPut(Payoff):
             raise ValueError(f"Invalid dimensions: {X.ndim}")
 
 
-class DownAndOutGeometricBasketCall(Payoff):
-    """Down-and-out barrier call on geometric basket."""
-
-    is_path_dependent = True
-
-    def __init__(self, strike, barrier=None):
-        super().__init__(strike)
-        self.barrier = barrier if barrier is not None else strike * 0.8
-
-    def eval(self, X):
-        if X.ndim == 2:
-            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
-            barrier_not_hit = np.min(X, axis=1) > self.barrier
-            payoff = np.maximum(0, geo_mean - self.strike)
-            return payoff * barrier_not_hit
-        elif X.ndim == 3:
-            initial_min = np.min(X[:, :, 0], axis=1)
-            initially_knocked_out = initial_min <= self.barrier
-            min_along_path = np.min(X, axis=(1, 2))
-            barrier_hit = min_along_path <= self.barrier
-            knocked_out = initially_knocked_out | barrier_hit
-            barrier_not_hit = ~knocked_out
-            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
-            payoff = np.maximum(0, geo_mean - self.strike)
-            return payoff * barrier_not_hit
-        else:
-            raise ValueError(f"Invalid dimensions: {X.ndim}")
-
-
-class DownAndOutGeometricBasketPut(Payoff):
-    """Down-and-out barrier put on geometric basket."""
-
-    is_path_dependent = True
-
-    def __init__(self, strike, barrier=None):
-        super().__init__(strike)
-        self.barrier = barrier if barrier is not None else strike * 0.8
-
-    def eval(self, X):
-        if X.ndim == 2:
-            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
-            barrier_not_hit = np.min(X, axis=1) > self.barrier
-            payoff = np.maximum(0, self.strike - geo_mean)
-            return payoff * barrier_not_hit
-        elif X.ndim == 3:
-            initial_min = np.min(X[:, :, 0], axis=1)
-            initially_knocked_out = initial_min <= self.barrier
-            min_along_path = np.min(X, axis=(1, 2))
-            barrier_hit = min_along_path <= self.barrier
-            knocked_out = initially_knocked_out | barrier_hit
-            barrier_not_hit = ~knocked_out
-            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
-            payoff = np.maximum(0, self.strike - geo_mean)
-            return payoff * barrier_not_hit
-        else:
-            raise ValueError(f"Invalid dimensions: {X.ndim}")
-
-
 class DownAndOutMinCall(Payoff):
     """Down-and-out barrier call on minimum."""
 
@@ -495,8 +439,66 @@ class DownAndOutMinPut(Payoff):
             raise ValueError(f"Invalid dimensions: {X.ndim}")
 
 
+class DownAndOutGeometricBasketCall(Payoff):
+    """Down-and-out barrier call on geometric basket."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 2:
+            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
+            barrier_not_hit = np.min(X, axis=1) > self.barrier
+            payoff = np.maximum(0, geo_mean - self.strike)
+            return payoff * barrier_not_hit
+        elif X.ndim == 3:
+            initial_min = np.min(X[:, :, 0], axis=1)
+            initially_knocked_out = initial_min <= self.barrier
+            min_along_path = np.min(X, axis=(1, 2))
+            barrier_hit = min_along_path <= self.barrier
+            knocked_out = initially_knocked_out | barrier_hit
+            barrier_not_hit = ~knocked_out
+            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
+            payoff = np.maximum(0, geo_mean - self.strike)
+            return payoff * barrier_not_hit
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
+class DownAndOutGeometricBasketPut(Payoff):
+    """Down-and-out barrier put on geometric basket."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 2:
+            geo_mean = np.exp(np.mean(np.log(X + 1e-10), axis=1))
+            barrier_not_hit = np.min(X, axis=1) > self.barrier
+            payoff = np.maximum(0, self.strike - geo_mean)
+            return payoff * barrier_not_hit
+        elif X.ndim == 3:
+            initial_min = np.min(X[:, :, 0], axis=1)
+            initially_knocked_out = initial_min <= self.barrier
+            min_along_path = np.min(X, axis=(1, 2))
+            barrier_hit = min_along_path <= self.barrier
+            knocked_out = initially_knocked_out | barrier_hit
+            barrier_not_hit = ~knocked_out
+            geo_mean = np.exp(np.mean(np.log(X[:, :, -1] + 1e-10), axis=1))
+            payoff = np.maximum(0, self.strike - geo_mean)
+            return payoff * barrier_not_hit
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
 # ============================================================================
-# UP-AND-IN BARRIERS (Activated if max(Si) >= B)
+# UP-AND-IN BARRIERS (Activated if max(Si) >= B) - 7 payoffs (with Min)
 # ============================================================================
 
 class UpAndInBasketCall(Payoff):
@@ -611,6 +613,62 @@ class UpAndInMaxPut(Payoff):
             raise ValueError(f"Invalid dimensions: {X.ndim}")
 
 
+class UpAndInMinCall(Payoff):
+    """Up-and-in barrier call on minimum."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 1.2
+
+    def eval(self, X):
+        if X.ndim == 2:
+            terminal_min = np.min(X, axis=1)
+            barrier_hit = np.max(X, axis=1) >= self.barrier
+            payoff = np.maximum(0, terminal_min - self.strike)
+            return payoff * barrier_hit
+        elif X.ndim == 3:
+            initial_max = np.max(X[:, :, 0], axis=1)
+            initially_knocked_in = initial_max >= self.barrier
+            max_along_path = np.max(X, axis=(1, 2))
+            barrier_hit = max_along_path >= self.barrier
+            knocked_in = initially_knocked_in | barrier_hit
+            terminal_min = np.min(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, terminal_min - self.strike)
+            return payoff * knocked_in
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
+class UpAndInMinPut(Payoff):
+    """Up-and-in barrier put on minimum."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 1.2
+
+    def eval(self, X):
+        if X.ndim == 2:
+            terminal_min = np.min(X, axis=1)
+            barrier_hit = np.max(X, axis=1) >= self.barrier
+            payoff = np.maximum(0, self.strike - terminal_min)
+            return payoff * barrier_hit
+        elif X.ndim == 3:
+            initial_max = np.max(X[:, :, 0], axis=1)
+            initially_knocked_in = initial_max >= self.barrier
+            max_along_path = np.max(X, axis=(1, 2))
+            barrier_hit = max_along_path >= self.barrier
+            knocked_in = initially_knocked_in | barrier_hit
+            terminal_min = np.min(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, self.strike - terminal_min)
+            return payoff * knocked_in
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
 class UpAndInGeometricBasketCall(Payoff):
     """Up-and-in barrier call on geometric basket."""
 
@@ -668,7 +726,7 @@ class UpAndInGeometricBasketPut(Payoff):
 
 
 # ============================================================================
-# DOWN-AND-IN BARRIERS (Activated if min(Si) <= B)
+# DOWN-AND-IN BARRIERS (Activated if min(Si) <= B) - 7 payoffs (with Min)
 # ============================================================================
 
 class DownAndInBasketCall(Payoff):
@@ -778,6 +836,62 @@ class DownAndInMaxPut(Payoff):
             knocked_in = initially_knocked_in | barrier_hit
             terminal_max = np.max(X[:, :, -1], axis=1)
             payoff = np.maximum(0, self.strike - terminal_max)
+            return payoff * knocked_in
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
+class DownAndInMinCall(Payoff):
+    """Down-and-in barrier call on minimum."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 2:
+            terminal_min = np.min(X, axis=1)
+            barrier_hit = np.min(X, axis=1) <= self.barrier
+            payoff = np.maximum(0, terminal_min - self.strike)
+            return payoff * barrier_hit
+        elif X.ndim == 3:
+            initial_min = np.min(X[:, :, 0], axis=1)
+            initially_knocked_in = initial_min <= self.barrier
+            min_along_path = np.min(X, axis=(1, 2))
+            barrier_hit = min_along_path <= self.barrier
+            knocked_in = initially_knocked_in | barrier_hit
+            terminal_min = np.min(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, terminal_min - self.strike)
+            return payoff * knocked_in
+        else:
+            raise ValueError(f"Invalid dimensions: {X.ndim}")
+
+
+class DownAndInMinPut(Payoff):
+    """Down-and-in barrier put on minimum."""
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier=None):
+        super().__init__(strike)
+        self.barrier = barrier if barrier is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 2:
+            terminal_min = np.min(X, axis=1)
+            barrier_hit = np.min(X, axis=1) <= self.barrier
+            payoff = np.maximum(0, self.strike - terminal_min)
+            return payoff * barrier_hit
+        elif X.ndim == 3:
+            initial_min = np.min(X[:, :, 0], axis=1)
+            initially_knocked_in = initial_min <= self.barrier
+            min_along_path = np.min(X, axis=(1, 2))
+            barrier_hit = min_along_path <= self.barrier
+            knocked_in = initially_knocked_in | barrier_hit
+            terminal_min = np.min(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, self.strike - terminal_min)
             return payoff * knocked_in
         else:
             raise ValueError(f"Invalid dimensions: {X.ndim}")

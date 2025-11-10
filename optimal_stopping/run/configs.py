@@ -304,7 +304,7 @@ debug222 = _FasterTable(
         'DownAndInBasketCall', 'DownAndInBasketPut',
         'DownAndInGeometricBasketCall', 'DownAndInGeometricBasketPut',
     ),
-    barriers = (1, 80, 90, 95, 100, 105, 110, 120, 100000),
+    barriers = (1,),
     strikes = (100,),
     spots = (100,),
     use_payoff_as_input = (True,),
