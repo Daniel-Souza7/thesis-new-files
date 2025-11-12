@@ -49,6 +49,17 @@ from optimal_stopping.payoffs.barriers import (
     DownAndInGeometricBasketCall, DownAndInGeometricBasketPut,
     DownAndInMinCall, DownAndInMinPut)
 
+# Add after barrier imports
+from optimal_stopping.payoffs.lookbacks import (
+    LookbackFixedCall,
+    LookbackFixedPut,
+    LookbackFloatCall,
+    LookbackFloatPut,
+    LookbackMaxCall,
+    LookbackMinPut,
+)
+
+from optimal_stopping.payoffs.double_barriers import DoubleBarrierBasketCall
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
@@ -130,13 +141,15 @@ flags.DEFINE_integer("train_eval_split", 2,
 _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'speed', 'correlation', 'hurst', 'nb_stocks',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
-                'barrier',  # Added for barrier options
+                'barrier', 'barriers_up', 'barriers_down',  # ADD barriers_up, barriers_down
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input',
                 'train_ITM_only',
                 'price', 'duration', 'time_path_gen', 'comp_time',
                 'delta', 'gamma', 'theta', 'rho', 'vega', 'greeks_method',
-                'price_upper_bound', ]
+                'price_upper_bound',
+                'exercise_time']  # ADD THIS LINE
+
 
 # NEW PAYOFFS DICTIONARY - Updated for new structure
 _PAYOFFS = {
@@ -170,26 +183,38 @@ _PAYOFFS = {
     "DownAndOutGeometricBasketCall": DownAndOutGeometricBasketCall,
     "DownAndOutGeometricBasketPut": DownAndOutGeometricBasketPut,
 
-    # Barrier options - Up-and-In (7 - now with Min variants)
+    # Barrier options - Up-and-In (8)
     "UpAndInBasketCall": UpAndInBasketCall,
     "UpAndInBasketPut": UpAndInBasketPut,
     "UpAndInMaxCall": UpAndInMaxCall,
     "UpAndInMaxPut": UpAndInMaxPut,
-    "UpAndInMinCall": UpAndInMinCall,  # NEW
-    "UpAndInMinPut": UpAndInMinPut,    # NEW
+    "UpAndInMinCall": UpAndInMinCall,
+    "UpAndInMinPut": UpAndInMinPut,
     "UpAndInGeometricBasketCall": UpAndInGeometricBasketCall,
     "UpAndInGeometricBasketPut": UpAndInGeometricBasketPut,
 
-    # Barrier options - Down-and-In (7 - now with Min variants)
+    # Barrier options - Down-and-In (8)
     "DownAndInBasketCall": DownAndInBasketCall,
     "DownAndInBasketPut": DownAndInBasketPut,
     "DownAndInMaxCall": DownAndInMaxCall,
     "DownAndInMaxPut": DownAndInMaxPut,
-    "DownAndInMinCall": DownAndInMinCall,  # NEW
-    "DownAndInMinPut": DownAndInMinPut,    # NEW
+    "DownAndInMinCall": DownAndInMinCall,
+    "DownAndInMinPut": DownAndInMinPut,
     "DownAndInGeometricBasketCall": DownAndInGeometricBasketCall,
     "DownAndInGeometricBasketPut": DownAndInGeometricBasketPut,
+
+    #Lookbacks - 6 options
+    "LookbackFixedCall": LookbackFixedCall,
+    "LookbackFixedPut": LookbackFixedPut,
+    "LookbackFloatCall": LookbackFloatCall,
+    "LookbackFloatPut": LookbackFloatPut,
+    "LookbackMaxCall": LookbackMaxCall,
+    "LookbackMinPut": LookbackMinPut,
+
+    #Double barriers
+    "DoubleBarrierBasketCall": DoubleBarrierBasketCall
 }
+
 
 _STOCK_MODELS = stock_model.STOCK_MODELS
 
@@ -278,7 +303,10 @@ def _run_algos():
                     fd_compute_gamma_via_PDE=FLAGS.fd_compute_gamma_via_PDE,
                     reg_eps=FLAGS.reg_eps, path_gen_seed=FLAGS.path_gen_seed,
                     compute_upper_bound=FLAGS.compute_upper_bound,
-                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split))
+                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split,
+                    barrier_up=getattr(config, 'barriers_up', [None])[0],  # ADD HERE
+                    barrier_down=getattr(config, 'barriers_down', [None])[0]))  # ADD HERE
+
 
     print(f"Running {len(delayed_jobs)} tasks using "
           f"{FLAGS.nb_jobs}/{NUM_PROCESSORS} CPUs...")
@@ -323,7 +351,7 @@ def _run_algo(
         poly_deg=None, fd_freeze_exe_boundary=True,
         fd_compute_gamma_via_PDE=True, reg_eps=None, path_gen_seed=None,
         compute_upper_bound=False,
-        DEBUG=False, train_eval_split=2):
+        DEBUG=False, train_eval_split=2, barrier_up=None, barrier_down=None,):
     """
     Run one algorithm for option pricing.
 
@@ -338,11 +366,22 @@ def _run_algo(
     print(f"{algo} {payoff_name} spot={spot} vol={volatility} mat={maturity} "
           f"paths={nb_paths} ... ", end="")
 
+    # Determine payoff type
+    is_single_barrier = any(x in payoff_name for x in ['UpAnd', 'DownAnd'])
+    is_double_barrier = 'DoubleBarrier' in payoff_name or 'DualBarrier' in payoff_name
+    is_lookback = 'Lookback' in payoff_name
+
     # Instantiate payoff
-    is_barrier = any(x in payoff_name for x in ['UpAnd', 'DownAnd'])
-    if is_barrier:
+    if is_double_barrier:
+        # Double barriers need both levels
+        payoff_obj = _PAYOFFS[payoff_name](strike, barrier_up=barrier_up, barrier_down=barrier_down)
+    elif is_single_barrier:
+        # Single barrier
         payoff_obj = _PAYOFFS[payoff_name](strike, barrier=barrier)
+    elif is_lookback:
+        payoff_obj = _PAYOFFS[payoff_name](strike)
     else:
+        # Standard
         payoff_obj = _PAYOFFS[payoff_name](strike)
 
     # Check if payoff is path-dependent
@@ -453,6 +492,13 @@ def _run_algo(
         duration = time.time() - t_begin
         comp_time = duration - gen_time
 
+        # NEW: Get exercise time if available
+        exercise_time = None
+        if hasattr(pricer, 'get_exercise_time'):
+            try:
+                exercise_time = pricer.get_exercise_time()
+            except:
+                exercise_time = None
     except BaseException as err:
         if fail_on_error:
             raise
@@ -476,6 +522,8 @@ def _run_algo(
         'spot': spot,
         'strike': strike,
         'barrier': barrier,
+        'barriers_up': barrier_up,
+        'barriers_down': barrier_down,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,
@@ -495,6 +543,7 @@ def _run_algo(
         'vega': vega,
         'greeks_method': greeks_method,
         'price_upper_bound': price_u,
+        'exercise_time': exercise_time,
     }
 
     print(f"price: {price:.4f}, comp_time: {comp_time:.4f}")

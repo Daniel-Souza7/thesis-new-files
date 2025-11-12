@@ -119,6 +119,15 @@ class RFQI:
 
         return random_base.detach().numpy()
 
+    def get_exercise_time(self):
+        """Return average exercise time normalized to [0, 1]."""
+        if not hasattr(self, '_exercise_dates'):
+            return None
+
+        nb_dates = self.model.nb_dates  # ✅ CORRECT
+        normalized_times = self._exercise_dates / nb_dates
+        return float(np.mean(normalized_times))
+
     def price(self, train_eval_split=2):
         """
         Compute option price using fitted Q-iteration with RFQI.
@@ -215,13 +224,16 @@ class RFQI:
         else:
             continuation_value = np.dot(eval_bases, weights)
 
-        # Determine exercise decisions
+            # Determine exercise decisions
         which = (payoffs > continuation_value) * 1
         which[:, -1] = 1  # Must exercise at maturity
         which[:, 0] = 0  # Cannot exercise before t=1
 
         # Find optimal exercise time for each path
         ex_dates = np.argmax(which, axis=1)
+
+        # NEW: Track exercise dates for statistics
+        self._exercise_dates = ex_dates.copy()
 
         # Compute discounted payoffs
         prices = np.take_along_axis(

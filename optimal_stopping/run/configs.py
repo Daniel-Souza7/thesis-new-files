@@ -61,7 +61,10 @@ class _DefaultConfig:
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
   barriers: Iterable[float] = (1,)  # Barrier level (None = use default)
+  barriers_up: Iterable[float] = (1,)  # Barrier level (None = use default)
+  barriers_down: Iterable[float] = (1,)  # Barrier level (None = use default)
   representations: Iterable[str] = ('TablePriceDuration',)
+
   # When adding a filter here, also add to filtering.py and read_data.py
 
 
@@ -102,6 +105,20 @@ class _VerySmallDimensionTable(_DefaultConfig):
 '''
 Comparison prices and computation time 
 '''
+
+doublebarriers= _FasterTable(
+    algos=['SRLSM', 'SRFQI'],  # Only path-dependent algorithms
+    payoffs=[
+        'DoubleBarrierBasketCall',
+    ],
+    nb_stocks=[15, 50],
+    strikes=[100],
+    spots=[100],
+    nb_paths=[10000],
+    nb_dates=[9],
+    barriers_up=[110],
+    barriers_down=[90]
+)
 
 smoketest = _FasterTable(
     algos = ('RFQI', 'RLSM'),
@@ -261,22 +278,56 @@ debug22 = _FasterTable(
         'DownAndOutGeometricBasketCall', 'DownAndOutGeometricBasketPut',
         # Up-And-In (8)
         'UpAndInMaxCall', 'UpAndInMaxPut',
-
+        'UpAndInMinCall', 'UpAndInMinPut',
         'UpAndInBasketCall', 'UpAndInBasketPut',
         'UpAndInGeometricBasketCall', 'UpAndInGeometricBasketPut',
         # Down-And-In (8)
         'DownAndInMaxCall', 'DownAndInMaxPut',
-
+        'DownAndInMinCall', 'DownAndInMinPut',
         'DownAndInBasketCall', 'DownAndInBasketPut',
         'DownAndInGeometricBasketCall', 'DownAndInGeometricBasketPut',
     ),
-    barriers = (80, 90, 95, 100, 105, 110, 120, 100000),
+    barriers = (1, 80, 90, 95, 100, 105, 110, 120, 100000),
     strikes = (100,),
     spots = (100,),
     use_payoff_as_input = (True,),
     nb_runs = 5,
     nb_paths = (10000,),
     nb_dates = (8,))
+
+debug22neg = _FasterTable(
+    algos = ('SRFQI', 'SRLSM'),
+    nb_stocks =(15, 25, 50),
+    payoffs = (# Standard (8)
+        # Up-And-Out (8)
+        'UpAndOutMaxCall', 'UpAndOutMaxPut',
+        'UpAndOutMinCall', 'UpAndOutMinPut',
+        'UpAndOutBasketCall', 'UpAndOutBasketPut',
+        'UpAndOutGeometricBasketCall', 'UpAndOutGeometricBasketPut',
+        # Down-And-Out (8)
+        'DownAndOutMaxCall', 'DownAndOutMaxPut',
+        'DownAndOutMinCall', 'DownAndOutMinPut',
+        'DownAndOutBasketCall', 'DownAndOutBasketPut',
+        'DownAndOutGeometricBasketCall', 'DownAndOutGeometricBasketPut',
+        # Up-And-In (8)
+        'UpAndInMaxCall', 'UpAndInMaxPut',
+        'UpAndInMinCall', 'UpAndInMinPut',
+        'UpAndInBasketCall', 'UpAndInBasketPut',
+        'UpAndInGeometricBasketCall', 'UpAndInGeometricBasketPut',
+        # Down-And-In (8)
+        'DownAndInMaxCall', 'DownAndInMaxPut',
+        'DownAndInMinCall', 'DownAndInMinPut',
+        'DownAndInBasketCall', 'DownAndInBasketPut',
+        'DownAndInGeometricBasketCall', 'DownAndInGeometricBasketPut',
+    ),
+    barriers = (1, 80, 90, 95, 100, 105, 110, 120, 100000),
+    strikes = (100,),
+    spots = (100,),
+    use_payoff_as_input = (True,),
+    nb_runs = 5,
+    nb_paths = (10000,),
+    nb_dates = (8,),
+    drift=[-0.02])
 
 
 debug222 = _FasterTable(
@@ -355,6 +406,23 @@ smoketest2 = _FasterTable(
     nb_paths = (20000,),
     nb_dates = (10,), drift=(0.01,), hurst = [0.05])
 
+lookback_config = _FasterTable(
+    algos=['SRLSM', 'SRFQI'],  # Only path-dependent algorithms
+    payoffs=[
+        'LookbackFixedCall',
+        'LookbackFixedPut',
+        'LookbackFloatCall',
+        'LookbackFloatPut',
+        'LookbackMaxCall',
+        'LookbackMinPut',
+    ],
+    nb_stocks=[5, 10],
+    strikes=[100],
+    barriers=[1,],
+    spots=[100],
+    nb_paths=[10000],
+    nb_dates=[9],
+)
 # teste servidores
 teste_servidores4747 = _FasterTable(payoffs=['MaxCall', 'BasketCall'], use_payoff_as_input=(True, False))
 

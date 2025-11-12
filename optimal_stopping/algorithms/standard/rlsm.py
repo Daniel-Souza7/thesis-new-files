@@ -121,12 +121,14 @@ class RLSM:
         # Split into training and evaluation sets
         self.split = len(stock_paths) // train_eval_split
 
-        # Setup
         nb_paths, nb_stocks_plus, nb_dates = stock_paths.shape
         disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
 
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
+
+        # NEW: Track exercise dates (initialize to maturity)
+        self._exercise_dates = np.full(nb_paths, nb_dates - 1, dtype=int)
 
         # Backward induction from T-1 to 1
         for date in range(nb_dates - 2, 0, -1):
@@ -151,6 +153,10 @@ class RLSM:
 
             # Update values based on optimal exercise decision
             exercise_now = immediate_exercise > continuation_values
+
+            # NEW: Track exercise dates - only update if exercising earlier
+            self._exercise_dates[exercise_now] = date
+
             values[exercise_now] = immediate_exercise[exercise_now]
             values[~exercise_now] *= disc_factor
 
@@ -159,6 +165,15 @@ class RLSM:
 
         # Return average price on evaluation set, discounted to time 0
         return max(payoff_0[0], np.mean(values[self.split:]) * disc_factor), time_path_gen
+
+    def get_exercise_time(self):
+        """Return average exercise time normalized to [0, 1]."""
+        if not hasattr(self, '_exercise_dates'):
+            return None
+
+        nb_dates = self.model.nb_dates  # ✅ CORRECT
+        normalized_times = self._exercise_dates / nb_dates
+        return float(np.mean(normalized_times))
 
     def _learn_continuation(self, current_state, future_values, immediate_exercise):
         """

@@ -14,7 +14,7 @@ INDEX = [
     "nb_stocks", "nb_paths", "nb_dates", "spot", "strike",
     "dividend", "barrier", "maturity",
     "nb_epochs", "hidden_size", "factors", "ridge_coeff",
-    "use_payoff_as_input", "train_ITM_only",
+    "use_payoff_as_input", "train_ITM_only", "barriers_up", "barriers_down"
 ]
 
 old_new_algo_dict = {
