@@ -583,6 +583,14 @@ STOCK_MODELS = {
     "HestonWithVar": HestonWithVar,
     "RoughHestonWithVar": RoughHestonWithVar,
 }
+
+# Import RealDataModel if available (requires yfinance)
+try:
+    from optimal_stopping.data.real_data import RealDataModel
+    STOCK_MODELS['RealData'] = RealDataModel
+except ImportError:
+    pass  # yfinance not installed, RealData model not available
+
 # ==============================================================================
 
 
