@@ -1,0 +1,10 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+numpy
+torch
+scikit-learn
+scipy
+joblib
+pandas
+yfinance
+fbm
