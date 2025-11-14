@@ -61,10 +61,12 @@ from optimal_stopping.payoffs.barriers import (
 
 # Lookback options
 from optimal_stopping.payoffs.lookbacks import (
-    LookbackFloatingStrikeCall,
-    LookbackFloatingStrikePut,
-    LookbackFixedStrikeCall,
-    LookbackFixedStrikePut,
+    LookbackFixedCall,
+    LookbackFixedPut,
+    LookbackFloatCall,
+    LookbackFloatPut,
+    LookbackMaxCall,
+    LookbackMinPut,
 )
 
 # Double barrier options
@@ -120,8 +122,9 @@ __all__ = [
     'DownAndInBasketCall', 'DownAndInBasketPut', 'DownAndInMaxCall', 'DownAndInMaxPut',
     'DownAndInMinCall', 'DownAndInMinPut', 'DownAndInGeometricBasketCall', 'DownAndInGeometricBasketPut',
     # Lookbacks
-    'LookbackFloatingStrikeCall', 'LookbackFloatingStrikePut',
-    'LookbackFixedStrikeCall', 'LookbackFixedStrikePut',
+    'LookbackFixedCall', 'LookbackFixedPut',
+    'LookbackFloatCall', 'LookbackFloatPut',
+    'LookbackMaxCall', 'LookbackMinPut',
     # Double Barriers
     'DoubleKnockOutCall', 'DoubleKnockOutPut', 'DoubleKnockInCall', 'DoubleKnockInPut',
     'UpInDownOutCall', 'UpInDownOutPut', 'UpOutDownInCall', 'UpOutDownInPut',
