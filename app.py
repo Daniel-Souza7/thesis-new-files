@@ -23,7 +23,8 @@ from optimal_stopping.algorithms.standard.dos import DOS
 from optimal_stopping.algorithms.standard.fqi import FQI
 
 # Import models and payoffs
-from optimal_stopping.data import black_scholes, real_data
+from optimal_stopping.data.stock_model import BlackScholes
+from optimal_stopping.data.real_data import RealDataModel
 from optimal_stopping.payoffs import basket_payoffs
 
 # Page config
@@ -273,7 +274,7 @@ with tab2:
         time.sleep(0.3)
 
         if model_type == "Black-Scholes":
-            model = black_scholes.BlackScholesModel(
+            model = BlackScholes(
                 nb_stocks=nb_stocks,
                 nb_paths=nb_paths,
                 nb_dates=nb_dates,
@@ -285,7 +286,7 @@ with tab2:
                 drift=drift
             )
         else:  # Real Data
-            model = real_data.RealDataModel(
+            model = RealDataModel(
                 nb_stocks=nb_stocks,
                 nb_paths=nb_paths,
                 nb_dates=nb_dates,
@@ -561,7 +562,7 @@ with tab4:
 
             # Setup model and payoff once
             if model_type == "Black-Scholes":
-                model = black_scholes.BlackScholesModel(
+                model = BlackScholes(
                     nb_stocks=nb_stocks,
                     nb_paths=nb_paths,
                     nb_dates=nb_dates,
@@ -573,7 +574,7 @@ with tab4:
                     drift=drift
                 )
             else:
-                model = real_data.RealDataModel(
+                model = RealDataModel(
                     nb_stocks=nb_stocks,
                     nb_paths=nb_paths,
                     nb_dates=nb_dates,
