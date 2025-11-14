@@ -103,6 +103,22 @@ from optimal_stopping.payoffs.leverage import (
     LeveragedBasketShortStopLoss,
 )
 
+# Game payoffs (challenge payoffs with varying difficulty)
+from optimal_stopping.payoffs.game_payoffs import (
+    # MEDIUM difficulty
+    UpAndOutCall,
+    DownAndOutBasketPut,
+    DoubleBarrierMaxCall,
+    # HARD difficulty
+    GameStepBarrierCall,
+    GameUpAndOutMinPut,
+    DownAndOutBestOfKCall,
+    # IMPOSSIBLE difficulty
+    DoubleBarrierLookbackFloatingPut,
+    DoubleBarrierRankWeightedBasketCall,
+    DoubleStepBarrierDispersionCall,
+)
+
 __all__ = [
     # Base
     'Payoff',
@@ -136,4 +152,11 @@ __all__ = [
     # Leverage
     'LeveragedBasketLongPosition', 'LeveragedBasketShortPosition',
     'LeveragedBasketLongStopLoss', 'LeveragedBasketShortStopLoss',
+    # Game Payoffs (MEDIUM)
+    'UpAndOutCall', 'DownAndOutBasketPut', 'DoubleBarrierMaxCall',
+    # Game Payoffs (HARD)
+    'GameStepBarrierCall', 'GameUpAndOutMinPut', 'DownAndOutBestOfKCall',
+    # Game Payoffs (IMPOSSIBLE)
+    'DoubleBarrierLookbackFloatingPut', 'DoubleBarrierRankWeightedBasketCall',
+    'DoubleStepBarrierDispersionCall',
 ]

@@ -82,6 +82,14 @@ from optimal_stopping.payoffs.leverage import (
     LeveragedBasketLongStopLoss, LeveragedBasketShortStopLoss
 )
 
+# Game payoffs (challenge payoffs)
+from optimal_stopping.payoffs.game_payoffs import (
+    UpAndOutCall, DownAndOutBasketPut, DoubleBarrierMaxCall,
+    GameStepBarrierCall, GameUpAndOutMinPut, DownAndOutBestOfKCall,
+    DoubleBarrierLookbackFloatingPut, DoubleBarrierRankWeightedBasketCall,
+    DoubleStepBarrierDispersionCall
+)
+
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
@@ -260,6 +268,20 @@ _PAYOFFS = {
     "LeveragedBasketShortPosition": LeveragedBasketShortPosition,
     "LeveragedBasketLongStopLoss": LeveragedBasketLongStopLoss,
     "LeveragedBasketShortStopLoss": LeveragedBasketShortStopLoss,
+
+    # Game payoffs (9 challenge payoffs)
+    # MEDIUM difficulty
+    "UpAndOutCall": UpAndOutCall,
+    "DownAndOutBasketPut": DownAndOutBasketPut,
+    "DoubleBarrierMaxCall": DoubleBarrierMaxCall,
+    # HARD difficulty
+    "GameStepBarrierCall": GameStepBarrierCall,
+    "GameUpAndOutMinPut": GameUpAndOutMinPut,
+    "DownAndOutBestOfKCall": DownAndOutBestOfKCall,
+    # IMPOSSIBLE difficulty
+    "DoubleBarrierLookbackFloatingPut": DoubleBarrierLookbackFloatingPut,
+    "DoubleBarrierRankWeightedBasketCall": DoubleBarrierRankWeightedBasketCall,
+    "DoubleStepBarrierDispersionCall": DoubleStepBarrierDispersionCall,
 }
 
 
@@ -424,8 +446,43 @@ def _run_algo(
     is_leverage_basic = payoff_name in ['LeveragedBasketLongPosition', 'LeveragedBasketShortPosition']
     is_leverage_stoploss = payoff_name in ['LeveragedBasketLongStopLoss', 'LeveragedBasketShortStopLoss']
 
+    # Game payoffs
+    is_game_step_barrier = payoff_name in ['GameStepBarrierCall', 'DoubleStepBarrierDispersionCall']
+    is_game_bestofk_barrier = payoff_name == 'DownAndOutBestOfKCall'
+    is_game_single_barrier = payoff_name in ['UpAndOutCall', 'DownAndOutBasketPut', 'GameUpAndOutMinPut']
+    is_game_double_barrier = payoff_name in [
+        'DoubleBarrierMaxCall', 'DoubleBarrierLookbackFloatingPut', 'DoubleBarrierRankWeightedBasketCall'
+    ]
+
     # Instantiate payoff
-    if is_double_barrier:
+    if is_game_step_barrier:
+        # Game payoffs with stochastic step barriers
+        if payoff_name == 'GameStepBarrierCall':
+            payoff_obj = _PAYOFFS[payoff_name](strike, initial_barrier=barrier_up if barrier_up else 120)
+        else:  # DoubleStepBarrierDispersionCall
+            payoff_obj = _PAYOFFS[payoff_name](
+                strike,
+                barrier_up=barrier_up if barrier_up else 120,
+                barrier_down=barrier_down if barrier_down else 80
+            )
+    elif is_game_bestofk_barrier:
+        # DownAndOutBestOfKCall - needs barrier and k
+        payoff_obj = _PAYOFFS[payoff_name](
+            strike,
+            barrier=barrier if barrier else 80,
+            k=k if k is not None else 2
+        )
+    elif is_game_single_barrier:
+        # Game payoffs with single barrier
+        payoff_obj = _PAYOFFS[payoff_name](strike, barrier=barrier if barrier else 120)
+    elif is_game_double_barrier:
+        # Game payoffs with double barriers
+        payoff_obj = _PAYOFFS[payoff_name](
+            strike,
+            barrier_up=barrier_up if barrier_up else 120,
+            barrier_down=barrier_down if barrier_down else 80
+        )
+    elif is_double_barrier:
         # Double barriers need both levels
         payoff_obj = _PAYOFFS[payoff_name](strike, barrier_up=barrier_up, barrier_down=barrier_down)
     elif is_single_barrier:
