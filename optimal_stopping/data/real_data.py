@@ -110,8 +110,8 @@ class RealDataModel(Model):
             self.avg_block_length = self._estimate_block_length()
 
         print(f"✅ Loaded {len(self.returns)} days of returns")
-        print(f"   Average return: {self.empirical_drift_annual:.2%}")
-        print(f"   Average volatility: {self.empirical_vol_annual:.2%}")
+        print(f"   Average return: {np.mean(self.empirical_drift_annual):.2%}")
+        print(f"   Average volatility: {np.mean(self.empirical_vol_annual):.2%}")
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self) -> List[str]:
