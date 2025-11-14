@@ -27,8 +27,11 @@ FILTERS = [
     ("ridge_coeff", "ridge_coeff"),
     ("use_payoff_as_input", "use_payoff_as_input"),
     ("barriers_up", "barriers_up"),
-    ("barriers_down", "barriers_down")
-
+    ("barriers_down", "barriers_down"),
+    ("k", "k"),
+    ("notional", "notional"),
+    ("leverage", "leverage"),
+    ("barrier_stop_loss", "barrier_stop_loss")
 ]
 
 FLAGS = flags.FLAGS
