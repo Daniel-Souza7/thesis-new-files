@@ -119,16 +119,26 @@ def extract_data_for_excel(config: configs._DefaultConfig):
 
     # Filter by other parameters (not algo yet)
     from optimal_stopping.utilities import filtering
+
+    # Check if RealData model is being used (auto-adjusts nb_stocks)
+    has_realdata = False
+    if hasattr(config, 'stock_models') and config.stock_models:
+        has_realdata = 'RealData' in config.stock_models
+
     for filter_name, column_name in filtering.FILTERS:
         if filter_name == 'algos':
             continue  # Skip algo filter for now
-
 
         if column_name not in df.index.names:
             continue
 
         values = list(getattr(config, filter_name, []))
         if not values:
+            continue
+
+        # Skip nb_stocks filter when using RealData (it auto-adjusts to available tickers)
+        if filter_name == 'nb_stocks' and has_realdata:
+            print(f"  Skipping nb_stocks filter (RealData auto-adjusts to available tickers)")
             continue
 
         if filter_name == "factors":
