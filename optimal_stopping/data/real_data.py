@@ -314,6 +314,16 @@ class RealDataModel(Model):
                 if isinstance(self.prices, pd.DataFrame) and len(self.prices.columns) == 0:
                     raise ValueError("No valid tickers found.")
 
+                # Update nb_stocks to match actual number of valid tickers
+                # This prevents shape mismatches when config requests more stocks than available
+                actual_stocks = len(self.tickers)
+                if actual_stocks < self.nb_stocks:
+                    warnings.warn(
+                        f"Requested {self.nb_stocks} stocks but only {actual_stocks} valid tickers available. "
+                        f"Using {actual_stocks} stocks."
+                    )
+                    self.nb_stocks = actual_stocks
+
                 # Success - break out of retry loop
                 break
 
