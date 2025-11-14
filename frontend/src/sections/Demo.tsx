@@ -17,7 +17,7 @@ const Demo = () => {
   const [payoff, setPayoff] = useState<PayoffType>('MaxCall');
 
   // Market parameters
-  const [nbStocks, setNbStocks] = useState(5);
+  const [nbStocks, setNbStocks] = useState(10);
   const [spot, setSpot] = useState(100);
   const [strike, setStrike] = useState(100);
   const [volatility, setVolatility] = useState(0.2);
@@ -141,7 +141,7 @@ const Demo = () => {
                       Number of Stocks: {nbStocks}
                     </label>
                     <input
-                      type="range" min="2" max="10" value={nbStocks}
+                      type="range" min="5" max="20" value={nbStocks}
                       onChange={(e) => setNbStocks(Number(e.target.value))}
                       className="w-full"
                     />

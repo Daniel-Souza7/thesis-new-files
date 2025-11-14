@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { motion } from 'framer-motion';
 import { Copy, Check, Code2 } from 'lucide-react';
@@ -20,6 +20,11 @@ const CodeEditor = ({
 }: CodeEditorProps) => {
   const [code, setCode] = useState(defaultCode);
   const [copied, setCopied] = useState(false);
+
+  // Update code when defaultCode changes
+  useEffect(() => {
+    setCode(defaultCode);
+  }, [defaultCode]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);

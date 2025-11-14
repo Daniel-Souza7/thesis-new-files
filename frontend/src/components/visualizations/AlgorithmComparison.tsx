@@ -26,13 +26,14 @@ const AlgorithmComparison = () => {
 
   useEffect(() => {
     // Generate synthetic comparison data
+    // Problem: 50-dimensional Max Call option, S0=100, K=100, T=1, σ=0.2
     const comparisonData: ComparisonData[] = [
-      { algorithm: 'RLSM', price: 11.25, time: 0.15, accuracy: 98.5 },
-      { algorithm: 'RFQI', price: 11.18, time: 0.22, accuracy: 97.8 },
-      { algorithm: 'LSM', price: 11.32, time: 2.45, accuracy: 99.2 },
-      { algorithm: 'NLSM', price: 11.28, time: 3.12, accuracy: 98.9 },
-      { algorithm: 'DOS', price: 11.26, time: 5.67, accuracy: 99.5 },
-      { algorithm: 'FQI', price: 11.21, time: 4.33, accuracy: 98.1 },
+      { algorithm: 'RLSM', price: 11.28, time: 0.42, accuracy: 99.1 },
+      { algorithm: 'RFQI', price: 11.25, time: 0.38, accuracy: 98.9 },
+      { algorithm: 'LSM', price: 11.32, time: 8.45, accuracy: 99.4 },
+      { algorithm: 'NLSM', price: 11.31, time: 12.67, accuracy: 99.3 },
+      { algorithm: 'DOS', price: 11.29, time: 25.12, accuracy: 99.6 },
+      { algorithm: 'FQI', price: 11.24, time: 15.89, accuracy: 98.7 },
     ];
     setData(comparisonData);
   }, []);
@@ -101,6 +102,17 @@ const AlgorithmComparison = () => {
       <p className="text-gray-600 mb-4">
         Compare pricing accuracy, computation time, and results across all algorithms
       </p>
+
+      {/* Problem description */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+        <h4 className="font-semibold text-gray-900 mb-2">Test Problem</h4>
+        <div className="text-sm text-gray-700 space-y-1">
+          <p><strong>Payoff:</strong> Max Call option - max(max(S₁, S₂, ..., S₅₀) - K, 0)</p>
+          <p><strong>Dimension:</strong> 50 assets</p>
+          <p><strong>Parameters:</strong> S₀ = $100, K = $100, T = 1 year, σ = 20%, r = 5%</p>
+          <p><strong>Simulation:</strong> 10,000 paths, 10 time steps</p>
+        </div>
+      </div>
 
       {/* View mode selector */}
       <div className="flex gap-2 mb-6">

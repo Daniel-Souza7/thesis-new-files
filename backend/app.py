@@ -158,7 +158,13 @@ def price_option():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in price_option: {error_trace}")
+        return jsonify({
+            'error': str(e),
+            'details': error_trace
+        }), 500
 
 
 @app.route('/api/generate_paths', methods=['POST'])

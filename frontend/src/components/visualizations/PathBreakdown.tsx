@@ -31,7 +31,7 @@ interface PathData {
 const PathBreakdown = () => {
   const [paths, setPaths] = useState<PathData[]>([]);
   const [selectedPath, setSelectedPath] = useState<number>(0);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
 
   useEffect(() => {
     generatePaths();
@@ -152,9 +152,10 @@ const PathBreakdown = () => {
               <YAxis
                 domain={[80, 120]}
                 label={{ value: 'Stock Price ($)', angle: -90, position: 'insideLeft' }}
+                tickFormatter={(value) => `$${Math.round(value)}`}
               />
               <Tooltip
-                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+                formatter={(value: number) => [`$${Math.round(value as number)}`, 'Price']}
                 labelFormatter={(label) => `Time: ${label.toFixed(2)}y`}
               />
               <Legend />
@@ -189,7 +190,23 @@ const PathBreakdown = () => {
                 dataKey="price"
                 stroke="#3b82f6"
                 strokeWidth={3}
-                dot={{ r: 4 }}
+                dot={(props: any) => {
+                  const { cx, cy, payload } = props;
+                  const isExercisePoint =
+                    currentPath.exerciseTime !== null &&
+                    Math.abs(payload.time - currentPath.exerciseTime) < 0.01;
+
+                  return (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isExercisePoint ? 7 : 4}
+                      fill={isExercisePoint ? '#ef4444' : '#3b82f6'}
+                      stroke={isExercisePoint ? '#dc2626' : '#3b82f6'}
+                      strokeWidth={isExercisePoint ? 2 : 1}
+                    />
+                  );
+                }}
                 name="Stock Price Path"
               />
 
