@@ -67,6 +67,21 @@ from optimal_stopping.payoffs.double_barriers import (
     PartialTimeBarrierCall, StepBarrierCall,
     DoubleKnockOutLookbackFloatingCall, DoubleKnockOutLookbackFloatingPut
 )
+
+# Niche/specialized payoffs
+from optimal_stopping.payoffs.niche import (
+    BestOfKCall, WorstOfKCall,
+    RankWeightedBasketCall,
+    ChooserBasketOption,
+    RangeCall, DispersionCall
+)
+
+# Leveraged positions
+from optimal_stopping.payoffs.leverage import (
+    LeveragedBasketLongPosition, LeveragedBasketShortPosition,
+    LeveragedBasketLongStopLoss, LeveragedBasketShortStopLoss
+)
+
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
@@ -148,14 +163,15 @@ flags.DEFINE_integer("train_eval_split", 2,
 _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'speed', 'correlation', 'hurst', 'nb_stocks',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
-                'barrier', 'barriers_up', 'barriers_down',  # ADD barriers_up, barriers_down
+                'barrier', 'barriers_up', 'barriers_down',
+                'k', 'notional', 'leverage', 'barrier_stop_loss',  # NEW parameters
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input',
                 'train_ITM_only',
                 'price', 'duration', 'time_path_gen', 'comp_time',
                 'delta', 'gamma', 'theta', 'rho', 'vega', 'greeks_method',
                 'price_upper_bound',
-                'exercise_time']  # ADD THIS LINE
+                'exercise_time']
 
 
 # NEW PAYOFFS DICTIONARY - Updated for new structure
@@ -230,6 +246,20 @@ _PAYOFFS = {
     "StepBarrierCall": StepBarrierCall,
     "DoubleKnockOutLookbackFloatingCall": DoubleKnockOutLookbackFloatingCall,
     "DoubleKnockOutLookbackFloatingPut": DoubleKnockOutLookbackFloatingPut,
+
+    # Niche/specialized payoffs (7)
+    "BestOfKCall": BestOfKCall,
+    "WorstOfKCall": WorstOfKCall,
+    "RankWeightedBasketCall": RankWeightedBasketCall,
+    "ChooserBasketOption": ChooserBasketOption,
+    "RangeCall": RangeCall,
+    "DispersionCall": DispersionCall,
+
+    # Leveraged positions (4)
+    "LeveragedBasketLongPosition": LeveragedBasketLongPosition,
+    "LeveragedBasketShortPosition": LeveragedBasketShortPosition,
+    "LeveragedBasketLongStopLoss": LeveragedBasketLongStopLoss,
+    "LeveragedBasketShortStopLoss": LeveragedBasketShortStopLoss,
 }
 
 
@@ -305,7 +335,8 @@ def _run_algos():
             config.spots, config.stock_models, config.strikes, config.barriers,
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
-            config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input))
+            config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
+            config.k, config.notional, config.leverage, config.barrier_stop_loss))
 
         for params in combinations:
             for i in range(config.nb_runs):
@@ -321,8 +352,8 @@ def _run_algos():
                     reg_eps=FLAGS.reg_eps, path_gen_seed=FLAGS.path_gen_seed,
                     compute_upper_bound=FLAGS.compute_upper_bound,
                     DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split,
-                    barrier_up=getattr(config, 'barriers_up', [None])[0],  # ADD HERE
-                    barrier_down=getattr(config, 'barriers_down', [None])[0]))  # ADD HERE
+                    barrier_up=getattr(config, 'barriers_up', [None])[0],
+                    barrier_down=getattr(config, 'barriers_down', [None])[0]))
 
 
     print(f"Running {len(delayed_jobs)} tasks using "
@@ -368,7 +399,8 @@ def _run_algo(
         poly_deg=None, fd_freeze_exe_boundary=True,
         fd_compute_gamma_via_PDE=True, reg_eps=None, path_gen_seed=None,
         compute_upper_bound=False,
-        DEBUG=False, train_eval_split=2, barrier_up=None, barrier_down=None,):
+        DEBUG=False, train_eval_split=2, barrier_up=None, barrier_down=None,
+        k=None, notional=None, leverage=None, barrier_stop_loss=None):
     """
     Run one algorithm for option pricing.
 
@@ -385,8 +417,12 @@ def _run_algo(
 
     # Determine payoff type
     is_single_barrier = any(x in payoff_name for x in ['UpAnd', 'DownAnd'])
-    is_double_barrier = 'DoubleBarrier' in payoff_name or 'DualBarrier' in payoff_name
+    is_double_barrier = any(x in payoff_name for x in ['DoubleKnock', 'DualBarrier', 'UpInDown', 'UpOutDown',
+                                                        'PartialTime', 'StepBarrier'])
     is_lookback = 'Lookback' in payoff_name
+    is_niche_k = payoff_name in ['BestOfKCall', 'WorstOfKCall']
+    is_leverage_basic = payoff_name in ['LeveragedBasketLongPosition', 'LeveragedBasketShortPosition']
+    is_leverage_stoploss = payoff_name in ['LeveragedBasketLongStopLoss', 'LeveragedBasketShortStopLoss']
 
     # Instantiate payoff
     if is_double_barrier:
@@ -397,8 +433,26 @@ def _run_algo(
         payoff_obj = _PAYOFFS[payoff_name](strike, barrier=barrier)
     elif is_lookback:
         payoff_obj = _PAYOFFS[payoff_name](strike)
+    elif is_niche_k:
+        # Niche payoffs with k parameter
+        payoff_obj = _PAYOFFS[payoff_name](strike, k=k if k is not None else 2)
+    elif is_leverage_stoploss:
+        # Leverage with stop-loss
+        payoff_obj = _PAYOFFS[payoff_name](
+            strike,
+            notional=notional if notional is not None else 1.0,
+            leverage=leverage if leverage is not None else 2.0,
+            barrier_stop_loss=barrier_stop_loss if barrier_stop_loss is not None else (0.9 if 'Long' in payoff_name else 1.1)
+        )
+    elif is_leverage_basic:
+        # Basic leverage payoffs
+        payoff_obj = _PAYOFFS[payoff_name](
+            strike,
+            notional=notional if notional is not None else 1.0,
+            leverage=leverage if leverage is not None else 2.0
+        )
     else:
-        # Standard
+        # Standard payoffs
         payoff_obj = _PAYOFFS[payoff_name](strike)
 
     # Check if payoff is path-dependent
@@ -541,6 +595,10 @@ def _run_algo(
         'barrier': barrier,
         'barriers_up': barrier_up,
         'barriers_down': barrier_down,
+        'k': k,
+        'notional': notional,
+        'leverage': leverage,
+        'barrier_stop_loss': barrier_stop_loss,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,

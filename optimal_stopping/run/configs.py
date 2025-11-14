@@ -61,8 +61,12 @@ class _DefaultConfig:
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
   barriers: Iterable[float] = (1,)  # Barrier level (None = use default)
-  barriers_up: Iterable[float] = (1,)  # Barrier level (None = use default)
-  barriers_down: Iterable[float] = (1,)  # Barrier level (None = use default)
+  barriers_up: Iterable[float] = (1,)  # Upper barrier (for double barriers)
+  barriers_down: Iterable[float] = (1,)  # Lower barrier (for double barriers)
+  k: Iterable[int] = (2,)  # Number of stocks for BestOfK/WorstOfK payoffs
+  notional: Iterable[float] = (1.0,)  # Notional amount for leverage payoffs
+  leverage: Iterable[float] = (2.0,)  # Leverage factor for leverage payoffs
+  barrier_stop_loss: Iterable[float] = (0.9,)  # Stop-loss barrier for leverage payoffs
   representations: Iterable[str] = ('TablePriceDuration',)
 
   # When adding a filter here, also add to filtering.py and read_data.py
