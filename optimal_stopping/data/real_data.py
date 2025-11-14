@@ -63,15 +63,23 @@ class RealDataModel(Model):
             end_date: End date for historical data (YYYY-MM-DD)
             exclude_crisis: If True, exclude 2008 and 2020 crisis periods
             only_crisis: If True, only use crisis periods (overrides exclude_crisis)
-            drift_override: Override historical drift (None = use historical mean)
-            volatility_override: Override historical volatility (None = use historical)
+            drift_override: Override historical drift (None = use config drift if available, else historical)
+            volatility_override: Override historical volatility (None = use config vol if available, else historical)
             avg_block_length: Average block length (None = auto-calculate from data)
             cache_data: Cache downloaded data to avoid re-downloading
             **kwargs: Additional arguments passed to Model base class
+                     Note: If 'drift' or 'volatility' in kwargs, they're used as overrides
         """
         # Set default tickers if none provided
         if tickers is None:
             tickers = self._get_default_tickers()
+
+        # Extract drift/volatility from kwargs if not explicitly provided
+        # This allows configs to work: drift=0.05 in config → drift_override=0.05
+        if drift_override is None and 'drift' in kwargs:
+            drift_override = kwargs['drift']
+        if volatility_override is None and 'volatility' in kwargs:
+            volatility_override = kwargs['volatility']
 
         # Validate number of stocks matches tickers
         nb_stocks = kwargs.get('nb_stocks', len(tickers))
