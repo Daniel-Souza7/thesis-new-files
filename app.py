@@ -174,7 +174,7 @@ with tab1:
 
         st.latex(r"V_t(S_t) = \max\left\{g(S_t), \, \mathbb{E}\left[e^{-r\Delta t}V_{t+1}(S_{t+1}) \mid S_t\right]\right\}")
 
-        st.markdown("""
+        st.markdown(r"""
         </div>
 
         Where:
@@ -206,9 +206,9 @@ with tab1:
         Uses randomized neural networks with frozen weights as basis functions:
         """)
         st.latex(r"C_t(S_t) \approx \sum_{i=1}^{H} \beta_i \cdot \phi(\mathbf{W}_i^T S_t)")
-        st.markdown("""
+        st.markdown(r"""
         - Random weights $\mathbf{W}_i$ are **frozen** (not trained)
-        - Only output coefficients $\\beta_i$ are learned via least squares
+        - Only output coefficients $\beta_i$ are learned via least squares
         - Fast and stable - no gradient descent needed
         """)
 
