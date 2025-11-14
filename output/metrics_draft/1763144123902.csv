@@ -1,0 +1,5 @@
+algo,model,payoff,drift,volatility,mean,speed,correlation,hurst,nb_stocks,nb_paths,nb_dates,spot,strike,dividend,barrier,barriers_up,barriers_down,k,notional,leverage,barrier_stop_loss,maturity,nb_epochs,hidden_size,factors,ridge_coeff,use_payoff_as_input,train_ITM_only,price,duration,time_path_gen,comp_time,delta,gamma,theta,rho,vega,greeks_method,price_upper_bound,exercise_time
+RLSM,RealData,BasketCall,0.02,0.2,0.01,2,-0.3,0.75,500,10000,12,100,100,0.0,1,1,1,2,1.0,2.0,0.9,1,30,20,"(1.0, 1.0, 1.0)",1.0,True,True,0.4853985310040692,2.405033826828003,1.460784673690796,0.944249153137207,,,,,,central,,0.3777833333333333
+
+RLSM,RealData,BasketCall,0.02,0.2,0.01,2,-0.3,0.75,500,10000,12,100,100,0.0,1,1,1,2,1.0,2.0,0.9,1,30,20,"(1.0, 1.0, 1.0)",1.0,True,True,0.5723412882476243,2.2841148376464844,1.4818131923675537,0.8023016452789307,,,,,,central,,0.45265
+
