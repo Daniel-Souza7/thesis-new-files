@@ -1334,6 +1334,248 @@ test_new_payoffsgames7 = _FasterTable( algos=['SRLSM'], payoffs=['DoubleBarrierM
     'DoubleStepBarrierDispersionCall'], nb_stocks=[7], barriers=[80, 85, 115, 125], barriers_up=[115, 125], barriers_down=[80, 85])
 
 # ==============================================================================
+# REAL DATA vs BLACK-SCHOLES COMPARISON CONFIGS
+# ==============================================================================
+
+# Compare vanilla options: Real market data vs theoretical BS
+real_vs_bs_vanilla = _FasterTable(
+    # Compare both models
+    stock_models=['BlackScholes', 'RealData'],
+
+    # Use both standard and path-dependent algorithms
+    algos=['RLSM', 'RFQI', 'SRLSM', 'SRFQI'],
+
+    # Test various vanilla basket options
+    payoffs=[
+        'MaxCall', 'MaxPut',
+        'BasketCall', 'BasketPut',
+        'MinCall', 'MinPut',
+    ],
+
+    # Multiple dimensionalities
+    nb_stocks=[3, 5, 10],
+
+    # Standard parameters
+    strikes=[100],
+    spots=[100],
+    volatilities=[0.2],  # 20% vol for BS
+    drift=[0.05],  # 5% drift for BS (RealData will use historical)
+
+    # Time parameters
+    nb_paths=[20000],
+    nb_dates=[52],  # ~3 months
+    maturities=[0.25],  # 3 months
+
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Compare barrier options: Real vs BS
+real_vs_bs_barriers = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['SRLSM', 'SRFQI'],  # Path-dependent algorithms
+
+    payoffs=[
+        # Up-and-Out
+        'UpAndOutMaxCall',
+        'UpAndOutBasketCall',
+        # Down-and-Out
+        'DownAndOutMaxCall',
+        'DownAndOutBasketCall',
+        # Up-and-In
+        'UpAndInMaxCall',
+        'UpAndInBasketCall',
+    ],
+
+    nb_stocks=[5],
+    strikes=[100],
+    spots=[100],
+    barriers=[80, 90, 110, 120],  # Different barrier levels
+
+    volatilities=[0.25],
+    drift=[0.05],
+
+    nb_paths=[20000],
+    nb_dates=[126],  # 6 months
+    maturities=[0.5],
+
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Compare with crisis periods: Normal vs Crisis data
+real_crisis_comparison = _FasterTable(
+    # Note: This requires modifying stock_models to pass crisis flags
+    # For now, just use RealData (which includes all periods by default)
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['RLSM', 'RFQI'],
+
+    payoffs=[
+        'MaxCall',
+        'BasketCall',
+        'MinPut',
+    ],
+
+    nb_stocks=[5],
+    strikes=[90, 100, 110],  # ITM, ATM, OTM
+    spots=[100],
+
+    volatilities=[0.2, 0.3, 0.4],  # Different vol regimes
+    drift=[0.05],
+
+    nb_paths=[20000],
+    nb_dates=[252],  # 1 year
+    maturities=[1.0],
+
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Compare game payoffs: Real vs BS
+real_vs_bs_game_payoffs = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['SRLSM', 'SRFQI'],
+
+    # Test medium difficulty game payoffs
+    payoffs=[
+        'UpAndOutCall',  # Game payoff (single stock)
+        'DownAndOutBasketPut',
+        'DoubleBarrierMaxCall',
+    ],
+
+    nb_stocks=[1, 3, 5],  # Different dimensions
+    strikes=[100],
+    spots=[100],
+    barriers=[80],  # For single barrier games
+    barriers_up=[120],
+    barriers_down=[80],
+
+    volatilities=[0.25],
+    drift=[0.05],
+
+    nb_paths=[15000],
+    nb_dates=[126],
+    maturities=[0.5],
+
+    nb_runs=8,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Quick comparison test (faster, for debugging)
+real_vs_bs_quick = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['RLSM', 'SRLSM'],
+
+    payoffs=['MaxCall', 'UpAndOutMaxCall'],
+
+    nb_stocks=[5],
+    strikes=[100],
+    spots=[100],
+    barriers=[120],
+
+    volatilities=[0.2],
+    drift=[0.05],
+
+    nb_paths=[5000],
+    nb_dates=[52],
+    maturities=[0.25],
+
+    nb_runs=3,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Comprehensive moneyness study: ITM, ATM, OTM
+real_vs_bs_moneyness = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['RLSM', 'RFQI'],
+
+    payoffs=['MaxCall', 'BasketCall', 'MinPut'],
+
+    nb_stocks=[5, 10],
+
+    # Test different moneyness levels
+    strikes=[80, 90, 100, 110, 120],  # Deep ITM to OTM
+    spots=[100],
+
+    volatilities=[0.2],
+    drift=[0.05],
+
+    nb_paths=[20000],
+    nb_dates=[126, 252],  # 6 months and 1 year
+    maturities=[0.5, 1.0],
+
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Lookback options comparison
+real_vs_bs_lookbacks = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['SRLSM', 'SRFQI'],  # Path-dependent
+
+    payoffs=[
+        'LookbackFixedCall',
+        'LookbackFixedPut',
+        'LookbackFloatCall',
+        'LookbackFloatPut',
+        'LookbackMaxCall',
+        'LookbackMinPut',
+    ],
+
+    nb_stocks=[1, 5],  # Single and multi-stock
+    strikes=[100],
+    spots=[100],
+    barriers=[1],  # Dummy barrier
+
+    volatilities=[0.25],
+    drift=[0.05],
+
+    nb_paths=[15000],
+    nb_dates=[126],
+    maturities=[0.5],
+
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Double barrier options with Real vs BS
+real_vs_bs_double_barriers = _FasterTable(
+    stock_models=['BlackScholes', 'RealData'],
+    algos=['SRLSM', 'SRFQI'],
+
+    payoffs=[
+        'DoubleKnockOutCall',
+        'DoubleKnockOutPut',
+        'PartialTimeBarrierCall',
+        'StepBarrierCall',
+    ],
+
+    nb_stocks=[3, 5],
+    strikes=[100],
+    spots=[100],
+    barriers_up=[120, 130],
+    barriers_down=[80, 70],
+
+    volatilities=[0.25],
+    drift=[0.05],
+
+    nb_paths=[15000],
+    nb_dates=[126],
+    maturities=[0.5],
+
+    nb_runs=8,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# ==============================================================================
 test_table = _SmallDimensionTable(
     spots=[10], strikes=[10],
     algos=[
