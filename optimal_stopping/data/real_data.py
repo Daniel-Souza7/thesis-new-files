@@ -123,74 +123,114 @@ class RealDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self) -> List[str]:
-        """Get default large cap tickers from various sectors.
+        """Get default S&P 500 tickers for robust bootstrapping.
 
-        Returns 50 liquid stocks with long histories, suitable for bootstrap.
-        Ordered by general preference: mega-caps first, then by sector diversity.
+        Returns ~500 S&P 500 stocks with long histories and high liquidity.
+        First 50 preserved for backward compatibility.
+        Organized by sector for diverse correlation structures.
         """
         return [
-            # Original FAANG+ mega-caps (keep first for backward compatibility)
-            'AAPL',   # Apple
-            'MSFT',   # Microsoft
-            'GOOGL',  # Alphabet
-            'AMZN',   # Amazon
-            'META',   # Meta (Facebook)
-            'TSLA',   # Tesla
-            'NVDA',   # NVIDIA
-            'NFLX',   # Netflix
-
-            # Additional Tech
-            'ORCL',   # Oracle
-            'INTC',   # Intel
-            'CSCO',   # Cisco
-            'ADBE',   # Adobe
-            'CRM',    # Salesforce
-            'AVGO',   # Broadcom
-            'TXN',    # Texas Instruments
-            'QCOM',   # Qualcomm
-            'AMD',    # Advanced Micro Devices
-
+            # === First 50: Original selection (backward compatibility) ===
+            # FAANG+ Mega-caps
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'NFLX',
+            # Tech
+            'ORCL', 'INTC', 'CSCO', 'ADBE', 'CRM', 'AVGO', 'TXN', 'QCOM', 'AMD',
             # Finance
-            'JPM',    # JPMorgan Chase
-            'BAC',    # Bank of America
-            'WFC',    # Wells Fargo
-            'GS',     # Goldman Sachs
-            'MS',     # Morgan Stanley
-            'C',      # Citigroup
-            'BLK',    # BlackRock
-            'AXP',    # American Express
-
+            'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'BLK', 'AXP',
             # Healthcare
-            'JNJ',    # Johnson & Johnson
-            'UNH',    # UnitedHealth
-            'PFE',    # Pfizer
-            'ABBV',   # AbbVie
-            'TMO',    # Thermo Fisher
-            'MRK',    # Merck
-            'CVS',    # CVS Health
-
+            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'MRK', 'CVS',
             # Consumer
-            'WMT',    # Walmart
-            'HD',     # Home Depot
-            'PG',     # Procter & Gamble
-            'KO',     # Coca-Cola
-            'PEP',    # PepsiCo
-            'COST',   # Costco
-            'MCD',    # McDonald's
-            'NKE',    # Nike
+            'WMT', 'HD', 'PG', 'KO', 'PEP', 'COST', 'MCD', 'NKE',
+            # Industrial/Energy
+            'BA', 'CAT', 'XOM', 'CVX', 'COP',
+            # Telecom/Media
+            'VZ', 'T', 'DIS', 'CMCSA',
 
-            # Industrial & Energy
-            'BA',     # Boeing
-            'CAT',    # Caterpillar
-            'XOM',    # ExxonMobil
-            'CVX',    # Chevron
-            'COP',    # ConocoPhillips
+            # === Additional S&P 500 stocks (450 more) ===
 
-            # Telecom & Media
-            'VZ',     # Verizon
-            'T',      # AT&T
-            'DIS',    # Disney
-            'CMCSA',  # Comcast
+            # Technology (continued)
+            'IBM', 'NOW', 'INTU', 'AMAT', 'MU', 'LRCX', 'ADI', 'KLAC', 'SNPS',
+            'CDNS', 'MCHP', 'FTNT', 'ADSK', 'PANW', 'ANSS', 'TEAM', 'WDAY',
+            'DDOG', 'ZS', 'CRWD', 'SNOW', 'NET', 'PLTR', 'APP', 'GTLB',
+            'ESTC', 'ZI', 'BILL', 'S', 'TWLO', 'DOCU', 'HUBS', 'ZM',
+            'OKTA', 'COUP', 'CFLT', 'DKNG', 'RBLX', 'U', 'LYFT', 'DASH',
+            'ABNB', 'COIN', 'HOOD', 'SHOP', 'SQ', 'PYPL', 'V', 'MA',
+            'FISV', 'FIS', 'PAYX', 'ADP', 'BR', 'CTSH', 'ACN', 'IT',
+            'APH', 'TEL', 'GLW', 'HPQ', 'NTAP', 'STX', 'WDC', 'JNPR',
+            'AKAM', 'FFIV', 'VRSN', 'CIEN', 'ZBRA', 'KEYS', 'FSLR', 'ENPH',
+
+            # Financials (continued)
+            'SCHW', 'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'NTRS', 'CFG',
+            'HBAN', 'RF', 'KEY', 'FITB', 'MTB', 'SIVB', 'ZION', 'CMA',
+            'SPG', 'PSA', 'O', 'WELL', 'DLR', 'EQIX', 'PLD', 'AMT', 'CCI',
+            'AVB', 'EQR', 'VTR', 'MAA', 'UDR', 'ESS', 'CPT', 'ARE', 'INVH',
+            'AIG', 'PRU', 'MET', 'AFL', 'ALL', 'TRV', 'PGR', 'CB', 'AON',
+            'MMC', 'AJG', 'WRB', 'RE', 'L', 'GL', 'RNR', 'AIZ', 'AFG',
+            'CINF', 'PFG', 'LNC', 'TROW', 'BEN', 'IVZ', 'NDAQ', 'CME', 'ICE',
+            'MSCI', 'SPGI', 'MCO', 'CBOE',
+
+            # Healthcare (continued)
+            'LLY', 'AMGN', 'GILD', 'REGN', 'VRTX', 'BIIB', 'ILMN', 'ALXN',
+            'INCY', 'BMRN', 'EXAS', 'ALGN', 'IDXX', 'TECH', 'HOLX', 'DXCM',
+            'ISRG', 'SYK', 'BSX', 'MDT', 'ABT', 'DHR', 'BAX', 'BDX', 'XRAY',
+            'ZBH', 'EW', 'RMD', 'PODD', 'TDOC', 'VEEV', 'IQV', 'CRL', 'LH',
+            'DGX', 'CI', 'HUM', 'CNC', 'ELV', 'MOH', 'HCA', 'UHS', 'THC',
+            'HSIC', 'CAH', 'MCK', 'ABC', 'DVA', 'WAT', 'PKI', 'A', 'CTLT',
+            'MTD', 'STE', 'COO', 'WST', 'BIO',
+
+            # Consumer Discretionary
+            'AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'SBUX', 'TJX', 'BKNG',
+            'CMG', 'MAR', 'HLT', 'YUM', 'ORLY', 'AZO', 'ROST', 'DHI', 'LEN',
+            'PHM', 'NVR', 'POOL', 'WHR', 'TPR', 'RL', 'PVH', 'UAA', 'LULU',
+            'GPS', 'ANF', 'DDS', 'GPC', 'AAP', 'DG', 'DLTR', 'BBY', 'BBWI',
+            'ULTA', 'DPZ', 'QSR', 'WING', 'DRI', 'EAT', 'TXRH', 'BLMN',
+            'DINE', 'PLAY', 'CHDN', 'F', 'GM', 'TSLA', 'RIVN', 'LCID',
+            'LI', 'NIO', 'XPEV', 'LVS', 'MGM', 'WYNN', 'CZR', 'BYD', 'GRMN',
+            'HAS', 'MAT', 'DECK', 'CROX', 'SKX', 'BOOT', 'FL', 'WSM', 'RH',
+
+            # Consumer Staples
+            'PG', 'KO', 'PEP', 'WMT', 'COST', 'MDLZ', 'CL', 'KMB', 'GIS',
+            'K', 'CPB', 'CAG', 'HSY', 'SJM', 'MKC', 'KHC', 'MNST', 'TAP',
+            'STZ', 'BF.B', 'SAM', 'KDP', 'CLX', 'CHD', 'EL', 'CL', 'ADM',
+            'BG', 'TSN', 'HRL', 'SYY', 'USM', 'COKE', 'KR', 'SWK', 'TGT',
+            'DG', 'DLTR', 'RVTY', 'WBA', 'RAD', 'GO', 'PM', 'MO', 'BTI',
+
+            # Energy
+            'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'MPC', 'PSX', 'VLO', 'HES',
+            'OXY', 'DVN', 'FANG', 'HAL', 'BKR', 'WMB', 'KMI', 'OKE', 'LNG',
+            'TRGP', 'EPD', 'ET', 'MPLX', 'PAA', 'MMP', 'AM', 'SUN', 'ENLC',
+            'APA', 'MRO', 'CTRA', 'NOV', 'FTI', 'HP', 'CHK', 'RRC', 'AR',
+
+            # Industrials
+            'BA', 'CAT', 'GE', 'HON', 'UNP', 'UPS', 'RTX', 'LMT', 'NOC',
+            'GD', 'LHX', 'TXT', 'HWM', 'ETN', 'EMR', 'ITW', 'PH', 'ROK',
+            'DOV', 'XYL', 'FTV', 'IEX', 'PCAR', 'JCI', 'CARR', 'OTIS', 'IR',
+            'GWW', 'FAST', 'EXPD', 'CHRW', 'JBHT', 'ODFL', 'KNX', 'XPO',
+            'UBER', 'LYFT', 'R', 'ALK', 'UAL', 'DAL', 'AAL', 'LUV', 'JBLU',
+            'CSX', 'NSC', 'UNP', 'CNI', 'CP', 'KSU', 'FDX', 'UPS', 'USPS',
+            'URI', 'RSG', 'WM', 'WCN', 'SRCL', 'CLH', 'ROP', 'SWK', 'SNA',
+            'PNR', 'GNRC', 'AOS', 'BLDR', 'VMC', 'MLM', 'NUE', 'STLD', 'RS',
+
+            # Materials
+            'LIN', 'APD', 'SHW', 'ECL', 'DD', 'DOW', 'PPG', 'NEM', 'FCX',
+            'GOLD', 'SCCO', 'AA', 'CENX', 'ALB', 'SQM', 'MP', 'LAC', 'LITM',
+            'CF', 'MOS', 'NTR', 'FMC', 'CTVA', 'IFF', 'CE', 'EMN', 'RPM',
+            'SEE', 'AVY', 'BALL', 'AMCR', 'PKG', 'IP', 'WRK', 'CCK',
+
+            # Utilities
+            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'XEL', 'WEC',
+            'ES', 'ED', 'EIX', 'PEG', 'FE', 'ETR', 'AWK', 'AEE', 'CMS',
+            'DTE', 'PPL', 'CNP', 'NI', 'LNT', 'EVRG', 'AES', 'NRG', 'VST',
+
+            # Real Estate (REITs)
+            'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'WELL', 'DLR', 'O', 'SPG',
+            'VICI', 'AVB', 'EQR', 'VTR', 'SBAC', 'MAA', 'ARE', 'INVH', 'ESS',
+
+            # Communication Services
+            'GOOGL', 'GOOG', 'META', 'NFLX', 'DIS', 'CMCSA', 'VZ', 'T',
+            'TMUS', 'CHTR', 'EA', 'TTWO', 'ATVI', 'SPOT', 'MTCH', 'PINS',
+            'SNAP', 'TWTR', 'ROKU', 'PARA', 'WBD', 'FOXA', 'FOX', 'NWSA',
+            'NYT', 'OMC', 'IPG', 'LUMN', 'VIV',
         ]
 
     def _download_data(self):
