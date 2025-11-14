@@ -135,8 +135,11 @@ def price_option():
         # Create algorithm
         AlgoClass = ALGORITHMS[algo_name]
 
-        if algo_name in ['RLSM', 'RFQI']:
+        if algo_name == 'RLSM':
             pricer = AlgoClass(model, payoff, hidden_size=hidden_size, train_ITM_only=True)
+        elif algo_name == 'RFQI':
+            # RFQI needs factors with at least 2 elements: (activation_slope, input_scale, ...)
+            pricer = AlgoClass(model, payoff, hidden_size=hidden_size, factors=(1., 1.), train_ITM_only=True)
         elif algo_name in ['NLSM', 'DOS']:
             pricer = AlgoClass(model, payoff, hidden_size=hidden_size, nb_epochs=nb_epochs, train_ITM_only=True)
         elif algo_name == 'LSM':
@@ -333,8 +336,11 @@ def price_option_internal(data):
     # Create algorithm
     AlgoClass = ALGORITHMS[algo_name]
 
-    if algo_name in ['RLSM', 'RFQI']:
+    if algo_name == 'RLSM':
         pricer = AlgoClass(model, payoff, hidden_size=hidden_size, train_ITM_only=True)
+    elif algo_name == 'RFQI':
+        # RFQI needs factors with at least 2 elements: (activation_slope, input_scale, ...)
+        pricer = AlgoClass(model, payoff, hidden_size=hidden_size, factors=(1., 1.), train_ITM_only=True)
     elif algo_name in ['NLSM', 'DOS']:
         pricer = AlgoClass(model, payoff, hidden_size=hidden_size, nb_epochs=nb_epochs, train_ITM_only=True)
     elif algo_name == 'LSM':
