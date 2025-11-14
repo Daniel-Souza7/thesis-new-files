@@ -1577,3 +1577,42 @@ test_table2 = _SmallDimensionTable(
     nb_runs=1, factors=((0.001,0.001,0.001),),
     representations=['TablePriceDuration'],
 )
+
+
+# ==============================================================================
+# ERLSM (Ensemble RLSM) PERFORMANCE TEST
+# ==============================================================================
+
+# Test ERLSM vs RLSM/RFQI on vanilla options
+# ERLSM should achieve HIGHER prices due to better continuation value estimates
+erlsm_vs_rlsm_test = _FasterTable(
+    # Compare ERLSM against baseline algorithms
+    algos=['RLSM', 'RFQI', 'ERLSM'],
+
+    # Test on both models
+    stock_models=['BlackScholes', 'RealData'],
+
+    # Vanilla basket options (standard, non-path-dependent)
+    payoffs=[
+        'MaxCall', 'BasketCall', 'MinCall',
+    ],
+
+    # Multiple dimensions to test scalability
+    nb_stocks=[3, 5],
+
+    # Standard parameters
+    strikes=[100],
+    spots=[100],
+    volatilities=[0.2],
+    drift=[0.05],
+
+    # Time parameters
+    nb_paths=[20000],
+    nb_dates=[52],  # 3 months
+    maturities=[0.25],
+
+    # More runs to reduce noise
+    nb_runs=10,
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
