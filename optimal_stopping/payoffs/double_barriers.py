@@ -43,7 +43,7 @@ class DoubleKnockOutCall(Payoff):
             max_price = np.max(X, axis=(1, 2))  # Max across stocks and time
             min_price = np.min(X, axis=(1, 2))  # Min across stocks and time
 
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
 
             # Terminal basket payoff
             terminal_basket = np.mean(X[:, :, -1], axis=1)
@@ -54,7 +54,7 @@ class DoubleKnockOutCall(Payoff):
             # Single stock case
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * stays_in_range
 
@@ -77,7 +77,7 @@ class DoubleKnockOutPut(Payoff):
         if X.ndim == 3:
             max_price = np.max(X, axis=(1, 2))
             min_price = np.min(X, axis=(1, 2))
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, self.strike - terminal_basket)
@@ -85,7 +85,7 @@ class DoubleKnockOutPut(Payoff):
         else:
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
             payoff = np.maximum(0, self.strike - X[:, -1])
             return payoff * stays_in_range
 
@@ -181,7 +181,7 @@ class UpInDownOutCall(Payoff):
             min_price = np.min(X, axis=(1, 2))
 
             # Up-in AND down-out
-            condition = (max_price >= self.barrier_up) & (min_price > self.barrier_down)
+            condition = (max_price >= self.barrier_up) & (min_price >= self.barrier_down)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, terminal_basket - self.strike)
@@ -189,7 +189,7 @@ class UpInDownOutCall(Payoff):
         else:
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            condition = (max_price >= self.barrier_up) & (min_price > self.barrier_down)
+            condition = (max_price >= self.barrier_up) & (min_price >= self.barrier_down)
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * condition
 
@@ -212,7 +212,7 @@ class UpInDownOutPut(Payoff):
         if X.ndim == 3:
             max_price = np.max(X, axis=(1, 2))
             min_price = np.min(X, axis=(1, 2))
-            condition = (max_price >= self.barrier_up) & (min_price > self.barrier_down)
+            condition = (max_price >= self.barrier_up) & (min_price >= self.barrier_down)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, self.strike - terminal_basket)
@@ -220,7 +220,7 @@ class UpInDownOutPut(Payoff):
         else:
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            condition = (max_price >= self.barrier_up) & (min_price > self.barrier_down)
+            condition = (max_price >= self.barrier_up) & (min_price >= self.barrier_down)
             payoff = np.maximum(0, self.strike - X[:, -1])
             return payoff * condition
 
@@ -249,7 +249,7 @@ class UpOutDownInCall(Payoff):
             min_price = np.min(X, axis=(1, 2))
 
             # Down-in AND up-out
-            condition = (max_price < self.barrier_up) & (min_price <= self.barrier_down)
+            condition = (max_price <= self.barrier_up) & (min_price <= self.barrier_down)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, terminal_basket - self.strike)
@@ -257,7 +257,7 @@ class UpOutDownInCall(Payoff):
         else:
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            condition = (max_price < self.barrier_up) & (min_price <= self.barrier_down)
+            condition = (max_price <= self.barrier_up) & (min_price <= self.barrier_down)
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * condition
 
@@ -280,7 +280,7 @@ class UpOutDownInPut(Payoff):
         if X.ndim == 3:
             max_price = np.max(X, axis=(1, 2))
             min_price = np.min(X, axis=(1, 2))
-            condition = (max_price < self.barrier_up) & (min_price <= self.barrier_down)
+            condition = (max_price <= self.barrier_up) & (min_price <= self.barrier_down)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, self.strike - terminal_basket)
@@ -288,7 +288,7 @@ class UpOutDownInPut(Payoff):
         else:
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            condition = (max_price < self.barrier_up) & (min_price <= self.barrier_down)
+            condition = (max_price <= self.barrier_up) & (min_price <= self.barrier_down)
             payoff = np.maximum(0, self.strike - X[:, -1])
             return payoff * condition
 
@@ -319,7 +319,7 @@ class PartialTimeBarrierCall(Payoff):
 
             # Only check barrier in first half of time period
             max_price_partial = np.max(X[:, :, :halfway], axis=(1, 2))
-            stays_below = max_price_partial < self.barrier
+            stays_below = max_price_partial <= self.barrier
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, terminal_basket - self.strike)
@@ -328,7 +328,7 @@ class PartialTimeBarrierCall(Payoff):
             nb_dates = X.shape[1]
             halfway = nb_dates // 2
             max_price_partial = np.max(X[:, :halfway], axis=1)
-            stays_below = max_price_partial < self.barrier
+            stays_below = max_price_partial <= self.barrier
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * stays_below
 
@@ -368,7 +368,7 @@ class StepBarrierCall(Payoff):
             max_price_per_time = np.max(X, axis=1)  # Shape: (nb_paths, nb_dates)
 
             # Compare against time-varying barrier
-            stays_below = np.all(max_price_per_time < barriers, axis=1)  # Shape: (nb_paths,)
+            stays_below = np.all(max_price_per_time <= barriers, axis=1)  # Shape: (nb_paths,)
 
             terminal_basket = np.mean(X[:, :, -1], axis=1)
             payoff = np.maximum(0, terminal_basket - self.strike)
@@ -377,7 +377,7 @@ class StepBarrierCall(Payoff):
             nb_dates = X.shape[1]
             times = np.linspace(0, 1, nb_dates)
             barriers = self.barrier_initial + self.alpha * times
-            stays_below = np.all(X < barriers, axis=1)
+            stays_below = np.all(X <= barriers, axis=1)
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * stays_below
 
@@ -406,7 +406,7 @@ class DoubleKnockOutLookbackFloatingCall(Payoff):
             # Check if price stayed within barriers
             max_price = np.max(X, axis=(1, 2))
             min_price = np.min(X, axis=(1, 2))
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
 
             # Lookback floating strike: buy at minimum, sell at terminal
             terminal_basket = np.mean(X[:, :, -1], axis=1)
@@ -417,7 +417,7 @@ class DoubleKnockOutLookbackFloatingCall(Payoff):
             # Single stock case
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
             payoff = np.maximum(0, X[:, -1] - min_price)
             return payoff * stays_in_range
 
@@ -447,7 +447,7 @@ class DoubleKnockOutLookbackFloatingPut(Payoff):
             # Check if price stayed within barriers
             max_price = np.max(X, axis=(1, 2))
             min_price = np.min(X, axis=(1, 2))
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
 
             # Lookback floating strike: sell at maximum, buy at terminal
             terminal_basket = np.mean(X[:, :, -1], axis=1)
@@ -458,6 +458,6 @@ class DoubleKnockOutLookbackFloatingPut(Payoff):
             # Single stock case
             max_price = np.max(X, axis=1)
             min_price = np.min(X, axis=1)
-            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            stays_in_range = (min_price >= self.barrier_down) & (max_price <= self.barrier_up)
             payoff = np.maximum(0, max_price - X[:, -1])
             return payoff * stays_in_range
