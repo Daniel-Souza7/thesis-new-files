@@ -379,7 +379,36 @@ def _run_algos():
 
     print(f"Running {len(delayed_jobs)} tasks using "
           f"{FLAGS.nb_jobs}/{NUM_PROCESSORS} CPUs...")
-    joblib.Parallel(n_jobs=FLAGS.nb_jobs)(delayed_jobs)
+
+    # Progress tracking with periodic updates
+    total_tasks = len(delayed_jobs)
+    completed_tasks = 0
+    last_update_time = time.time()
+    update_interval = 30  # seconds
+
+    # Use return_as='generator' to track progress
+    with joblib.Parallel(n_jobs=FLAGS.nb_jobs, return_as='generator') as parallel:
+        results = parallel(delayed_jobs)
+        for _ in results:
+            completed_tasks += 1
+            current_time = time.time()
+
+            # Update every 30 seconds or when all tasks complete
+            if (current_time - last_update_time >= update_interval) or (completed_tasks == total_tasks):
+                remaining_tasks = total_tasks - completed_tasks
+                progress_pct = (completed_tasks / total_tasks) * 100
+                elapsed = current_time - start_time
+
+                if completed_tasks > 0:
+                    est_total_time = (elapsed / completed_tasks) * total_tasks
+                    est_remaining_time = est_total_time - elapsed
+
+                    print(f"Progress: {completed_tasks}/{total_tasks} tasks "
+                          f"({progress_pct:.1f}%) | "
+                          f"Remaining: {remaining_tasks} | "
+                          f"ETA: {int(est_remaining_time//60)}m {int(est_remaining_time%60)}s")
+
+                last_update_time = current_time
 
     print(f'Writing results to {fpath}...')
     with open(fpath, "w") as csvfile:

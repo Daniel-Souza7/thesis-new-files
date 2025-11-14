@@ -63,15 +63,23 @@ class RealDataModel(Model):
             end_date: End date for historical data (YYYY-MM-DD)
             exclude_crisis: If True, exclude 2008 and 2020 crisis periods
             only_crisis: If True, only use crisis periods (overrides exclude_crisis)
-            drift_override: Override historical drift (None = use historical mean)
-            volatility_override: Override historical volatility (None = use historical)
+            drift_override: Override historical drift (None = use config drift if available, else historical)
+            volatility_override: Override historical volatility (None = use config vol if available, else historical)
             avg_block_length: Average block length (None = auto-calculate from data)
             cache_data: Cache downloaded data to avoid re-downloading
             **kwargs: Additional arguments passed to Model base class
+                     Note: If 'drift' or 'volatility' in kwargs, they're used as overrides
         """
         # Set default tickers if none provided
         if tickers is None:
             tickers = self._get_default_tickers()
+
+        # Extract drift/volatility from kwargs if not explicitly provided
+        # This allows configs to work: drift=0.05 in config → drift_override=0.05
+        if drift_override is None and 'drift' in kwargs:
+            drift_override = kwargs['drift']
+        if volatility_override is None and 'volatility' in kwargs:
+            volatility_override = kwargs['volatility']
 
         # Validate number of stocks matches tickers
         nb_stocks = kwargs.get('nb_stocks', len(tickers))
@@ -115,16 +123,114 @@ class RealDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self) -> List[str]:
-        """Get default FAANG+ large cap tickers."""
+        """Get default S&P 500 tickers for robust bootstrapping.
+
+        Returns ~500 S&P 500 stocks with long histories and high liquidity.
+        First 50 preserved for backward compatibility.
+        Organized by sector for diverse correlation structures.
+        """
         return [
-            'AAPL',   # Apple
-            'MSFT',   # Microsoft
-            'GOOGL',  # Alphabet
-            'AMZN',   # Amazon
-            'META',   # Meta (Facebook)
-            'TSLA',   # Tesla
-            'NVDA',   # NVIDIA
-            'NFLX',   # Netflix
+            # === First 50: Original selection (backward compatibility) ===
+            # FAANG+ Mega-caps
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'NFLX',
+            # Tech
+            'ORCL', 'INTC', 'CSCO', 'ADBE', 'CRM', 'AVGO', 'TXN', 'QCOM', 'AMD',
+            # Finance
+            'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'BLK', 'AXP',
+            # Healthcare
+            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'MRK', 'CVS',
+            # Consumer
+            'WMT', 'HD', 'PG', 'KO', 'PEP', 'COST', 'MCD', 'NKE',
+            # Industrial/Energy
+            'BA', 'CAT', 'XOM', 'CVX', 'COP',
+            # Telecom/Media
+            'VZ', 'T', 'DIS', 'CMCSA',
+
+            # === Additional S&P 500 stocks (450 more) ===
+
+            # Technology (continued)
+            'IBM', 'NOW', 'INTU', 'AMAT', 'MU', 'LRCX', 'ADI', 'KLAC', 'SNPS',
+            'CDNS', 'MCHP', 'FTNT', 'ADSK', 'PANW', 'ANSS', 'TEAM', 'WDAY',
+            'DDOG', 'ZS', 'CRWD', 'SNOW', 'NET', 'PLTR', 'APP', 'GTLB',
+            'ESTC', 'ZI', 'BILL', 'S', 'TWLO', 'DOCU', 'HUBS', 'ZM',
+            'OKTA', 'COUP', 'CFLT', 'DKNG', 'RBLX', 'U', 'LYFT', 'DASH',
+            'ABNB', 'COIN', 'HOOD', 'SHOP', 'SQ', 'PYPL', 'V', 'MA',
+            'FISV', 'FIS', 'PAYX', 'ADP', 'BR', 'CTSH', 'ACN', 'IT',
+            'APH', 'TEL', 'GLW', 'HPQ', 'NTAP', 'STX', 'WDC', 'JNPR',
+            'AKAM', 'FFIV', 'VRSN', 'CIEN', 'ZBRA', 'KEYS', 'FSLR', 'ENPH',
+
+            # Financials (continued)
+            'SCHW', 'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'NTRS', 'CFG',
+            'HBAN', 'RF', 'KEY', 'FITB', 'MTB', 'SIVB', 'ZION', 'CMA',
+            'SPG', 'PSA', 'O', 'WELL', 'DLR', 'EQIX', 'PLD', 'AMT', 'CCI',
+            'AVB', 'EQR', 'VTR', 'MAA', 'UDR', 'ESS', 'CPT', 'ARE', 'INVH',
+            'AIG', 'PRU', 'MET', 'AFL', 'ALL', 'TRV', 'PGR', 'CB', 'AON',
+            'MMC', 'AJG', 'WRB', 'RE', 'L', 'GL', 'RNR', 'AIZ', 'AFG',
+            'CINF', 'PFG', 'LNC', 'TROW', 'BEN', 'IVZ', 'NDAQ', 'CME', 'ICE',
+            'MSCI', 'SPGI', 'MCO', 'CBOE',
+
+            # Healthcare (continued)
+            'LLY', 'AMGN', 'GILD', 'REGN', 'VRTX', 'BIIB', 'ILMN', 'ALXN',
+            'INCY', 'BMRN', 'EXAS', 'ALGN', 'IDXX', 'TECH', 'HOLX', 'DXCM',
+            'ISRG', 'SYK', 'BSX', 'MDT', 'ABT', 'DHR', 'BAX', 'BDX', 'XRAY',
+            'ZBH', 'EW', 'RMD', 'PODD', 'TDOC', 'VEEV', 'IQV', 'CRL', 'LH',
+            'DGX', 'CI', 'HUM', 'CNC', 'ELV', 'MOH', 'HCA', 'UHS', 'THC',
+            'HSIC', 'CAH', 'MCK', 'ABC', 'DVA', 'WAT', 'PKI', 'A', 'CTLT',
+            'MTD', 'STE', 'COO', 'WST', 'BIO',
+
+            # Consumer Discretionary
+            'AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'SBUX', 'TJX', 'BKNG',
+            'CMG', 'MAR', 'HLT', 'YUM', 'ORLY', 'AZO', 'ROST', 'DHI', 'LEN',
+            'PHM', 'NVR', 'POOL', 'WHR', 'TPR', 'RL', 'PVH', 'UAA', 'LULU',
+            'GPS', 'ANF', 'DDS', 'GPC', 'AAP', 'DG', 'DLTR', 'BBY', 'BBWI',
+            'ULTA', 'DPZ', 'QSR', 'WING', 'DRI', 'EAT', 'TXRH', 'BLMN',
+            'DINE', 'PLAY', 'CHDN', 'F', 'GM', 'TSLA', 'RIVN', 'LCID',
+            'LI', 'NIO', 'XPEV', 'LVS', 'MGM', 'WYNN', 'CZR', 'BYD', 'GRMN',
+            'HAS', 'MAT', 'DECK', 'CROX', 'SKX', 'BOOT', 'FL', 'WSM', 'RH',
+
+            # Consumer Staples
+            'PG', 'KO', 'PEP', 'WMT', 'COST', 'MDLZ', 'CL', 'KMB', 'GIS',
+            'K', 'CPB', 'CAG', 'HSY', 'SJM', 'MKC', 'KHC', 'MNST', 'TAP',
+            'STZ', 'BF.B', 'SAM', 'KDP', 'CLX', 'CHD', 'EL', 'CL', 'ADM',
+            'BG', 'TSN', 'HRL', 'SYY', 'USM', 'COKE', 'KR', 'SWK', 'TGT',
+            'DG', 'DLTR', 'RVTY', 'WBA', 'RAD', 'GO', 'PM', 'MO', 'BTI',
+
+            # Energy
+            'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'MPC', 'PSX', 'VLO', 'HES',
+            'OXY', 'DVN', 'FANG', 'HAL', 'BKR', 'WMB', 'KMI', 'OKE', 'LNG',
+            'TRGP', 'EPD', 'ET', 'MPLX', 'PAA', 'MMP', 'AM', 'SUN', 'ENLC',
+            'APA', 'MRO', 'CTRA', 'NOV', 'FTI', 'HP', 'CHK', 'RRC', 'AR',
+
+            # Industrials
+            'BA', 'CAT', 'GE', 'HON', 'UNP', 'UPS', 'RTX', 'LMT', 'NOC',
+            'GD', 'LHX', 'TXT', 'HWM', 'ETN', 'EMR', 'ITW', 'PH', 'ROK',
+            'DOV', 'XYL', 'FTV', 'IEX', 'PCAR', 'JCI', 'CARR', 'OTIS', 'IR',
+            'GWW', 'FAST', 'EXPD', 'CHRW', 'JBHT', 'ODFL', 'KNX', 'XPO',
+            'UBER', 'LYFT', 'R', 'ALK', 'UAL', 'DAL', 'AAL', 'LUV', 'JBLU',
+            'CSX', 'NSC', 'UNP', 'CNI', 'CP', 'KSU', 'FDX', 'UPS', 'USPS',
+            'URI', 'RSG', 'WM', 'WCN', 'SRCL', 'CLH', 'ROP', 'SWK', 'SNA',
+            'PNR', 'GNRC', 'AOS', 'BLDR', 'VMC', 'MLM', 'NUE', 'STLD', 'RS',
+
+            # Materials
+            'LIN', 'APD', 'SHW', 'ECL', 'DD', 'DOW', 'PPG', 'NEM', 'FCX',
+            'GOLD', 'SCCO', 'AA', 'CENX', 'ALB', 'SQM', 'MP', 'LAC', 'LITM',
+            'CF', 'MOS', 'NTR', 'FMC', 'CTVA', 'IFF', 'CE', 'EMN', 'RPM',
+            'SEE', 'AVY', 'BALL', 'AMCR', 'PKG', 'IP', 'WRK', 'CCK',
+
+            # Utilities
+            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'XEL', 'WEC',
+            'ES', 'ED', 'EIX', 'PEG', 'FE', 'ETR', 'AWK', 'AEE', 'CMS',
+            'DTE', 'PPL', 'CNP', 'NI', 'LNT', 'EVRG', 'AES', 'NRG', 'VST',
+
+            # Real Estate (REITs)
+            'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'WELL', 'DLR', 'O', 'SPG',
+            'VICI', 'AVB', 'EQR', 'VTR', 'SBAC', 'MAA', 'ARE', 'INVH', 'ESS',
+
+            # Communication Services
+            'GOOGL', 'GOOG', 'META', 'NFLX', 'DIS', 'CMCSA', 'VZ', 'T',
+            'TMUS', 'CHTR', 'EA', 'TTWO', 'ATVI', 'SPOT', 'MTCH', 'PINS',
+            'SNAP', 'TWTR', 'ROKU', 'PARA', 'WBD', 'FOXA', 'FOX', 'NWSA',
+            'NYT', 'OMC', 'IPG', 'LUMN', 'VIV',
         ]
 
     def _download_data(self):
