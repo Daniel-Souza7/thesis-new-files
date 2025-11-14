@@ -246,18 +246,28 @@ class RealDataModel(Model):
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                # Suppress yfinance warnings
+                # Suppress yfinance warnings and errors
                 import logging
+                import sys
+                import io
+
                 logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
-                data = yf.download(
-                    self.tickers,
-                    start=self.start_date,
-                    end=self.end_date,
-                    progress=False,
-                    auto_adjust=True,  # Adjust for splits and dividends
-                    show_errors=False  # Suppress error messages
-                )
+                # Temporarily redirect stderr to suppress HTTP errors
+                old_stderr = sys.stderr
+                sys.stderr = io.StringIO()
+
+                try:
+                    data = yf.download(
+                        self.tickers,
+                        start=self.start_date,
+                        end=self.end_date,
+                        progress=False,
+                        auto_adjust=True  # Adjust for splits and dividends
+                    )
+                finally:
+                    # Restore stderr
+                    sys.stderr = old_stderr
 
                 # Handle single ticker case
                 if len(self.tickers) == 1:
