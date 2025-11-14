@@ -104,8 +104,16 @@ const PathBreakdown = () => {
     >
       <h3 className="text-xl font-semibold mb-2">Monte Carlo Path Analysis</h3>
       <p className="text-gray-600 mb-4">
-        Examine individual simulation paths and exercise decisions
+        Examine individual simulation paths and exercise decisions for an American put option
       </p>
+
+      {/* Option specification */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+        <p className="text-sm text-gray-700">
+          <strong>Option:</strong> American Put on single asset | <strong>Strike:</strong> K=$100 |
+          <strong> Payoff:</strong> max(100 - S, 0) | <strong>Initial Price:</strong> S₀=$100
+        </p>
+      </div>
 
       <div className="flex gap-4 mb-6">
         <div className="flex-1">

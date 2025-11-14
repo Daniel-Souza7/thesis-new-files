@@ -63,8 +63,16 @@ const SurfacePlot3D = ({ algorithm = 'RLSM', params }: SurfacePlot3DProps) => {
         Option Value Surface - {algorithm}
       </h3>
       <p className="text-gray-600 mb-4">
-        3D visualization of option values across different stock prices and time to maturity
+        3D visualization of American call option values across different stock prices and time to maturity
       </p>
+
+      {/* Option specification */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200">
+        <p className="text-sm text-gray-700">
+          <strong>Option:</strong> American Call on single asset | <strong>Strike:</strong> K=$100 |
+          <strong> Payoff:</strong> max(S - 100, 0) | <strong>Risk-free rate:</strong> r=5%
+        </p>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-96">

@@ -26,14 +26,14 @@ const AlgorithmComparison = () => {
 
   useEffect(() => {
     // Generate synthetic comparison data
-    // Problem: 50-dimensional Max Call option, S0=100, K=100, T=1, σ=0.2
+    // Problem: 10-dimensional Max Call option, S0=100, K=100, T=1, σ=0.2
     const comparisonData: ComparisonData[] = [
-      { algorithm: 'RLSM', price: 11.28, time: 0.42, accuracy: 99.1 },
-      { algorithm: 'RFQI', price: 11.25, time: 0.38, accuracy: 98.9 },
-      { algorithm: 'LSM', price: 11.32, time: 8.45, accuracy: 99.4 },
-      { algorithm: 'NLSM', price: 11.31, time: 12.67, accuracy: 99.3 },
-      { algorithm: 'DOS', price: 11.29, time: 25.12, accuracy: 99.6 },
-      { algorithm: 'FQI', price: 11.24, time: 15.89, accuracy: 98.7 },
+      { algorithm: 'RLSM', price: 11.28, time: 0.18, accuracy: 99.1 },
+      { algorithm: 'RFQI', price: 11.25, time: 0.16, accuracy: 98.9 },
+      { algorithm: 'LSM', price: 11.32, time: 1.45, accuracy: 99.4 },
+      { algorithm: 'NLSM', price: 11.31, time: 2.87, accuracy: 99.3 },
+      { algorithm: 'DOS', price: 11.29, time: 8.42, accuracy: 99.6 },
+      { algorithm: 'FQI', price: 11.24, time: 3.15, accuracy: 98.7 },
     ];
     setData(comparisonData);
   }, []);
@@ -107,8 +107,8 @@ const AlgorithmComparison = () => {
       <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
         <h4 className="font-semibold text-gray-900 mb-2">Test Problem</h4>
         <div className="text-sm text-gray-700 space-y-1">
-          <p><strong>Payoff:</strong> Max Call option - max(max(S₁, S₂, ..., S₅₀) - K, 0)</p>
-          <p><strong>Dimension:</strong> 50 assets</p>
+          <p><strong>Payoff:</strong> Max Call option - max(max(S₁, S₂, ..., S₁₀) - K, 0)</p>
+          <p><strong>Dimension:</strong> 10 assets</p>
           <p><strong>Parameters:</strong> S₀ = $100, K = $100, T = 1 year, σ = 20%, r = 5%</p>
           <p><strong>Simulation:</strong> 10,000 paths, 10 time steps</p>
         </div>

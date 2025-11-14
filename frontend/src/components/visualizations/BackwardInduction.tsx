@@ -294,8 +294,19 @@ const BackwardInduction = () => {
     >
       <h3 className="text-xl font-semibold mb-2">Backward Induction Animation</h3>
       <p className="text-gray-600 mb-4">
-        Step through the dynamic programming process for an American put option
+        Step through the dynamic programming process for an American put option using a binomial tree
       </p>
+
+      {/* Option and tree specification */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+        <p className="text-sm text-gray-700">
+          <strong>Option:</strong> American Put | <strong>Strike:</strong> K=$100 | <strong>Initial Price:</strong> S₀=$100 |
+          <strong> Up factor:</strong> u=1.2 | <strong>Down factor:</strong> d=0.8 | <strong>Steps:</strong> 3 time periods
+        </p>
+        <p className="text-xs text-gray-600 mt-1">
+          Each circle shows the stock price (above) and option value (inside). The tree represents all possible price paths.
+        </p>
+      </div>
 
       <div className="flex gap-3 mb-6">
         <button
