@@ -1227,7 +1227,7 @@ table_article_d5_d10 = _DimensionTable(
 # Test all new niche and leverage payoffs plus double barrier payoffs
 test_new_payoffs = _FasterTable(
     # Use path-dependent algorithms for leverage stop-loss and double barriers
-    algos=['SRLSM', 'SRFQI', 'RLSM', 'RFQI'],
+    algos=['RLSM', 'RFQI'],
 
     # All new payoffs
     payoffs=[
@@ -1245,59 +1245,93 @@ test_new_payoffs = _FasterTable(
     ],
 
     # Multiple stocks needed for basket payoffs
-    nb_stocks=[3, 5],
+    nb_stocks=[5,],
 
     # Standard parameters
     strikes=[100],
     spots=[100],
     nb_paths=[10000],
     nb_dates=[9],
-    nb_runs=5,
+    nb_runs=7,
 
     # Parameters for niche payoffs
-    k=[2, 3],  # For BestOfK/WorstOfK
+    k=[2,],  # For BestOfK/WorstOfK
 
     # Parameters for leverage payoffs
     notional=[1.0],
-    leverage=[2.0, 3.0],
+    leverage=[5.0],
     barrier_stop_loss=[0.9, 1.1],  # 0.9 for long, 1.1 for short
 
     # Parameters for double barrier payoffs
-    barriers_up=[110, 120],
-    barriers_down=[90, 80],
+    barriers_up=[120],
+    barriers_down=[80],
 
     # Other settings
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
 
-# Smaller quick test version
-test_new_payoffs_quick = _FasterTable(
+# Test all new niche and leverage payoffs plus double barrier payoffs
+test_new_payoffs2 = _FasterTable(
+    # Use path-dependent algorithms for leverage stop-loss and double barriers
     algos=['SRLSM', 'SRFQI'],
 
+    # All new payoffs
     payoffs=[
+        # Niche payoffs (6)
         'BestOfKCall', 'WorstOfKCall',
-        'LeveragedBasketLongPosition', 'LeveragedBasketLongStopLoss',
+        'RankWeightedBasketCall', 'ChooserBasketOption',
+        'RangeCall', 'DispersionCall',
+
+        # Leverage payoffs (4)
+        'LeveragedBasketLongPosition', 'LeveragedBasketShortPosition',
+        'LeveragedBasketLongStopLoss', 'LeveragedBasketShortStopLoss',
+
+        # Double barrier payoffs (2)
         'PartialTimeBarrierCall', 'StepBarrierCall',
     ],
 
-    nb_stocks=[3],
+    # Multiple stocks needed for basket payoffs
+    nb_stocks=[5,],
+
+    # Standard parameters
     strikes=[100],
     spots=[100],
-    nb_paths=[5000],
-    nb_dates=[6],
-    nb_runs=3,
+    nb_paths=[10000],
+    nb_dates=[9],
+    nb_runs=7,
 
-    k=[2],
+    # Parameters for niche payoffs
+    k=[2,],  # For BestOfK/WorstOfK
+
+    # Parameters for leverage payoffs
     notional=[1.0],
-    leverage=[2.0],
-    barrier_stop_loss=[0.9],
-    barriers_up=[110],
-    barriers_down=[90],
+    leverage=[5.0],
+    barrier_stop_loss=[0.9, 1.1],  # 0.9 for long, 1.1 for short
 
+    # Parameters for double barrier payoffs
+    barriers_up=[120],
+    barriers_down=[80],
+
+    # Other settings
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+test_new_payoffsgames1 = _FasterTable( algos=['SRLSM'], payoffs=['UpAndOutCall',
+    'GameStepBarrierCall',
+    'DoubleBarrierLookbackFloatingPut'], nb_stocks=[1], barriers=[115, 125], barriers_up=[115, 125], barriers_down=[80, 85], )
+
+
+test_new_payoffsgames3 = _FasterTable( algos=['SRLSM'], payoffs=['DownAndOutBasketPut',
+    'GameUpAndOutMinPut',
+    'DoubleBarrierRankWeightedBasketCall'], nb_stocks=[3], barriers=[80, 85, 115, 125], barriers_up=[115, 125], barriers_down=[80, 85] )
+
+
+
+test_new_payoffsgames7 = _FasterTable( algos=['SRLSM'], payoffs=['DoubleBarrierMaxCall',
+    'DownAndOutBestOfKCall',
+    'DoubleStepBarrierDispersionCall'], nb_stocks=[7], barriers=[80, 85, 115, 125], barriers_up=[115, 125], barriers_down=[80, 85])
 
 # ==============================================================================
 test_table = _SmallDimensionTable(
