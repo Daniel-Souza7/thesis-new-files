@@ -123,8 +123,13 @@ class RealDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self) -> List[str]:
-        """Get default FAANG+ large cap tickers."""
+        """Get default large cap tickers from various sectors.
+
+        Returns 50 liquid stocks with long histories, suitable for bootstrap.
+        Ordered by general preference: mega-caps first, then by sector diversity.
+        """
         return [
+            # Original FAANG+ mega-caps (keep first for backward compatibility)
             'AAPL',   # Apple
             'MSFT',   # Microsoft
             'GOOGL',  # Alphabet
@@ -133,6 +138,59 @@ class RealDataModel(Model):
             'TSLA',   # Tesla
             'NVDA',   # NVIDIA
             'NFLX',   # Netflix
+
+            # Additional Tech
+            'ORCL',   # Oracle
+            'INTC',   # Intel
+            'CSCO',   # Cisco
+            'ADBE',   # Adobe
+            'CRM',    # Salesforce
+            'AVGO',   # Broadcom
+            'TXN',    # Texas Instruments
+            'QCOM',   # Qualcomm
+            'AMD',    # Advanced Micro Devices
+
+            # Finance
+            'JPM',    # JPMorgan Chase
+            'BAC',    # Bank of America
+            'WFC',    # Wells Fargo
+            'GS',     # Goldman Sachs
+            'MS',     # Morgan Stanley
+            'C',      # Citigroup
+            'BLK',    # BlackRock
+            'AXP',    # American Express
+
+            # Healthcare
+            'JNJ',    # Johnson & Johnson
+            'UNH',    # UnitedHealth
+            'PFE',    # Pfizer
+            'ABBV',   # AbbVie
+            'TMO',    # Thermo Fisher
+            'MRK',    # Merck
+            'CVS',    # CVS Health
+
+            # Consumer
+            'WMT',    # Walmart
+            'HD',     # Home Depot
+            'PG',     # Procter & Gamble
+            'KO',     # Coca-Cola
+            'PEP',    # PepsiCo
+            'COST',   # Costco
+            'MCD',    # McDonald's
+            'NKE',    # Nike
+
+            # Industrial & Energy
+            'BA',     # Boeing
+            'CAT',    # Caterpillar
+            'XOM',    # ExxonMobil
+            'CVX',    # Chevron
+            'COP',    # ConocoPhillips
+
+            # Telecom & Media
+            'VZ',     # Verizon
+            'T',      # AT&T
+            'DIS',    # Disney
+            'CMCSA',  # Comcast
         ]
 
     def _download_data(self):
