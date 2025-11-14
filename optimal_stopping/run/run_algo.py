@@ -96,6 +96,12 @@ from optimal_stopping.algorithms.standard.rfqi import RFQI
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
+# BENCHMARK ALGORITHMS
+from optimal_stopping.algorithms.standard.lsm import LSM
+from optimal_stopping.algorithms.standard.nlsm import NLSM
+from optimal_stopping.algorithms.standard.dos import DOS
+from optimal_stopping.algorithms.standard.fqi import FQI
+
 # OLD IMPORTS - Keep for backward compatibility if needed
 try:
     from optimal_stopping.algorithms.backward_induction import DOS
@@ -294,6 +300,12 @@ _ALGOS = {
     "SRLSM": SRLSM,  # Path-dependent options (barriers, lookbacks)
     "RFQI": RFQI,  # Standard options
     "SRFQI": SRFQI,  # Path-dependent options (barriers, lookbacks)
+
+    # BENCHMARK ALGORITHMS - Simple implementations for comparison
+    "LSM": LSM,    # Least Squares Monte Carlo
+    "NLSM": NLSM,  # Neural Least Squares Monte Carlo
+    "DOS": DOS,    # Deep Optimal Stopping
+    "FQI": FQI,    # Fitted Q-Iteration
 }
 
 # Add old algorithms if available
@@ -586,6 +598,43 @@ def _run_algo(
                 train_ITM_only=train_ITM_only,
                 use_payoff_as_input=use_payoff_as_input,
                 nb_epochs=nb_epochs if algo == "SRFQI" else None
+            )
+
+        # BENCHMARK ALGORITHMS
+        elif algo == "LSM":
+            # Least Squares Monte Carlo
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo == "NLSM":
+            # Neural Least Squares Monte Carlo
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo == "DOS":
+            # Deep Optimal Stopping
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo == "FQI":
+            # Fitted Q-Iteration
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
             )
 
         # OLD ALGORITHMS - Keep for backward compatibility
