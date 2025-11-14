@@ -380,3 +380,84 @@ class StepBarrierCall(Payoff):
             stays_below = np.all(X < barriers, axis=1)
             payoff = np.maximum(0, X[:, -1] - self.strike)
             return payoff * stays_below
+
+class DoubleKnockOutLookbackFloatingCall(Payoff):
+    """
+    Double Knock-Out Lookback Floating Strike Call (DKO-LB-Float-Call)
+
+    Lookback call with floating strike: pays max(S̄(T) - min_{τ,i} S_i(τ), 0)
+    (buys at historical minimum, sells at terminal basket average)
+
+    Pays only if price stays BETWEEN both barriers throughout.
+
+    Condition: B_L < min_{τ,i} S_i(τ) AND max_{τ,i} S_i(τ) < B_U
+    Payoff: max(S̄(T) - S_min, 0) where S_min = min_{τ,i} S_i(τ)
+    """
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier_up=None, barrier_down=None):
+        super().__init__(strike)
+        self.barrier_up = barrier_up if barrier_up is not None else strike * 1.2
+        self.barrier_down = barrier_down if barrier_down is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 3:
+            # Check if price stayed within barriers
+            max_price = np.max(X, axis=(1, 2))
+            min_price = np.min(X, axis=(1, 2))
+            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+
+            # Lookback floating strike: buy at minimum, sell at terminal
+            terminal_basket = np.mean(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, terminal_basket - min_price)
+
+            return payoff * stays_in_range
+        else:
+            # Single stock case
+            max_price = np.max(X, axis=1)
+            min_price = np.min(X, axis=1)
+            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            payoff = np.maximum(0, X[:, -1] - min_price)
+            return payoff * stays_in_range
+
+
+class DoubleKnockOutLookbackFloatingPut(Payoff):
+    """
+    Double Knock-Out Lookback Floating Strike Put (DKO-LB-Float-Put)
+
+    Lookback put with floating strike: pays max(max_{τ,i} S_i(τ) - S̄(T), 0)
+    (sells at historical maximum, buys at terminal basket average)
+
+    Pays only if price stays BETWEEN both barriers throughout.
+
+    Condition: B_L < min_{τ,i} S_i(τ) AND max_{τ,i} S_i(τ) < B_U
+    Payoff: max(S_max - S̄(T), 0) where S_max = max_{τ,i} S_i(τ)
+    """
+
+    is_path_dependent = True
+
+    def __init__(self, strike, barrier_up=None, barrier_down=None):
+        super().__init__(strike)
+        self.barrier_up = barrier_up if barrier_up is not None else strike * 1.2
+        self.barrier_down = barrier_down if barrier_down is not None else strike * 0.8
+
+    def eval(self, X):
+        if X.ndim == 3:
+            # Check if price stayed within barriers
+            max_price = np.max(X, axis=(1, 2))
+            min_price = np.min(X, axis=(1, 2))
+            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+
+            # Lookback floating strike: sell at maximum, buy at terminal
+            terminal_basket = np.mean(X[:, :, -1], axis=1)
+            payoff = np.maximum(0, max_price - terminal_basket)
+
+            return payoff * stays_in_range
+        else:
+            # Single stock case
+            max_price = np.max(X, axis=1)
+            min_price = np.min(X, axis=1)
+            stays_in_range = (min_price > self.barrier_down) & (max_price < self.barrier_up)
+            payoff = np.maximum(0, max_price - X[:, -1])
+            return payoff * stays_in_range

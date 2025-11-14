@@ -120,90 +120,72 @@ doublebarriers= _FasterTable(
     barriers_down=[90]
 )
 
-smoketest = _FasterTable(
-    algos = ('RFQI', 'RLSM'),
-    nb_stocks =(2,5, 100),
-    payoffs = (
-        # Standard (8)
-        'MaxCall', 'MaxPut', 'MinCall', 'MinPut',
-        'BasketCall', 'BasketPut',
-        'GeometricCall', 'GeometricPut',
 
+
+
+smoketest = _FasterTable(
+    algos = ('SRFQI', 'SRLSM'),
+    nb_stocks =(1, 3),
+    payoffs = (
+
+       'DoubleKnockOutCall', 'DoubleKnockOutPut',
+        'DoubleKnockInCall', 'DoubleKnockInPut',
+        'UpInDownOutCall', 'UpInDownOutPut',
+        'UpOutDownInCall', 'UpOutDownInPut',
+
+       'LookbackFixedCall',
+       'LookbackFixedPut',
+       'LookbackFloatCall',
+       'LookbackFloatPut',
+       'LookbackMaxCall',
+       'LookbackMinPut',
         # Up-And-Out (8)
         'UpAndOutMaxCall', 'UpAndOutMaxPut',
         'UpAndOutMinCall', 'UpAndOutMinPut',
         'UpAndOutBasketCall', 'UpAndOutBasketPut',
-        'UpAndOutGeometricCall', 'UpAndOutGeometricPut',
+        'UpAndOutGeometricBasketCall', 'UpAndOutGeometricBasketPut',
         # Down-And-Out (8)
         'DownAndOutMaxCall', 'DownAndOutMaxPut',
         'DownAndOutMinCall', 'DownAndOutMinPut',
         'DownAndOutBasketCall', 'DownAndOutBasketPut',
-        'DownAndOutGeometricCall', 'DownAndOutGeometricPut',
+        'DownAndOutGeometricBasketCall', 'DownAndOutGeometricBasketPut',
         # Up-And-In (8)
         'UpAndInMaxCall', 'UpAndInMaxPut',
         'UpAndInMinCall', 'UpAndInMinPut',
         'UpAndInBasketCall', 'UpAndInBasketPut',
-        'UpAndInGeometricCall', 'UpAndInGeometricPut',
+        'UpAndInGeometricBasketCall', 'UpAndInGeometricBasketPut',
         # Down-And-In (8)
         'DownAndInMaxCall', 'DownAndInMaxPut',
         'DownAndInMinCall', 'DownAndInMinPut',
         'DownAndInBasketCall', 'DownAndInBasketPut',
-        'DownAndInGeometricCall', 'DownAndInGeometricPut',
-        # Lookback (6)
-        'LookbackMaxCall', 'LookbackMaxPut',
-        'LookbackMinCall', 'LookbackMinPut',
-        'LookbackBasketCall', 'LookbackBasketPut'
+        'DownAndInGeometricBasketCall', 'DownAndInGeometricBasketPut',
     ),
     barriers = (80, 90, 95, 100, 105, 110, 120),
     strikes = (100,),
     spots = (100,),
     use_payoff_as_input = (True,),
-    nb_runs = 5,
+    nb_runs = 10,
     nb_paths = (20000,),
-    nb_dates = (6,))
+    nb_dates = (6,),
+    barriers_up=[110],
+    barriers_down=[90]
+)
 
-
-smoketest = _FasterTable(
-    algos = ('RFQI', 'RLSM'),
-    nb_stocks =(2,5, 100),
+smokefest = _FasterTable(
+    algos = ('SRFQI', 'SRLSM'),
+    nb_stocks =(1, 3),
     payoffs = (
-        # Standard (8)
-        'MaxCall', 'MaxPut', 'MinCall', 'MinPut',
-        'BasketCall', 'BasketPut',
-        'GeometricCall', 'GeometricPut',
-
-        # Up-And-Out (8)
-        'UpAndOutMaxCall', 'UpAndOutMaxPut',
-        'UpAndOutMinCall', 'UpAndOutMinPut',
-        'UpAndOutBasketCall', 'UpAndOutBasketPut',
-        'UpAndOutGeometricCall', 'UpAndOutGeometricPut',
-        # Down-And-Out (8)
-        'DownAndOutMaxCall', 'DownAndOutMaxPut',
-        'DownAndOutMinCall', 'DownAndOutMinPut',
-        'DownAndOutBasketCall', 'DownAndOutBasketPut',
-        'DownAndOutGeometricCall', 'DownAndOutGeometricPut',
-        # Up-And-In (8)
-        'UpAndInMaxCall', 'UpAndInMaxPut',
-        'UpAndInMinCall', 'UpAndInMinPut',
-        'UpAndInBasketCall', 'UpAndInBasketPut',
-        'UpAndInGeometricCall', 'UpAndInGeometricPut',
-        # Down-And-In (8)
-        'DownAndInMaxCall', 'DownAndInMaxPut',
-        'DownAndInMinCall', 'DownAndInMinPut',
-        'DownAndInBasketCall', 'DownAndInBasketPut',
-        'DownAndInGeometricCall', 'DownAndInGeometricPut',
-        # Lookback (6)
-        'LookbackMaxCall', 'LookbackMaxPut',
-        'LookbackMinCall', 'LookbackMinPut',
-        'LookbackBasketCall', 'LookbackBasketPut'
+'DoubleKnockOutLookbackFloatingPut', 'DoubleKnockOutLookbackFloatingCall'
     ),
-    barriers = (80, 90, 95, 100, 105, 110, 120),
     strikes = (100,),
     spots = (100,),
     use_payoff_as_input = (True,),
-    nb_runs = 5,
+    nb_runs = 10,
     nb_paths = (20000,),
-    nb_dates = (6,))
+    nb_dates = (6,),
+    barriers_up=[110],
+    barriers_down=[90]
+)
 
 debug = _FasterTable(
     algos = ('SRLSM', 'SRFQI'),

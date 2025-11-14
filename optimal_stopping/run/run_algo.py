@@ -59,7 +59,14 @@ from optimal_stopping.payoffs.lookbacks import (
     LookbackMinPut,
 )
 
-from optimal_stopping.payoffs.double_barriers import DoubleBarrierBasketCall
+from optimal_stopping.payoffs.double_barriers import (
+    DoubleKnockOutCall, DoubleKnockOutPut,
+    DoubleKnockInCall, DoubleKnockInPut,
+    UpInDownOutCall, UpInDownOutPut,
+    UpOutDownInCall, UpOutDownInPut,
+    PartialTimeBarrierCall, StepBarrierCall,
+    DoubleKnockOutLookbackFloatingCall, DoubleKnockOutLookbackFloatingPut
+)
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
@@ -211,8 +218,18 @@ _PAYOFFS = {
     "LookbackMaxCall": LookbackMaxCall,
     "LookbackMinPut": LookbackMinPut,
 
-    #Double barriers
-    "DoubleBarrierBasketCall": DoubleBarrierBasketCall
+    "DoubleKnockOutCall": DoubleKnockOutCall,
+    "DoubleKnockOutPut": DoubleKnockOutPut,
+    "DoubleKnockInCall": DoubleKnockInCall,
+    "DoubleKnockInPut": DoubleKnockInPut,
+    "UpInDownOutCall": UpInDownOutCall,
+    "UpInDownOutPut": UpInDownOutPut,
+    "UpOutDownInCall": UpOutDownInCall,
+    "UpOutDownInPut": UpOutDownInPut,
+    "PartialTimeBarrierCall": PartialTimeBarrierCall,
+    "StepBarrierCall": StepBarrierCall,
+    "DoubleKnockOutLookbackFloatingCall": DoubleKnockOutLookbackFloatingCall,
+    "DoubleKnockOutLookbackFloatingPut": DoubleKnockOutLookbackFloatingPut,
 }
 
 
