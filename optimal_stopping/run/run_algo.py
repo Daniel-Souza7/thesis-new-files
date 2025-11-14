@@ -93,7 +93,6 @@ from optimal_stopping.payoffs.game_payoffs import (
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
-from optimal_stopping.algorithms.standard.erlsm import ERLSM
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
@@ -295,7 +294,6 @@ _ALGOS = {
     "SRLSM": SRLSM,  # Path-dependent options (barriers, lookbacks)
     "RFQI": RFQI,  # Standard options
     "SRFQI": SRFQI,  # Path-dependent options (barriers, lookbacks)
-    "ERLSM": ERLSM,  # Ensemble RLSM - works for both standard and path-dependent
 }
 
 # Add old algorithms if available
@@ -588,19 +586,6 @@ def _run_algo(
                 train_ITM_only=train_ITM_only,
                 use_payoff_as_input=use_payoff_as_input,
                 nb_epochs=nb_epochs if algo == "SRFQI" else None
-            )
-
-        elif algo == "ERLSM":
-            # Ensemble RLSM - works for BOTH standard and path-dependent options
-            pricer = _ALGOS[algo](
-                stock_model_obj, payoff_obj,
-                hidden_size=hidden_size,
-                factors=factors,
-                train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input,
-                ensemble_size=5,  # Number of networks in ensemble
-                poly_degree=2,    # Polynomial feature expansion degree
-                bootstrap_ratio=0.8  # Bootstrap sampling ratio
             )
 
         # OLD ALGORITHMS - Keep for backward compatibility
