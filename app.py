@@ -25,7 +25,7 @@ from optimal_stopping.algorithms.standard.fqi import FQI
 # Import models and payoffs
 from optimal_stopping.data.stock_model import BlackScholes
 from optimal_stopping.data.real_data import RealDataModel
-from optimal_stopping.payoffs import basket_payoffs
+from optimal_stopping.payoffs import MaxCall, BasketCall, MinCall, GeometricBasketCall
 
 # Page config
 st.set_page_config(
@@ -303,13 +303,13 @@ with tab2:
         time.sleep(0.3)
 
         if payoff_type == "Max Call":
-            payoff = basket_payoffs.MaxCall(strike)
+            payoff = MaxCall(strike)
         elif payoff_type == "Basket Call":
-            payoff = basket_payoffs.BasketCall(strike)
+            payoff = BasketCall(strike)
         elif payoff_type == "Min Call":
-            payoff = basket_payoffs.MinCall(strike)
+            payoff = MinCall(strike)
         else:  # Geometric Basket Call
-            payoff = basket_payoffs.GeometricBasketCall(strike)
+            payoff = GeometricBasketCall(strike)
 
         # Step 3: Generate paths
         status_text.text("🌊 Generating stock paths...")
@@ -586,13 +586,13 @@ with tab4:
                 )
 
             if payoff_type == "Max Call":
-                payoff = basket_payoffs.MaxCall(strike)
+                payoff = MaxCall(strike)
             elif payoff_type == "Basket Call":
-                payoff = basket_payoffs.BasketCall(strike)
+                payoff = BasketCall(strike)
             elif payoff_type == "Min Call":
-                payoff = basket_payoffs.MinCall(strike)
+                payoff = MinCall(strike)
             else:
-                payoff = basket_payoffs.GeometricBasketCall(strike)
+                payoff = GeometricBasketCall(strike)
 
             progress_bar = st.progress(0)
             status_text = st.empty()
