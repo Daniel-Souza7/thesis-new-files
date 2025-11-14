@@ -73,10 +73,14 @@ class LSM:
         deltaT = self.model.maturity / nb_dates
         discount_factor = math.exp(-self.model.rate * deltaT)
 
-        # Backward induction
-        values = payoffs.copy()
+        # Initialize continuation values with payoffs at maturity
+        continuation_value = payoffs[:, -1].copy()
 
+        # Backward induction
         for t in range(nb_dates - 1, 0, -1):
+            # Discount continuation value
+            continuation_value = discount_factor * continuation_value
+
             # Current stock prices
             stock_at_t = stock_paths[:, :, t]
 
@@ -88,11 +92,10 @@ class LSM:
             if self.use_payoff_as_input:
                 stock_at_t = np.concatenate([stock_at_t, payoffs[:, t:t+1]], axis=1)
 
-            # Discounted future values
-            continuation_values = discount_factor * values[:, t+1]
+            # Immediate exercise value
+            immediate_exercise = payoffs[:, t]
 
             # Determine in-the-money paths
-            immediate_exercise = payoffs[:, t]
             if self.train_ITM_only:
                 itm = immediate_exercise[:self.split] > 0
             else:
@@ -101,7 +104,7 @@ class LSM:
             # Regression on ITM paths
             if np.sum(itm) > 0:
                 X_train = stock_at_t[:self.split][itm]
-                y_train = continuation_values[:self.split][itm]
+                y_train = continuation_value[:self.split][itm]
 
                 # Build basis matrix
                 basis_matrix = np.array([[self.bf.base_fct(i, x) for i in range(self.bf.nb_base_fcts)]
@@ -113,16 +116,21 @@ class LSM:
                 # Predict continuation values for all paths
                 basis_matrix_all = np.array([[self.bf.base_fct(i, x) for i in range(self.bf.nb_base_fcts)]
                                              for x in stock_at_t])
-                predicted_continuation = np.maximum(basis_matrix_all @ self.weights, 0)
+                predicted_continuation = basis_matrix_all @ self.weights
             else:
                 predicted_continuation = np.zeros(len(stock_at_t))
 
-            # Exercise decision
+            # Exercise decision: exercise if immediate > continuation
             exercise = immediate_exercise > predicted_continuation
-            values[:, t] = np.where(exercise, immediate_exercise, continuation_values)
+            continuation_value = np.where(exercise, immediate_exercise, continuation_value)
 
-        # Calculate price
-        price = np.mean(values[self.split:, 0])
-        price = max(price, payoffs[0, 0])
+        # Final discounting to t=0
+        continuation_value = discount_factor * continuation_value
+
+        # Value at t=0 is max(immediate exercise, expected continuation)
+        option_value = np.maximum(payoffs[:, 0], continuation_value)
+
+        # Calculate price (average over evaluation paths)
+        price = np.mean(option_value[self.split:])
 
         return price, time_for_path_gen

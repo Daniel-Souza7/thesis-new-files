@@ -60,10 +60,10 @@ class FQI:
         nb_paths, nb_stocks, nb_dates_plus = stock_paths.shape
         nb_dates = nb_dates_plus - 1
 
-        # Time features
-        time_vals = np.linspace(0, 1, nb_dates_plus)
-        time = np.tile(time_vals, (nb_paths, 1))[:, :, np.newaxis]  # [nb_paths, nb_dates+1, 1]
-        time_complement = 1 - time
+        # Time features - shape [1, 1, nb_dates+1] broadcast to [nb_paths, 1, nb_dates+1]
+        time_vals = np.linspace(0, 1, nb_dates_plus)[np.newaxis, np.newaxis, :]  # [1, 1, nb_dates+1]
+        time = np.broadcast_to(time_vals, (nb_paths, 1, nb_dates_plus))  # [nb_paths, 1, nb_dates+1]
+        time_complement = 1 - time  # [nb_paths, 1, nb_dates+1]
 
         # Concatenate stock paths with time features
         stocks = np.concatenate([stock_paths, time, time_complement], axis=1)  # [nb_paths, nb_stocks+2, nb_dates+1]
