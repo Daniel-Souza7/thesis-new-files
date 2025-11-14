@@ -336,7 +336,8 @@ def _run_algos():
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
             config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
-            config.k, config.notional, config.leverage, config.barrier_stop_loss))
+            config.k, config.notional, config.leverage, config.barrier_stop_loss,
+            config.barriers_up, config.barriers_down))
 
         for params in combinations:
             for i in range(config.nb_runs):
@@ -351,9 +352,7 @@ def _run_algos():
                     fd_compute_gamma_via_PDE=FLAGS.fd_compute_gamma_via_PDE,
                     reg_eps=FLAGS.reg_eps, path_gen_seed=FLAGS.path_gen_seed,
                     compute_upper_bound=FLAGS.compute_upper_bound,
-                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split,
-                    barrier_up=getattr(config, 'barriers_up', [None])[0],
-                    barrier_down=getattr(config, 'barriers_down', [None])[0]))
+                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split))
 
 
     print(f"Running {len(delayed_jobs)} tasks using "
@@ -394,13 +393,14 @@ def _run_algo(
         volatility, mean, speed, correlation, hurst, nb_epochs, hidden_size=10,
         factors=(1., 1., 1.), ridge_coeff=1.,
         train_ITM_only=True, use_payoff_as_input=False,
+        k=None, notional=None, leverage=None, barrier_stop_loss=None,
+        barrier_up=None, barrier_down=None,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
         poly_deg=None, fd_freeze_exe_boundary=True,
         fd_compute_gamma_via_PDE=True, reg_eps=None, path_gen_seed=None,
         compute_upper_bound=False,
-        DEBUG=False, train_eval_split=2, barrier_up=None, barrier_down=None,
-        k=None, notional=None, leverage=None, barrier_stop_loss=None):
+        DEBUG=False, train_eval_split=2):
     """
     Run one algorithm for option pricing.
 
