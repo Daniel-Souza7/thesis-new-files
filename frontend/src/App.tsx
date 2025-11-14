@@ -2,6 +2,7 @@ import Navigation from './components/Navigation';
 import Hero from './sections/Hero';
 import Problem from './sections/Problem';
 import Algorithms from './sections/Algorithms';
+import CodeExamples from './sections/CodeExamples';
 import Demo from './sections/Demo';
 import Visualizations from './sections/Visualizations';
 import Results from './sections/Results';
@@ -13,6 +14,7 @@ function App() {
       <Hero />
       <Problem />
       <Algorithms />
+      <CodeExamples />
       <Demo />
       <Visualizations />
       <Results />
