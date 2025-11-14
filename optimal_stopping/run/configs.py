@@ -1616,3 +1616,21 @@ erlsm_vs_rlsm_test = _FasterTable(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+# Quick ERLSM test - fewer runs for rapid iteration and optimization
+erlsm_quick_test = _FasterTable(
+    algos=['RLSM', 'ERLSM'],
+    stock_models=['BlackScholes'],
+    payoffs=['MaxCall', 'BasketCall'],
+    nb_stocks=[5, 10, 20],
+    strikes=[100],
+    spots=[100],
+    volatilities=[0.2],
+    drift=[0.05],
+    nb_paths=[10000],
+    nb_dates=[52],
+    maturities=[0.25],
+    nb_runs=3,  # Fast testing
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)

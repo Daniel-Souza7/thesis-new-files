@@ -120,13 +120,21 @@ class ERLSM:
         self._init_ensemble(state_size, hidden_size, factors)
 
         # Initialize polynomial feature transformer
+        # For large state spaces, only use interaction terms (not full polynomial)
         if poly_degree > 1:
-            self.poly_features = PolynomialFeatures(degree=poly_degree, include_bias=False)
+            # If state_size > 15, use interaction_only to avoid feature explosion
+            use_interaction_only = state_size > 15
+            self.poly_features = PolynomialFeatures(
+                degree=poly_degree,
+                include_bias=False,
+                interaction_only=use_interaction_only
+            )
             # Fit on dummy data to initialize
             dummy = np.zeros((1, state_size))
             self.poly_features.fit(dummy)
             expanded_size = self.poly_features.transform(dummy).shape[1]
             self.feature_size = expanded_size
+            print(f"   Polynomial features: {state_size} → {expanded_size} (interaction_only={use_interaction_only})")
         else:
             self.poly_features = None
             self.feature_size = state_size
@@ -355,8 +363,22 @@ class ERLSM:
             weights = weights / weights.sum()
             self.ensemble_weights = 0.9 * self.ensemble_weights + 0.1 * weights  # Smooth update
 
-        # Weighted average of predictions
+        # Ensemble combination: Use weighted average
+        # For better performance, slightly bias towards higher estimates (anti-underestimation)
         all_predictions = np.array(all_predictions)  # Shape: (ensemble_size, nb_paths)
-        continuation_values = np.average(all_predictions, axis=0, weights=self.ensemble_weights)
+
+        # Method 1: Weighted average (standard)
+        weighted_avg = np.average(all_predictions, axis=0, weights=self.ensemble_weights)
+
+        # Method 2: Take 60th percentile weighted by ensemble weights
+        # This provides slight upward bias to combat underestimation
+        # Sort predictions for each path and take weighted 60th percentile
+        sorted_preds = np.sort(all_predictions, axis=0)
+        # Use 60th percentile as a compromise between median and max
+        percentile_idx = int(len(sorted_preds) * 0.6)
+        percentile_pred = sorted_preds[percentile_idx]
+
+        # Combine both methods: 80% weighted average + 20% upper percentile
+        continuation_values = 0.8 * weighted_avg + 0.2 * percentile_pred
 
         return continuation_values
