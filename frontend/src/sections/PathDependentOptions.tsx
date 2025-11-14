@@ -159,8 +159,8 @@ const PathDependentOptions = () => {
                   Extends RLSM with recurrent neural networks to handle path-dependent payoffs.
                 </p>
                 <div className="font-mono text-xs bg-gray-900 text-green-400 p-3 rounded">
-                  h_t = tanh(W_h * [S_t, h_{{t-1}}])<br />
-                  features = RNN(S_{{0:t}})
+                  {"h_t = tanh(W_h * [S_t, h_{t-1}])"}<br />
+                  {"features = RNN(S_{0:t})"}
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
                   The hidden state h_t carries information from all previous time steps.
@@ -176,8 +176,8 @@ const PathDependentOptions = () => {
                   Extends RFQI with recurrent Q-iteration to learn optimal stopping with memory.
                 </p>
                 <div className="font-mono text-xs bg-gray-900 text-green-400 p-3 rounded">
-                  Q_t(s_t, h_t) = max(payoff, E[Q_{{t+1}}])<br />
-                  state = [S_t, h_t, barrier_hit]
+                  {"Q_t(s_t, h_t) = max(payoff, E[Q_{t+1}])"}<br />
+                  {"state = [S_t, h_t, barrier_hit]"}
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
                   Explicitly tracks path-dependent features in the state representation.
