@@ -23,6 +23,7 @@ const Navigation = () => {
     { id: 'code', label: 'Code' },
     { id: 'demo', label: 'Demo' },
     { id: 'visualizations', label: 'Visualizations' },
+    { id: 'path-dependent', label: 'Path-Dependent' },
     { id: 'results', label: 'Results' },
   ];
 

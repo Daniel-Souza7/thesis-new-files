@@ -5,6 +5,7 @@ import Algorithms from './sections/Algorithms';
 import CodeExamples from './sections/CodeExamples';
 import Demo from './sections/Demo';
 import Visualizations from './sections/Visualizations';
+import PathDependentOptions from './sections/PathDependentOptions';
 import Results from './sections/Results';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <CodeExamples />
       <Demo />
       <Visualizations />
+      <PathDependentOptions />
       <Results />
 
       {/* Footer */}
