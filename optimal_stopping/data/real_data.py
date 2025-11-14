@@ -117,7 +117,7 @@ class RealDataModel(Model):
         if self.avg_block_length is None:
             self.avg_block_length = self._estimate_block_length()
 
-        print(f"✅ Loaded {len(self.returns)} days of returns")
+        print(f"✅ Loaded {len(self.tickers)} stocks × {len(self.returns)} days of returns")
         print(f"   Average return: {np.mean(self.empirical_drift_annual):.2%}")
         print(f"   Average volatility: {np.mean(self.empirical_vol_annual):.2%}")
         print(f"   Block length: {self.avg_block_length} days")
@@ -150,30 +150,30 @@ class RealDataModel(Model):
 
             # Technology (continued)
             'IBM', 'NOW', 'INTU', 'AMAT', 'MU', 'LRCX', 'ADI', 'KLAC', 'SNPS',
-            'CDNS', 'MCHP', 'FTNT', 'ADSK', 'PANW', 'ANSS', 'TEAM', 'WDAY',
-            'DDOG', 'ZS', 'CRWD', 'SNOW', 'NET', 'PLTR', 'APP', 'GTLB',
-            'ESTC', 'ZI', 'BILL', 'S', 'TWLO', 'DOCU', 'HUBS', 'ZM',
-            'OKTA', 'COUP', 'CFLT', 'DKNG', 'RBLX', 'U', 'LYFT', 'DASH',
-            'ABNB', 'COIN', 'HOOD', 'SHOP', 'SQ', 'PYPL', 'V', 'MA',
-            'FISV', 'FIS', 'PAYX', 'ADP', 'BR', 'CTSH', 'ACN', 'IT',
+            'CDNS', 'MCHP', 'FTNT', 'ADSK', 'PANW', 'TEAM', 'WDAY',
+            'DDOG', 'ZS', 'CRWD', 'SNOW', 'NET', 'PLTR', 'DASH',
+            'TWLO', 'DOCU', 'HUBS', 'ZM',
+            'OKTA', 'DKNG', 'RBLX', 'LYFT',
+            'ABNB', 'SHOP', 'SQ', 'PYPL', 'V', 'MA',
+            'FISV', 'FIS', 'PAYX', 'ADP', 'CTSH', 'ACN',
             'APH', 'TEL', 'GLW', 'HPQ', 'NTAP', 'STX', 'WDC', 'JNPR',
-            'AKAM', 'FFIV', 'VRSN', 'CIEN', 'ZBRA', 'KEYS', 'FSLR', 'ENPH',
+            'AKAM', 'FFIV', 'VRSN', 'ZBRA', 'KEYS', 'FSLR', 'ENPH',
 
             # Financials (continued)
             'SCHW', 'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'NTRS', 'CFG',
-            'HBAN', 'RF', 'KEY', 'FITB', 'MTB', 'SIVB', 'ZION', 'CMA',
+            'HBAN', 'RF', 'KEY', 'FITB', 'MTB', 'ZION', 'CMA',
             'SPG', 'PSA', 'O', 'WELL', 'DLR', 'EQIX', 'PLD', 'AMT', 'CCI',
             'AVB', 'EQR', 'VTR', 'MAA', 'UDR', 'ESS', 'CPT', 'ARE', 'INVH',
             'AIG', 'PRU', 'MET', 'AFL', 'ALL', 'TRV', 'PGR', 'CB', 'AON',
-            'MMC', 'AJG', 'WRB', 'RE', 'L', 'GL', 'RNR', 'AIZ', 'AFG',
+            'MMC', 'AJG', 'WRB', 'RNR', 'AIZ', 'AFG',
             'CINF', 'PFG', 'LNC', 'TROW', 'BEN', 'IVZ', 'NDAQ', 'CME', 'ICE',
             'MSCI', 'SPGI', 'MCO', 'CBOE',
 
             # Healthcare (continued)
-            'LLY', 'AMGN', 'GILD', 'REGN', 'VRTX', 'BIIB', 'ILMN', 'ALXN',
-            'INCY', 'BMRN', 'EXAS', 'ALGN', 'IDXX', 'TECH', 'HOLX', 'DXCM',
+            'LLY', 'AMGN', 'GILD', 'REGN', 'VRTX', 'BIIB', 'ILMN',
+            'INCY', 'BMRN', 'EXAS', 'ALGN', 'IDXX', 'HOLX', 'DXCM',
             'ISRG', 'SYK', 'BSX', 'MDT', 'ABT', 'DHR', 'BAX', 'BDX', 'XRAY',
-            'ZBH', 'EW', 'RMD', 'PODD', 'TDOC', 'VEEV', 'IQV', 'CRL', 'LH',
+            'ZBH', 'EW', 'RMD', 'PODD', 'VEEV', 'IQV', 'CRL', 'LH',
             'DGX', 'CI', 'HUM', 'CNC', 'ELV', 'MOH', 'HCA', 'UHS', 'THC',
             'HSIC', 'CAH', 'MCK', 'ABC', 'DVA', 'WAT', 'PKI', 'A', 'CTLT',
             'MTD', 'STE', 'COO', 'WST', 'BIO',
@@ -182,11 +182,10 @@ class RealDataModel(Model):
             'AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'SBUX', 'TJX', 'BKNG',
             'CMG', 'MAR', 'HLT', 'YUM', 'ORLY', 'AZO', 'ROST', 'DHI', 'LEN',
             'PHM', 'NVR', 'POOL', 'WHR', 'TPR', 'RL', 'PVH', 'UAA', 'LULU',
-            'GPS', 'ANF', 'DDS', 'GPC', 'AAP', 'DG', 'DLTR', 'BBY', 'BBWI',
-            'ULTA', 'DPZ', 'QSR', 'WING', 'DRI', 'EAT', 'TXRH', 'BLMN',
-            'DINE', 'PLAY', 'CHDN', 'F', 'GM', 'TSLA', 'RIVN', 'LCID',
-            'LI', 'NIO', 'XPEV', 'LVS', 'MGM', 'WYNN', 'CZR', 'BYD', 'GRMN',
-            'HAS', 'MAT', 'DECK', 'CROX', 'SKX', 'BOOT', 'FL', 'WSM', 'RH',
+            'GPS', 'GPC', 'AAP', 'DG', 'DLTR', 'BBY', 'BBWI',
+            'ULTA', 'DPZ', 'QSR', 'DRI', 'TXRH',
+            'F', 'GM', 'LVS', 'MGM', 'WYNN', 'CZR', 'GRMN',
+            'HAS', 'MAT', 'DECK', 'CROX', 'SKX', 'FL', 'WSM', 'RH',
 
             # Consumer Staples
             'PG', 'KO', 'PEP', 'WMT', 'COST', 'MDLZ', 'CL', 'KMB', 'GIS',
@@ -196,20 +195,20 @@ class RealDataModel(Model):
             'DG', 'DLTR', 'RVTY', 'WBA', 'RAD', 'GO', 'PM', 'MO', 'BTI',
 
             # Energy
-            'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'MPC', 'PSX', 'VLO', 'HES',
+            'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'MPC', 'PSX', 'VLO',
             'OXY', 'DVN', 'FANG', 'HAL', 'BKR', 'WMB', 'KMI', 'OKE', 'LNG',
-            'TRGP', 'EPD', 'ET', 'MPLX', 'PAA', 'MMP', 'AM', 'SUN', 'ENLC',
-            'APA', 'MRO', 'CTRA', 'NOV', 'FTI', 'HP', 'CHK', 'RRC', 'AR',
+            'TRGP', 'EPD', 'ET', 'MPLX', 'MMP',
+            'APA', 'MRO', 'CTRA', 'NOV', 'FTI', 'HP',
 
             # Industrials
             'BA', 'CAT', 'GE', 'HON', 'UNP', 'UPS', 'RTX', 'LMT', 'NOC',
-            'GD', 'LHX', 'TXT', 'HWM', 'ETN', 'EMR', 'ITW', 'PH', 'ROK',
+            'GD', 'LHX', 'TXT', 'ETN', 'EMR', 'ITW', 'PH', 'ROK',
             'DOV', 'XYL', 'FTV', 'IEX', 'PCAR', 'JCI', 'CARR', 'OTIS', 'IR',
-            'GWW', 'FAST', 'EXPD', 'CHRW', 'JBHT', 'ODFL', 'KNX', 'XPO',
-            'UBER', 'LYFT', 'R', 'ALK', 'UAL', 'DAL', 'AAL', 'LUV', 'JBLU',
-            'CSX', 'NSC', 'UNP', 'CNI', 'CP', 'KSU', 'FDX', 'UPS', 'USPS',
-            'URI', 'RSG', 'WM', 'WCN', 'SRCL', 'CLH', 'ROP', 'SWK', 'SNA',
-            'PNR', 'GNRC', 'AOS', 'BLDR', 'VMC', 'MLM', 'NUE', 'STLD', 'RS',
+            'GWW', 'FAST', 'EXPD', 'CHRW', 'JBHT', 'ODFL', 'XPO',
+            'UBER', 'LYFT', 'ALK', 'UAL', 'DAL', 'AAL', 'LUV', 'JBLU',
+            'CSX', 'NSC', 'FDX',
+            'URI', 'RSG', 'WM', 'ROP', 'SNA',
+            'PNR', 'GNRC', 'AOS', 'BLDR', 'VMC', 'MLM', 'NUE', 'STLD',
 
             # Materials
             'LIN', 'APD', 'SHW', 'ECL', 'DD', 'DOW', 'PPG', 'NEM', 'FCX',
@@ -229,8 +228,8 @@ class RealDataModel(Model):
             # Communication Services
             'GOOGL', 'GOOG', 'META', 'NFLX', 'DIS', 'CMCSA', 'VZ', 'T',
             'TMUS', 'CHTR', 'EA', 'TTWO', 'ATVI', 'SPOT', 'MTCH', 'PINS',
-            'SNAP', 'TWTR', 'ROKU', 'PARA', 'WBD', 'FOXA', 'FOX', 'NWSA',
-            'NYT', 'OMC', 'IPG', 'LUMN', 'VIV',
+            'SNAP', 'ROKU', 'PARA', 'WBD', 'FOXA', 'FOX', 'NWSA',
+            'NYT', 'OMC', 'IPG', 'LUMN',
         ]
 
     def _download_data(self):
@@ -243,35 +242,83 @@ class RealDataModel(Model):
                 "Install with: pip install yfinance"
             )
 
-        # Download data
-        try:
-            data = yf.download(
-                self.tickers,
-                start=self.start_date,
-                end=self.end_date,
-                progress=False,
-                auto_adjust=True  # Adjust for splits and dividends
-            )
+        # Download data with error handling for invalid tickers
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # Suppress yfinance warnings
+                import logging
+                logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
-            # Handle single ticker case
-            if len(self.tickers) == 1:
-                self.prices = pd.DataFrame(data['Close'])
-                self.prices.columns = self.tickers
-            else:
-                self.prices = data['Close']
+                data = yf.download(
+                    self.tickers,
+                    start=self.start_date,
+                    end=self.end_date,
+                    progress=False,
+                    auto_adjust=True,  # Adjust for splits and dividends
+                    show_errors=False  # Suppress error messages
+                )
 
-            # Drop NaN values
-            self.prices = self.prices.dropna()
+                # Handle single ticker case
+                if len(self.tickers) == 1:
+                    if data.empty:
+                        raise ValueError(f"No data for ticker: {self.tickers[0]}")
+                    self.prices = pd.DataFrame(data['Close'])
+                    self.prices.columns = self.tickers
+                else:
+                    self.prices = data['Close']
 
-            if len(self.prices) == 0:
-                raise ValueError("No data downloaded. Check tickers and date range.")
+                # Identify tickers with insufficient data
+                if isinstance(self.prices, pd.DataFrame):
+                    # Check which tickers have mostly NaN values
+                    valid_data_pct = self.prices.notna().sum() / len(self.prices)
+                    bad_tickers = valid_data_pct[valid_data_pct < 0.5].index.tolist()
 
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to download data: {e}\n"
-                f"Tickers: {self.tickers}\n"
-                f"Date range: {self.start_date} to {self.end_date}"
-            )
+                    if bad_tickers and attempt < max_retries - 1:
+                        # Remove bad tickers and retry
+                        warnings.warn(
+                            f"Removing {len(bad_tickers)} tickers with insufficient data: "
+                            f"{bad_tickers[:5]}{'...' if len(bad_tickers) > 5 else ''}"
+                        )
+                        self.tickers = [t for t in self.tickers if t not in bad_tickers]
+                        continue  # Retry with cleaned ticker list
+
+                    # Drop columns (tickers) that are all NaN
+                    self.prices = self.prices.dropna(axis=1, how='all')
+
+                    # Update tickers list to match available data
+                    if len(self.prices.columns) < len(self.tickers):
+                        removed = set(self.tickers) - set(self.prices.columns)
+                        warnings.warn(
+                            f"Removed {len(removed)} tickers without data: "
+                            f"{list(removed)[:5]}{'...' if len(removed) > 5 else ''}"
+                        )
+                        self.tickers = list(self.prices.columns)
+
+                    # Drop rows with any NaN (days where not all stocks traded)
+                    self.prices = self.prices.dropna(axis=0, how='any')
+
+                if len(self.prices) == 0:
+                    raise ValueError("No data downloaded. Check tickers and date range.")
+
+                if isinstance(self.prices, pd.DataFrame) and len(self.prices.columns) == 0:
+                    raise ValueError("No valid tickers found.")
+
+                # Success - break out of retry loop
+                break
+
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    # Final attempt failed
+                    raise RuntimeError(
+                        f"Failed to download data after {max_retries} attempts: {e}\n"
+                        f"Tickers: {self.tickers[:10]}{'...' if len(self.tickers) > 10 else ''}\n"
+                        f"Date range: {self.start_date} to {self.end_date}"
+                    )
+                else:
+                    # Retry with a delay
+                    import time
+                    time.sleep(1)
 
     def _calculate_returns(self):
         """Calculate daily log returns."""
