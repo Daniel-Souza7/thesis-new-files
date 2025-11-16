@@ -20,53 +20,8 @@ import joblib
 from optimal_stopping.utilities import configs_getter
 from optimal_stopping.data import stock_model
 
-# NEW IMPORTS - Restructured payoffs
-from optimal_stopping.payoffs.standard import (
-    # Standard payoffs
-    BasketCall, BasketPut,
-    MaxCall, MaxPut,
-    MinCall, MinPut,
-    GeometricBasketCall, GeometricBasketPut)
-
-from optimal_stopping.payoffs.barriers import (
-    UpAndOutBasketCall, UpAndOutBasketPut,
-    UpAndOutMaxCall, UpAndOutMaxPut,
-    UpAndOutMinCall, UpAndOutMinPut,
-    UpAndOutGeometricBasketCall, UpAndOutGeometricBasketPut,
-    # Barrier payoffs - Down-and-Out
-    DownAndOutBasketCall, DownAndOutBasketPut,
-    DownAndOutMaxCall, DownAndOutMaxPut,
-    DownAndOutMinCall, DownAndOutMinPut,
-    DownAndOutGeometricBasketCall, DownAndOutGeometricBasketPut,
-    # Barrier payoffs - Up-and-In
-    UpAndInBasketCall, UpAndInBasketPut,
-    UpAndInMaxCall, UpAndInMaxPut,
-    UpAndInGeometricBasketCall, UpAndInGeometricBasketPut,
-    UpAndInMinCall, UpAndInMinPut,
-    # Barrier payoffs - Down-and-In
-    DownAndInBasketCall, DownAndInBasketPut,
-    DownAndInMaxCall, DownAndInMaxPut,
-    DownAndInGeometricBasketCall, DownAndInGeometricBasketPut,
-    DownAndInMinCall, DownAndInMinPut)
-
-# Add after barrier imports
-from optimal_stopping.payoffs.lookbacks import (
-    LookbackFixedCall,
-    LookbackFixedPut,
-    LookbackFloatCall,
-    LookbackFloatPut,
-    LookbackMaxCall,
-    LookbackMinPut,
-)
-
-from optimal_stopping.payoffs.double_barriers import (
-    DoubleKnockOutCall, DoubleKnockOutPut,
-    DoubleKnockInCall, DoubleKnockInPut,
-    UpInDownOutCall, UpInDownOutPut,
-    UpOutDownInCall, UpOutDownInPut,
-    PartialTimeBarrierCall, StepBarrierCall,
-    DoubleKnockOutLookbackFloatingCall, DoubleKnockOutLookbackFloatingPut
-)
+# NEW IMPORTS - Use payoff registry system with all 408 payoffs
+from optimal_stopping.payoffs import get_payoff_class, _PAYOFF_REGISTRY
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
@@ -159,79 +114,9 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'exercise_time']
 
 
-# NEW PAYOFFS DICTIONARY - Updated for new structure
-_PAYOFFS = {
-    # Standard payoffs (8)
-    "BasketCall": BasketCall,
-    "BasketPut": BasketPut,
-    "MaxCall": MaxCall,
-    "MaxPut": MaxPut,
-    "MinCall": MinCall,
-    "MinPut": MinPut,
-    "GeometricBasketCall": GeometricBasketCall,
-    "GeometricBasketPut": GeometricBasketPut,
-
-    # Barrier options - Up-and-Out (8)
-    "UpAndOutBasketCall": UpAndOutBasketCall,
-    "UpAndOutBasketPut": UpAndOutBasketPut,
-    "UpAndOutMaxCall": UpAndOutMaxCall,
-    "UpAndOutMaxPut": UpAndOutMaxPut,
-    "UpAndOutMinCall": UpAndOutMinCall,
-    "UpAndOutMinPut": UpAndOutMinPut,
-    "UpAndOutGeometricBasketCall": UpAndOutGeometricBasketCall,
-    "UpAndOutGeometricBasketPut": UpAndOutGeometricBasketPut,
-
-    # Barrier options - Down-and-Out (8)
-    "DownAndOutBasketCall": DownAndOutBasketCall,
-    "DownAndOutBasketPut": DownAndOutBasketPut,
-    "DownAndOutMaxCall": DownAndOutMaxCall,
-    "DownAndOutMaxPut": DownAndOutMaxPut,
-    "DownAndOutMinCall": DownAndOutMinCall,
-    "DownAndOutMinPut": DownAndOutMinPut,
-    "DownAndOutGeometricBasketCall": DownAndOutGeometricBasketCall,
-    "DownAndOutGeometricBasketPut": DownAndOutGeometricBasketPut,
-
-    # Barrier options - Up-and-In (8)
-    "UpAndInBasketCall": UpAndInBasketCall,
-    "UpAndInBasketPut": UpAndInBasketPut,
-    "UpAndInMaxCall": UpAndInMaxCall,
-    "UpAndInMaxPut": UpAndInMaxPut,
-    "UpAndInMinCall": UpAndInMinCall,
-    "UpAndInMinPut": UpAndInMinPut,
-    "UpAndInGeometricBasketCall": UpAndInGeometricBasketCall,
-    "UpAndInGeometricBasketPut": UpAndInGeometricBasketPut,
-
-    # Barrier options - Down-and-In (8)
-    "DownAndInBasketCall": DownAndInBasketCall,
-    "DownAndInBasketPut": DownAndInBasketPut,
-    "DownAndInMaxCall": DownAndInMaxCall,
-    "DownAndInMaxPut": DownAndInMaxPut,
-    "DownAndInMinCall": DownAndInMinCall,
-    "DownAndInMinPut": DownAndInMinPut,
-    "DownAndInGeometricBasketCall": DownAndInGeometricBasketCall,
-    "DownAndInGeometricBasketPut": DownAndInGeometricBasketPut,
-
-    #Lookbacks - 6 options
-    "LookbackFixedCall": LookbackFixedCall,
-    "LookbackFixedPut": LookbackFixedPut,
-    "LookbackFloatCall": LookbackFloatCall,
-    "LookbackFloatPut": LookbackFloatPut,
-    "LookbackMaxCall": LookbackMaxCall,
-    "LookbackMinPut": LookbackMinPut,
-
-    "DoubleKnockOutCall": DoubleKnockOutCall,
-    "DoubleKnockOutPut": DoubleKnockOutPut,
-    "DoubleKnockInCall": DoubleKnockInCall,
-    "DoubleKnockInPut": DoubleKnockInPut,
-    "UpInDownOutCall": UpInDownOutCall,
-    "UpInDownOutPut": UpInDownOutPut,
-    "UpOutDownInCall": UpOutDownInCall,
-    "UpOutDownInPut": UpOutDownInPut,
-    "PartialTimeBarrierCall": PartialTimeBarrierCall,
-    "StepBarrierCall": StepBarrierCall,
-    "DoubleKnockOutLookbackFloatingCall": DoubleKnockOutLookbackFloatingCall,
-    "DoubleKnockOutLookbackFloatingPut": DoubleKnockOutLookbackFloatingPut,
-}
+# NEW PAYOFFS DICTIONARY - Use the auto-generated registry (408 payoffs)
+# This registry contains all 34 base payoffs + 374 barrier variants = 408 total
+_PAYOFFS = _PAYOFF_REGISTRY
 
 
 _STOCK_MODELS = stock_model.STOCK_MODELS
@@ -388,23 +273,25 @@ def _run_algo(
     print(f"{algo} {payoff_name} spot={spot} vol={volatility} mat={maturity} "
           f"paths={nb_paths} ... ", end="")
 
-    # Determine payoff type
-    is_single_barrier = any(x in payoff_name for x in ['UpAnd', 'DownAnd'])
-    is_double_barrier = 'DoubleBarrier' in payoff_name or 'DualBarrier' in payoff_name
-    is_lookback = 'Lookback' in payoff_name
+    # Instantiate payoff - unified approach for all 408 payoffs
+    # All payoffs accept strike + any extra parameters via **kwargs
+    payoff_class = _PAYOFFS.get(payoff_name)
+    if payoff_class is None:
+        raise ValueError(f"Unknown payoff: {payoff_name}. Available: {len(_PAYOFFS)} payoffs")
 
-    # Instantiate payoff
-    if is_double_barrier:
-        # Double barriers need both levels
-        payoff_obj = _PAYOFFS[payoff_name](strike, barrier_up=barrier_up, barrier_down=barrier_down)
-    elif is_single_barrier:
-        # Single barrier
-        payoff_obj = _PAYOFFS[payoff_name](strike, barrier=barrier)
-    elif is_lookback:
-        payoff_obj = _PAYOFFS[payoff_name](strike)
-    else:
-        # Standard
-        payoff_obj = _PAYOFFS[payoff_name](strike)
+    payoff_obj = payoff_class(
+        strike=strike,
+        barrier=barrier,
+        barrier_up=barrier_up,
+        barrier_down=barrier_down,
+        alpha=alpha,
+        k=k,
+        weights=weights,
+        step_param1=step_param1,
+        step_param2=step_param2,
+        step_param3=step_param3,
+        step_param4=step_param4
+    )
 
     # Check if payoff is path-dependent
     is_path_dependent = getattr(payoff_obj, 'is_path_dependent', False)
