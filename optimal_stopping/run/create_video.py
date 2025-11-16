@@ -269,21 +269,47 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
                [m for markers in exercise_markers for m in markers] + \
                [stats_text, payoff_line]
 
-    def animate(t):
-        """Update animation at time t."""
-        # Track exercised paths
-        exercised = exercise_times <= t
+    def animate(frame):
+        """Update animation at frame (with smooth interpolation)."""
+        # Smooth interpolation: 10 frames per time step
+        frames_per_step = 10
+        t = frame / frames_per_step  # Fractional time
+        t_int = int(t)  # Integer time step
+        t_frac = t - t_int  # Fractional part for interpolation
+
+        # Track exercised paths (at integer time)
+        exercised = exercise_times <= t_int
         not_exercised = ~exercised
 
-        # Update path lines
+        # Update path lines with smooth interpolation
         for path_idx in range(nb_paths):
             for stock_idx in range(nb_stocks):
                 line = lines[path_idx][stock_idx]
 
                 # Show path up to current time or exercise time
-                end_time = min(t, exercise_times[path_idx])
-                x_data = np.arange(end_time + 1)
-                y_data = stock_paths[path_idx, stock_idx, :end_time + 1]
+                end_time_int = min(t_int, exercise_times[path_idx])
+
+                # Build smooth path with interpolation
+                if end_time_int == 0:
+                    # Just the starting point
+                    x_data = np.array([0])
+                    y_data = stock_paths[path_idx, stock_idx, :1]
+                elif t_frac > 0 and end_time_int < nb_dates and end_time_int == t_int:
+                    # Interpolate between current and next point
+                    x_data = np.arange(end_time_int + 1)
+                    y_data = stock_paths[path_idx, stock_idx, :end_time_int + 1]
+
+                    # Add interpolated point
+                    x_interp = t
+                    y_interp = stock_paths[path_idx, stock_idx, end_time_int] * (1 - t_frac) + \
+                               stock_paths[path_idx, stock_idx, end_time_int + 1] * t_frac
+
+                    x_data = np.append(x_data, x_interp)
+                    y_data = np.append(y_data, y_interp)
+                else:
+                    # No interpolation needed
+                    x_data = np.arange(end_time_int + 1)
+                    y_data = stock_paths[path_idx, stock_idx, :end_time_int + 1]
 
                 line.set_data(x_data, y_data)
 
@@ -311,28 +337,31 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
         pct_exercised = 100 * nb_exercised / nb_paths
         avg_payoff = payoff_values[exercised].mean() if nb_exercised > 0 else 0
 
-        stats_str = f"Time Step: {t}/{nb_dates}\n"
+        stats_str = f"Time Step: {t:.1f}/{nb_dates}\n"
         stats_str += f"Exercised: {nb_exercised}/{nb_paths} ({pct_exercised:.1f}%)\n"
         stats_str += f"Avg Payoff: {avg_payoff:.2f}\n"
         stats_str += f"Active Paths: {not_exercised.sum()}"
         stats_text.set_text(stats_str)
 
-        # Update payoff evolution
-        payoff_evolution.append(avg_payoff)
-        if len(payoff_evolution) > 1:
-            payoff_line.set_data(range(len(payoff_evolution)), payoff_evolution)
-            ax_payoff.set_ylim(0, max(payoff_evolution) * 1.1 if max(payoff_evolution) > 0 else 1)
+        # Update payoff evolution (only at integer time steps to avoid jitter)
+        if frame % frames_per_step == 0:
+            payoff_evolution.append(avg_payoff)
+            if len(payoff_evolution) > 1:
+                payoff_line.set_data(range(len(payoff_evolution)), payoff_evolution)
+                ax_payoff.set_ylim(0, max(payoff_evolution) * 1.1 if max(payoff_evolution) > 0 else 1)
 
         return [l for path_lines in lines for l in path_lines] + \
                [m for markers in exercise_markers for m in markers] + \
                [stats_text, payoff_line]
 
-    # Create animation
-    print(f"Creating animation with {nb_dates + 1} frames...")
+    # Create animation with smooth interpolation
+    frames_per_step = 10
+    total_frames = (nb_dates + 1) * frames_per_step
+    print(f"Creating smooth animation with {total_frames} frames ({frames_per_step} per time step)...")
     anim = animation.FuncAnimation(
         fig, animate, init_func=init,
-        frames=nb_dates + 1,
-        interval=500,  # 500ms per frame = 2 fps
+        frames=total_frames,
+        interval=50,  # 50ms per frame = 20 fps, gives 0.5s per time step
         blit=True,
         repeat=True
     )
@@ -340,7 +369,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     # Save video
     print(f"Saving video to {output_path}...")
     Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=2, metadata=dict(artist='Optimal Stopping'), bitrate=1800)
+    writer = Writer(fps=20, metadata=dict(artist='Optimal Stopping'), bitrate=1800)
     anim.save(output_path, writer=writer)
 
     plt.close(fig)
@@ -378,7 +407,7 @@ def main():
     # Determine number of paths
     nb_stocks = config.nb_stocks if isinstance(config.nb_stocks, int) else config.nb_stocks[0]
     if args.nb_paths_to_plot is None:
-        nb_paths_to_plot = max(100, 5 * nb_stocks)
+        nb_paths_to_plot = max(200, 10 * nb_stocks)
     else:
         nb_paths_to_plot = args.nb_paths_to_plot
 
