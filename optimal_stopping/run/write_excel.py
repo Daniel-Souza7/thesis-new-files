@@ -167,39 +167,18 @@ def extract_data_for_excel(config: configs._DefaultConfig):
 
     print(f"  After parameter filters: {len(df)} rows")
 
-    # NOW filter barriers
-    if 'barrier' in df.index.names:
-        # Check if config wants actual barrier options (barrier < 100000)
-        # vs standard options (barrier >= 100000)
+    # NOW filter by barriers - use EXACT barrier values from config
+    if 'barrier' in df.index.names and hasattr(config, 'barriers') and config.barriers:
         barrier_values = config.barriers if isinstance(config.barriers, (list, tuple)) else [config.barriers]
-        config_has_barriers = hasattr(config, 'barriers') and config.barriers and \
-                              any(b is not None and b < 100000 for b in barrier_values)
+        # Filter to keep only rows matching the configured barrier values
+        df = df[df.index.get_level_values('barrier').isin(barrier_values)]
+        print(f"  Filtered by barriers {barrier_values}: {len(df)} rows")
 
-        if not config_has_barriers:
-            # Keep only high barrier (standard options)
-            df = df[df.index.get_level_values('barrier') >= 100000]
-            print(f"  Filtered to standard options (barrier >= 100000): {len(df)} rows")
-
-            # For standard options, we want to show results from configured algos
-            # but the data exists in all algos with barrier=100000
-            if hasattr(config, 'algos') and config.algos:
-                # Only keep the algos the user wants to see
-                df = df[df.index.get_level_values('algo').isin(config.algos)]
-                print(f"  Filtered to requested algos {config.algos}: {len(df)} rows")
-        else:
-            # Keep only actual barriers
-            df = df[df.index.get_level_values('barrier') < 100000]
-            print(f"  Filtered to barrier options (barrier < 100000): {len(df)} rows")
-
-            # Filter by algo
-            if hasattr(config, 'algos') and config.algos:
-                df = df[df.index.get_level_values('algo').isin(config.algos)]
-                print(f"  Filtered to algos {config.algos}: {len(df)} rows")
-    else:
-        # No barriers - filter by algo normally
-        if hasattr(config, 'algos') and config.algos:
+    # Filter by algos
+    if hasattr(config, 'algos') and config.algos:
+        if 'algo' in df.index.names:
             df = df[df.index.get_level_values('algo').isin(config.algos)]
-            print(f"  Filtered to algos: {len(df)} rows")
+            print(f"  Filtered to algos {config.algos}: {len(df)} rows")
 
     if df.empty:
         raise AssertionError("No data after filtering")
