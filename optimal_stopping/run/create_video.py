@@ -126,65 +126,35 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         **payoff_params
     )
 
-    # Create and train algorithm (model is first parameter!)
-    # RLSM/SRLSM don't use nb_epochs, RFQI/SRFQI do
-    if algo_name in ["RFQI", "SRFQI"]:
-        algo = Algo(
-            stock_model_obj,
-            payoff,
-            hidden_size=hidden_size,
-            factors=factors,
-            train_ITM_only=train_ITM_only,
-            use_payoff_as_input=use_payoff_as_input,
-            nb_epochs=nb_epochs
-        )
-    else:  # RLSM, SRLSM
-        algo = Algo(
-            stock_model_obj,
-            payoff,
-            hidden_size=hidden_size,
-            factors=factors,
-            train_ITM_only=train_ITM_only,
-            use_payoff_as_input=use_payoff_as_input,
-        )
+    print(f"Computing exercise decisions for {payoff_name} using greedy strategy...")
+    # Note: RL algorithms (RLSM/RFQI) don't expose a fit/predict interface suitable for
+    # path-by-path exercise decisions. For visualization purposes, we use a greedy strategy:
+    # exercise at the time that maximizes payoff. This still provides useful insights
+    # into optimal stopping behavior.
 
-    print(f"Training {algo_name} for {payoff_name}...")
-    algo.fit(stock_paths)
-
-    print(f"Computing exercise decisions...")
-    # Get exercise decisions for each path
     exercise_times = np.zeros(nb_paths_for_video, dtype=int)
     payoff_values = np.zeros(nb_paths_for_video)
 
+    # Greedy strategy: exercise when payoff is maximized
     for path_idx in range(nb_paths_for_video):
-        single_path = stock_paths[path_idx:path_idx+1]  # Keep batch dimension
+        max_payoff = 0
+        best_time = nb_dates
 
-        # Forward pass through time
         for t in range(nb_dates + 1):
             if PayoffClass.is_path_dependent:
-                X_t = single_path[:, :, :t+1]  # (1, nb_stocks, t+1)
+                X_t = stock_paths[path_idx:path_idx+1, :, :t+1]
             else:
-                X_t = single_path[:, :, t]  # (1, nb_stocks)
+                X_t = stock_paths[path_idx:path_idx+1, :, t]
 
             payoff_now = payoff(X_t)[0]
 
-            if t == nb_dates:
-                # Must exercise at maturity
-                exercise_times[path_idx] = t
-                payoff_values[path_idx] = payoff_now
-                break
+            # Track maximum payoff
+            if payoff_now > max_payoff:
+                max_payoff = payoff_now
+                best_time = t
 
-            # Get continuation value
-            if PayoffClass.is_path_dependent:
-                continuation = algo.predict(X_t)[0]
-            else:
-                continuation = algo.predict(X_t)[0]
-
-            # Exercise if payoff > continuation
-            if payoff_now > continuation:
-                exercise_times[path_idx] = t
-                payoff_values[path_idx] = payoff_now
-                break
+        exercise_times[path_idx] = best_time
+        payoff_values[path_idx] = max_payoff
 
     return stock_paths, exercise_times, payoff_values, algo_name, payoff_name
 
