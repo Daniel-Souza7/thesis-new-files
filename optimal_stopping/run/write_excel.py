@@ -194,20 +194,52 @@ def extract_data_for_excel(config: configs._DefaultConfig):
     print(f"  Sample data:")
     print(df.head(3))
 
-    # Group by index and calculate statistics
+    #Group by index and calculate statistics
     print(f"  Grouping by: {list(df.index.names)}")
-    grouped = df.groupby(level=list(df.index.names))
+
+    # DEBUG: Check if there are any duplicate index entries
+    if df.index.has_duplicates:
+        print(f"  ⚠️ WARNING: Index has duplicates!")
+        dup_count = df.index.duplicated().sum()
+        print(f"     {dup_count} duplicate index entries found")
+
+    grouped = df.groupby(level=list(range(len(df.index.names))))  # Use level numbers instead of names
     print(f"  Number of groups: {len(grouped)}")
+
+    # DEBUG: Try to see a sample group
+    try:
+        first_group_key = list(grouped.groups.keys())[0]
+        first_group = grouped.get_group(first_group_key)
+        print(f"  Sample group size: {len(first_group)} rows")
+        print(f"  Sample group columns: {list(first_group.columns)}")
+    except Exception as e:
+        print(f"  ⚠️ Could not get sample group: {e}")
 
     stats_dict = {}
 
     # Add price stats if available
     if 'price' in df.columns:
-        price_mean = grouped['price'].mean()
-        print(f"  Price mean calculated: {len(price_mean)} entries")
-        stats_dict['price_mean'] = price_mean
-        stats_dict['price_std'] = grouped['price'].std().fillna(0)
-        print(f"  ✅ Added price statistics")
+        try:
+            price_mean = grouped['price'].mean()
+            print(f"  Price mean calculated: {len(price_mean)} entries")
+            if len(price_mean) == 0:
+                print(f"  ⚠️ WARNING: price_mean is empty!")
+                print(f"     Trying alternative aggregation method...")
+                # Try using agg() instead
+                price_stats = grouped['price'].agg(['mean', 'std'])
+                print(f"     Alternative method result: {len(price_stats)} rows")
+                if len(price_stats) > 0:
+                    stats_dict['price_mean'] = price_stats['mean']
+                    stats_dict['price_std'] = price_stats['std'].fillna(0)
+                    print(f"  ✅ Added price statistics (via alternative method)")
+            else:
+                stats_dict['price_mean'] = price_mean
+                stats_dict['price_std'] = grouped['price'].std().fillna(0)
+                print(f"  ✅ Added price statistics")
+        except Exception as e:
+            print(f"  ❌ Error calculating price stats: {e}")
+            import traceback
+            traceback.print_exc()
     else:
         print(f"  ⚠️ No 'price' column found")
 
