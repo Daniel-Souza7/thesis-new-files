@@ -84,6 +84,8 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     hidden_size = config.hidden_size[0] if isinstance(config.hidden_size, (list, tuple)) else config.hidden_size
     nb_epochs = config.nb_epochs[0] if isinstance(config.nb_epochs, (list, tuple)) else config.nb_epochs
     factors = config.factors[0] if isinstance(config.factors, (list, tuple)) else config.factors
+    use_payoff_as_input = config.use_payoff_as_input[0] if isinstance(config.use_payoff_as_input, (list, tuple)) else config.use_payoff_as_input
+    train_ITM_only = config.train_ITM_only[0] if isinstance(config.train_ITM_only, (list, tuple)) else config.train_ITM_only
 
     # Create stock model (using stock_model.py API)
     maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
@@ -132,8 +134,8 @@ def run_algorithm_for_video(config, nb_paths_for_video):
             payoff,
             hidden_size=hidden_size,
             factors=factors,
-            train_ITM_only=config.train_ITM_only,
-            use_payoff_as_input=config.use_payoff_as_input,
+            train_ITM_only=train_ITM_only,
+            use_payoff_as_input=use_payoff_as_input,
             nb_epochs=nb_epochs
         )
     else:  # RLSM, SRLSM
@@ -142,8 +144,8 @@ def run_algorithm_for_video(config, nb_paths_for_video):
             payoff,
             hidden_size=hidden_size,
             factors=factors,
-            train_ITM_only=config.train_ITM_only,
-            use_payoff_as_input=config.use_payoff_as_input,
+            train_ITM_only=train_ITM_only,
+            use_payoff_as_input=use_payoff_as_input,
         )
 
     print(f"Training {algo_name} for {payoff_name}...")
