@@ -1545,7 +1545,7 @@ validation_payoff_ordering = _DefaultConfig(
 video_testing = _DefaultConfig(
     algos=['RLSM'],
     nb_stocks=[2],
-    nb_runs=[1],
+    nb_runs=1,  # FIX: nb_runs must be int, not list
     payoffs=['BasketPut'],
 )
 
@@ -1555,7 +1555,7 @@ benchmark_algorithms = _DefaultConfig(
     nb_stocks=[1, 2],
     nb_paths=[10000],
     nb_dates=[20],
-    nb_runs=[3],
+    nb_runs=3,  # FIX: nb_runs must be int, not list
     payoffs=['BasketCall', 'BasketPut'],
     nb_epochs=[20],
     hidden_size=[50],
@@ -1567,7 +1567,7 @@ test_lsm = _DefaultConfig(
     nb_stocks=[1],
     nb_paths=[1000],
     nb_dates=[10],
-    nb_runs=[1],
+    nb_runs=1,  # FIX: nb_runs must be int, not list
     payoffs=['BasketCall'],
     nb_epochs=[5],
     hidden_size=[20],
