@@ -921,7 +921,7 @@ def _generate_minimal_table(df, payoffs, algos, algo_short, family_name):
 
 
 def _abbreviate_payoff(payoff):
-    """Abbreviate payoff names for tables."""
+    """Abbreviate payoff names for tables and escape for LaTeX."""
     abbrevs = {
         'UpAndOut': 'UO-',
         'DownAndOut': 'DO-',
@@ -936,6 +936,13 @@ def _abbreviate_payoff(payoff):
     result = payoff
     for full, abbrev in abbrevs.items():
         result = result.replace(full, abbrev)
+
+    # Escape special LaTeX characters
+    result = result.replace('_', '\\_')  # Escape underscores
+    result = result.replace('%', '\\%')  # Escape percent signs
+    result = result.replace('&', '\\&')  # Escape ampersands
+    result = result.replace('#', '\\#')  # Escape hash symbols
+
     return result
 
 
