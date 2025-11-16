@@ -1417,7 +1417,7 @@ validation_k_sensitivity = _DefaultConfig(
     # BestOfK should have HIGHER prices with larger k (more optionality)
     # WorstOfK should have LOWER prices with larger k (worst of more = worse)
     k=[2, 5, 8],
-    volatilities=[0.3],
+    volatilities=[0.2, 0.4],  # Low and high vol to see differences
     drift=[0.04],
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
@@ -1535,7 +1535,7 @@ validation_payoff_ordering = _DefaultConfig(
     strikes=[100],
     spots=[100],
     barriers=[100000],
-    volatilities=[0.3],  # Higher vol to see differences
+    volatilities=[0.2, 0.4],  # Low and high vol to see differences
     drift=[0.05],
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
