@@ -332,7 +332,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     anim = animation.FuncAnimation(
         fig, animate, init_func=init,
         frames=nb_dates + 1,
-        interval=200,  # 200ms per frame = 5 fps
+        interval=500,  # 500ms per frame = 2 fps
         blit=True,
         repeat=True
     )
@@ -340,7 +340,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     # Save video
     print(f"Saving video to {output_path}...")
     Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=5, metadata=dict(artist='Optimal Stopping'), bitrate=1800)
+    writer = Writer(fps=2, metadata=dict(artist='Optimal Stopping'), bitrate=1800)
     anim.save(output_path, writer=writer)
 
     plt.close(fig)
