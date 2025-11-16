@@ -20,15 +20,25 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.patches import Rectangle
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from optimal_stopping.run.configs import get_config
-from optimal_stopping.finance.simulator import BlackScholes
+from optimal_stopping.run import configs
+from optimal_stopping.data.stock_model import BlackScholes
 from optimal_stopping.payoffs import get_payoff_class
-from optimal_stopping.algorithms import get_algo_class
+from optimal_stopping.algorithms.standard.rlsm import RLSM
+from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
+from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
+
+# Algorithm registry
+_ALGOS = {
+    "RLSM": RLSM,
+    "SRLSM": SRLSM,
+    "RFQI": RFQI,
+    "SRFQI": SRFQI,
+}
 
 
 def validate_config(config):
@@ -57,25 +67,34 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     algo_name = config.algos[0]
     payoff_name = config.payoffs[0]
 
-    # Get classes
-    Algo = get_algo_class(algo_name)
+    # Get algorithm class
+    if algo_name not in _ALGOS:
+        raise ValueError(f"Unknown algorithm: {algo_name}. Available: {list(_ALGOS.keys())}")
+    Algo = _ALGOS[algo_name]
+
+    # Get payoff class
     PayoffClass = get_payoff_class(payoff_name)
 
-    # Create simulator
-    simulator = BlackScholes(
-        nb_stocks=config.nb_stocks,
+    # Extract config parameters (handle lists)
+    nb_stocks = config.nb_stocks[0] if isinstance(config.nb_stocks, (list, tuple)) else config.nb_stocks
+    spot = config.spots[0] if isinstance(config.spots, (list, tuple)) else config.spots
+    drift = config.drift[0] if isinstance(config.drift, (list, tuple)) else config.drift
+    volatility = config.volatilities[0] if isinstance(config.volatilities, (list, tuple)) else config.volatilities
+
+    # Create stock model (using stock_model.py API)
+    stock_model_obj = BlackScholes(
+        drift=drift,
+        volatility=volatility,
+        nb_stocks=nb_stocks,
         nb_paths=nb_paths_for_video,
         nb_dates=config.nb_dates,
-        spot=config.spots[0] if isinstance(config.spots, (list, tuple)) else config.spots,
-        drift=config.drift[0] if isinstance(config.drift, (list, tuple)) else config.drift,
-        volatility=config.volatilities[0] if isinstance(config.volatilities, (list, tuple)) else config.volatilities,
-        correlation=config.correlation if hasattr(config, 'correlation') else -0.3,
-        mean_speed=config.mean_speed if hasattr(config, 'mean_speed') else 0.01,
-        hurst=config.hurst if hasattr(config, 'hurst') else 0.75,
+        spot=spot,
+        dividend=0,
+        maturity=config.maturity
     )
 
     # Generate paths
-    stock_paths = simulator.simulate()
+    stock_paths, _ = stock_model_obj.generate_paths()
 
     # Create payoff with barrier parameters if needed
     payoff_params = {}
@@ -357,7 +376,9 @@ def main():
 
     # Load config
     print(f"Loading config: {args.config}")
-    config = get_config(args.config)
+    if not hasattr(configs, args.config):
+        raise ValueError(f"Config '{args.config}' not found in configs.py")
+    config = getattr(configs, args.config)
 
     # Validate config
     validate_config(config)
