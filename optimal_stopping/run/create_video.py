@@ -80,6 +80,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     spot = config.spots[0] if isinstance(config.spots, (list, tuple)) else config.spots
     drift = config.drift[0] if isinstance(config.drift, (list, tuple)) else config.drift
     volatility = config.volatilities[0] if isinstance(config.volatilities, (list, tuple)) else config.volatilities
+    nb_dates = config.nb_dates[0] if isinstance(config.nb_dates, (list, tuple)) else config.nb_dates
 
     # Create stock model (using stock_model.py API)
     maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
@@ -88,7 +89,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         volatility=volatility,
         nb_stocks=nb_stocks,
         nb_paths=nb_paths_for_video,
-        nb_dates=config.nb_dates,
+        nb_dates=nb_dates,
         spot=spot,
         dividend=0,
         maturity=maturity
@@ -142,7 +143,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         single_path = stock_paths[path_idx:path_idx+1]  # Keep batch dimension
 
         # Forward pass through time
-        for t in range(config.nb_dates + 1):
+        for t in range(nb_dates + 1):
             if PayoffClass.is_path_dependent:
                 X_t = single_path[:, :, :t+1]  # (1, nb_stocks, t+1)
             else:
@@ -150,7 +151,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
 
             payoff_now = payoff(X_t)[0]
 
-            if t == config.nb_dates:
+            if t == nb_dates:
                 # Must exercise at maturity
                 exercise_times[path_idx] = t
                 payoff_values[path_idx] = payoff_now
@@ -184,7 +185,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
         output_path: Path to save video
     """
     nb_paths = stock_paths.shape[0]
-    nb_dates = config.nb_dates
+    nb_dates = config.nb_dates[0] if isinstance(config.nb_dates, (list, tuple)) else config.nb_dates
 
     # Determine if path-dependent (3D) or not (2D)
     if stock_paths.ndim == 3:
