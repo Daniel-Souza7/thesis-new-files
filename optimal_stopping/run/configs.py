@@ -1259,3 +1259,90 @@ test_table2 = _SmallDimensionTable(
     nb_runs=1, factors=((0.001,0.001,0.001),),
     representations=['TablePriceDuration'],
 )
+
+# ==============================================================================
+# QUICK TESTS FOR NEW 408 PAYOFF SYSTEM
+# ==============================================================================
+
+# Test 1: Base payoffs (no barriers) - Tests simple non-path-dependent options
+quick_test_base_payoffs = _DefaultConfig(
+    algos=['RFQI', 'RLSM'],  # Fast algorithms for non-path-dependent
+    payoffs=[
+        'BasketCall', 'BasketPut',           # Simple basket
+        'GeometricCall', 'GeometricPut',     # Geometric
+        'MaxCall', 'MinPut',                 # Max/Min
+        'Call', 'Put',                       # Single asset
+    ],
+    nb_stocks=[2, 3],
+    nb_paths=[2000],
+    nb_dates=[5],
+    nb_runs=2,
+    strikes=[100],
+    spots=[100],
+    barriers=[100000],  # High barrier = effectively no barrier
+    volatilities=[0.2],
+    drift=[0.02],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 2: Barrier payoffs - Tests path-dependent barrier options
+quick_test_barriers = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],  # Path-dependent algorithms
+    payoffs=[
+        # Single barriers
+        'UO_BasketCall', 'DO_BasketPut',
+        'UI_GeometricCall', 'DI_MaxCall',
+        # Double barriers
+        'UODO_Call', 'UIDI_Put',
+        # Step barriers
+        'StepB_BasketCall', 'DStepB_GeometricCall',
+    ],
+    nb_stocks=[2],
+    nb_paths=[2000],
+    nb_dates=[5],
+    nb_runs=2,
+    strikes=[100],
+    spots=[100],
+    barriers=[110],      # Single barrier
+    barriers_up=[110],   # Upper barrier
+    barriers_down=[90],  # Lower barrier
+    step_param1=[-1],    # Step barrier lower bound
+    step_param2=[1],     # Step barrier upper bound
+    step_param3=[-1],    # Double step barrier lower bound
+    step_param4=[1],     # Double step barrier upper bound
+    volatilities=[0.2],
+    drift=[0.02],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 3: Advanced payoffs with parameters - Tests quantile, rank, Asian, lookback
+quick_test_advanced = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],  # Path-dependent algorithms
+    payoffs=[
+        # Quantile (uses alpha parameter)
+        'QuantileBasketCall', 'QuantileCall',
+        # Rank-based (uses k parameter)
+        'BestOfKCall', 'WorstOfKPut',
+        # Asian path-dependent
+        'AsianFixedStrikeCall', 'AsianFloatingStrikePut',
+        # Lookback
+        'LookbackFixedCall', 'LookbackFloatPut',
+        # Range (path-dependent)
+        'RangeCall', 'RangeCall_Single',
+    ],
+    nb_stocks=[3],
+    nb_paths=[2000],
+    nb_dates=[5],
+    nb_runs=2,
+    strikes=[100],
+    spots=[100],
+    barriers=[100000],  # High barrier = no barrier
+    alpha=[0.95],       # Quantile parameter
+    k=[2],              # Rank parameter (best-of-2, worst-of-2)
+    volatilities=[0.2],
+    drift=[0.02],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
