@@ -1418,7 +1418,7 @@ validation_k_sensitivity = _DefaultConfig(
     # WorstOfK should have LOWER prices with larger k (worst of more = worse)
     k=[2, 5, 8],
     volatilities=[0.2, 0.4],  # Low and high vol to see differences
-    drift=[0.04],
+    drift=[0.05],  # Match validation_large_basket drift
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
@@ -1520,11 +1520,11 @@ validation_in_barriers = _DefaultConfig(
 
 # Test 7: Lookback vs Asian vs Vanilla - Ordering verification
 validation_payoff_ordering = _DefaultConfig(
-    algos=['RFQI', 'RLSM', 'SRFQI', 'SRLSM'],
+    algos=['SRFQI', 'SRLSM'],  # Only path-dependent algos (Asian/Lookback need these)
     payoffs=[
         # Ordering: Lookback > Asian > Vanilla (for calls)
         'Call', 'AsianFixedStrikeCall', 'LookbackFixedCall',
-        'BasketCall', 'AsianFixedStrikeCall', 'LookbackMaxCall',
+        'BasketCall', 'LookbackMaxCall',
         # Floating strike variants
         'AsianFloatingStrikeCall', 'LookbackFloatCall',
     ],
