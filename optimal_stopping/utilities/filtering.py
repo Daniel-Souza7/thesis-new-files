@@ -42,6 +42,9 @@ FLAGS = flags.FLAGS
 
 def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = False):
     """Returns new DataFrame with rows removed according to passed config."""
+    import pandas as pd
+    import numpy as np
+
     # Check what payoffs are requested
     payoffs_requested = list(getattr(config, 'payoffs', []))
     has_standard = any('And' not in str(p) for p in payoffs_requested)
@@ -62,7 +65,22 @@ def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = Fals
         if filter_name == "factors":
             values = [str(x) for x in values]
 
-        idx = df.index.get_level_values(column_name).isin(values)
+        # Special handling for None values (match NaN, None, empty, "None")
+        if None in values:
+            col_values = df.index.get_level_values(column_name)
+            # Match: None, NaN, empty string, or string "None"
+            idx = (col_values.isna() |
+                   (col_values == None) |
+                   (col_values == '') |
+                   (col_values == 'None') |
+                   (col_values.astype(str) == 'nan'))
+            # Also include other non-None values from the filter
+            other_values = [v for v in values if v is not None]
+            if other_values:
+                idx = idx | col_values.isin(other_values)
+        else:
+            idx = df.index.get_level_values(column_name).isin(values)
+
         if reverse_filtering:
             idx = ~idx
 

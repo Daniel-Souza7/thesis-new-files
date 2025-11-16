@@ -123,7 +123,6 @@ def extract_data_for_excel(config: configs._DefaultConfig):
         if filter_name == 'algos':
             continue  # Skip algo filter for now
 
-
         if column_name not in df.index.names:
             continue
 
@@ -135,7 +134,24 @@ def extract_data_for_excel(config: configs._DefaultConfig):
             values = [str(x) for x in values]
 
         rows_before = len(df)
-        df = df[df.index.get_level_values(column_name).isin(values)]
+
+        # Special handling for None values (match NaN, None, empty, "None")
+        if None in values:
+            col_values = df.index.get_level_values(column_name)
+            # Match: None, NaN, empty string, or string "None"
+            idx = (col_values.isna() |
+                   (col_values == None) |
+                   (col_values == '') |
+                   (col_values == 'None') |
+                   (col_values.astype(str) == 'nan'))
+            # Also include other non-None values from the filter
+            other_values = [v for v in values if v is not None]
+            if other_values:
+                idx = idx | col_values.isin(other_values)
+            df = df[idx]
+        else:
+            df = df[df.index.get_level_values(column_name).isin(values)]
+
         rows_after = len(df)
 
         if rows_after < rows_before:
