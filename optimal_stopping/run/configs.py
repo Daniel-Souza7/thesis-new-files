@@ -1525,7 +1525,7 @@ validation_payoff_ordering = _DefaultConfig(
         # Ordering: Lookback > Asian > Vanilla (for calls)
         # NOTE: Call/BasketCall use RFQI/RLSM, Asian/Lookback use SRFQI/SRLSM
         'Call', 'AsianFixedStrikeCall', 'LookbackFixedCall',
-        'BasketCall', 'LookbackMaxCall',
+        'BasketCall',
         # Floating strike variants
         'AsianFloatingStrikeCall', 'LookbackFloatCall',
     ],
