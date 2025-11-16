@@ -1520,9 +1520,10 @@ validation_in_barriers = _DefaultConfig(
 
 # Test 7: Lookback vs Asian vs Vanilla - Ordering verification
 validation_payoff_ordering = _DefaultConfig(
-    algos=['SRFQI', 'SRLSM'],  # Only path-dependent algos (Asian/Lookback need these)
+    algos=['RFQI', 'RLSM', 'SRFQI', 'SRLSM'],  # Both standard and path-dependent algos
     payoffs=[
         # Ordering: Lookback > Asian > Vanilla (for calls)
+        # NOTE: Call/BasketCall use RFQI/RLSM, Asian/Lookback use SRFQI/SRLSM
         'Call', 'AsianFixedStrikeCall', 'LookbackFixedCall',
         'BasketCall', 'LookbackMaxCall',
         # Floating strike variants
