@@ -1560,3 +1560,15 @@ benchmark_algorithms = _DefaultConfig(
     nb_epochs=[20],
     hidden_size=[50],
 )
+
+# Test LSM only
+test_lsm = _DefaultConfig(
+    algos=['LSM'],
+    nb_stocks=[1],
+    nb_paths=[1000],
+    nb_dates=[10],
+    nb_runs=[1],
+    payoffs=['BasketCall'],
+    nb_epochs=[5],
+    hidden_size=[20],
+)
