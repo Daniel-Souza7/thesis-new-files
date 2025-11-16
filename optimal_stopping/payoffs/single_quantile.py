@@ -4,6 +4,7 @@ Quantile single option payoffs (d = 1) - PATH-DEPENDENT.
 Quantile options use the α-quantile of the price distribution over time.
 """
 
+import warnings
 import numpy as np
 from .payoff import Payoff
 
@@ -23,6 +24,13 @@ class QuantileCall(Payoff):
         alpha = self.params.get('alpha', 0.95)
 
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"QuantileCall is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]  # Extract single stock: (nb_paths, nb_dates+1)
 
         # Compute α-quantile over time for each path: (nb_paths,)
@@ -45,6 +53,13 @@ class QuantilePut(Payoff):
         alpha = self.params.get('alpha', 0.95)
 
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"QuantilePut is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         quantile = np.quantile(X, alpha, axis=1)

@@ -4,6 +4,7 @@ Asian-style single option payoffs (d = 1) - PATH-DEPENDENT.
 These options depend on the average price over time.
 """
 
+import warnings
 import numpy as np
 from .payoff import Payoff
 
@@ -16,6 +17,13 @@ class AsianFixedStrikeCall_Single(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"AsianFixedStrikeCall_Single is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]  # Extract single stock: (nb_paths, nb_dates+1)
 
         # Average over time: (nb_paths,)
@@ -31,6 +39,13 @@ class AsianFixedStrikePut_Single(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"AsianFixedStrikePut_Single is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         avg_price = np.mean(X, axis=1)
@@ -45,6 +60,13 @@ class AsianFloatingStrikeCall_Single(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"AsianFloatingStrikeCall_Single is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         # Price at maturity: (nb_paths,)
@@ -63,6 +85,13 @@ class AsianFloatingStrikePut_Single(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"AsianFloatingStrikePut_Single is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         final_price = X[:, -1]
