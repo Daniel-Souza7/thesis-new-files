@@ -1402,9 +1402,8 @@ validation_alpha_sensitivity = _DefaultConfig(
 validation_k_sensitivity = _DefaultConfig(
     algos=['RFQI', 'RLSM'],
     payoffs=[
-        'BestOfKCall', 'BestOfKPut',
-        'WorstOfKCall', 'WorstOfKPut',
-        'BestOfKWeightedCall', 'WorstOfKWeightedPut',
+        'BestOfKCall', 'WorstOfKPut',
+        'RankWeightedBasketCall', 'RankWeightedBasketPut',
     ],
     nb_stocks=[10],  # Out of 10 stocks
     nb_paths=[5000],
