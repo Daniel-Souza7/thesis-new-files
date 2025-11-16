@@ -148,14 +148,15 @@ flags.DEFINE_integer("train_eval_split", 2,
 _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'speed', 'correlation', 'hurst', 'nb_stocks',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
-                'barrier', 'barriers_up', 'barriers_down',  # ADD barriers_up, barriers_down
+                'barrier', 'barriers_up', 'barriers_down',
+                'alpha', 'k', 'weights', 'step_param1', 'step_param2', 'step_param3', 'step_param4',
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input',
                 'train_ITM_only',
                 'price', 'duration', 'time_path_gen', 'comp_time',
                 'delta', 'gamma', 'theta', 'rho', 'vega', 'greeks_method',
                 'price_upper_bound',
-                'exercise_time']  # ADD THIS LINE
+                'exercise_time']
 
 
 # NEW PAYOFFS DICTIONARY - Updated for new structure
@@ -305,7 +306,10 @@ def _run_algos():
             config.spots, config.stock_models, config.strikes, config.barriers,
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
-            config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input))
+            config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
+            config.barriers_up, config.barriers_down,
+            config.alpha, config.k, config.weights,
+            config.step_param1, config.step_param2, config.step_param3, config.step_param4))
 
         for params in combinations:
             for i in range(config.nb_runs):
@@ -320,9 +324,7 @@ def _run_algos():
                     fd_compute_gamma_via_PDE=FLAGS.fd_compute_gamma_via_PDE,
                     reg_eps=FLAGS.reg_eps, path_gen_seed=FLAGS.path_gen_seed,
                     compute_upper_bound=FLAGS.compute_upper_bound,
-                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split,
-                    barrier_up=getattr(config, 'barriers_up', [None])[0],  # ADD HERE
-                    barrier_down=getattr(config, 'barriers_down', [None])[0]))  # ADD HERE
+                    DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split))
 
 
     print(f"Running {len(delayed_jobs)} tasks using "
@@ -363,12 +365,15 @@ def _run_algo(
         volatility, mean, speed, correlation, hurst, nb_epochs, hidden_size=10,
         factors=(1., 1., 1.), ridge_coeff=1.,
         train_ITM_only=True, use_payoff_as_input=False,
+        barrier_up=None, barrier_down=None,
+        alpha=0.95, k=2, weights=None,
+        step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
         poly_deg=None, fd_freeze_exe_boundary=True,
         fd_compute_gamma_via_PDE=True, reg_eps=None, path_gen_seed=None,
         compute_upper_bound=False,
-        DEBUG=False, train_eval_split=2, barrier_up=None, barrier_down=None,):
+        DEBUG=False, train_eval_split=2):
     """
     Run one algorithm for option pricing.
 
@@ -541,6 +546,13 @@ def _run_algo(
         'barrier': barrier,
         'barriers_up': barrier_up,
         'barriers_down': barrier_down,
+        'alpha': alpha,
+        'k': k,
+        'weights': weights,
+        'step_param1': step_param1,
+        'step_param2': step_param2,
+        'step_param3': step_param3,
+        'step_param4': step_param4,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,

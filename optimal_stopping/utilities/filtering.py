@@ -27,8 +27,14 @@ FILTERS = [
     ("ridge_coeff", "ridge_coeff"),
     ("use_payoff_as_input", "use_payoff_as_input"),
     ("barriers_up", "barriers_up"),
-    ("barriers_down", "barriers_down")
-
+    ("barriers_down", "barriers_down"),
+    ("alpha", "alpha"),
+    ("k", "k"),
+    ("weights", "weights"),
+    ("step_param1", "step_param1"),
+    ("step_param2", "step_param2"),
+    ("step_param3", "step_param3"),
+    ("step_param4", "step_param4")
 ]
 
 FLAGS = flags.FLAGS

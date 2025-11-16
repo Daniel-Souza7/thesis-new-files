@@ -149,9 +149,9 @@ AsianFloatingStrikePut & AsianFl-Put & $\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\
 
 \multicolumn{3}{c}{\textbf{QUANTILE SINGLE OPTIONS (2)}} \\
 \midrule
-QuantileCall & Quant-Call & $\max(0, Q_\alpha\{S(t)\} - K)$ where $Q_\alpha$ is the $\alpha$-quantile \\
+QuantileCall & Quant-Call & $\max(0, Q_\alpha\{S(t)\} - K)$ where $Q_\alpha$ is the $\alpha$-quantile of prices up to $t$ \\
 
-QuantilePut & Quant-Put & $\max(0, K - Q_\alpha\{S(t)\})$ where $Q_\alpha$ is the $\alpha$-quantile (for $d=1$, $Q_\alpha = S(t)$) \\
+QuantilePut & Quant-Put & $\max(0, K - Q_\alpha\{S(t)\})$ where $Q_\alpha$ is the $\alpha$-quantile of prices up to $t$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -270,22 +270,22 @@ PartialTimeBarrierBasketPut & PTB-BskPut & $\begin{cases}
 StepBarrierBasketCall & StepB-BskCall & $\begin{cases}
 \max(0, \overline{S}(t) - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ \\
+\end{cases}$ where $B(\tau)$ is a time-varying barrier \\
 
 StepBarrierBasketPut & StepB-BskPut & $\begin{cases}
 \max(0, K - \overline{S}(t)) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ \\
+\end{cases}$ where $B(\tau)$ is a time-varying barrier \\
 
 DoubleStepBarrierBasketCall & DStepB-BskCall & $\begin{cases}
 \max(0, \overline{S}(t) - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ \\
+\end{cases}$ where $B_L(\tau), B_U(\tau)$ are time-varying barriers \\
 
 DoubleStepBarrierBasketPut & DStepB-BskPut & $\begin{cases}
 \max(0, K - \overline{S}(t)) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ \\
+\end{cases}$ where $B_L(\tau), B_U(\tau)$ are time-varying barriers \\
 
 \bottomrule
 \end{tabular}
@@ -1933,7 +1933,7 @@ DoubleStepBarrierLookbackFloatingPut & DStepB-LBFl-Put & $\begin{cases}
 
 \clearpage
 
-\section{Barriers on Range \& Dispersion Single Options}
+\section{Barriers on Range Single Options}
 \begin{table}[!htbp]
 \centering
 \tiny

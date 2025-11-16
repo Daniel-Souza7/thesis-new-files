@@ -61,8 +61,15 @@ class _DefaultConfig:
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
   barriers: Iterable[float] = (1,)  # Barrier level (None = use default)
-  barriers_up: Iterable[float] = (1,)  # Barrier level (None = use default)
-  barriers_down: Iterable[float] = (1,)  # Barrier level (None = use default)
+  barriers_up: Iterable[float] = (1,)  # Upper barrier level for double barriers
+  barriers_down: Iterable[float] = (1,)  # Lower barrier level for double barriers
+  alpha: Iterable[float] = (0.95,)  # Quantile level for quantile options
+  k: Iterable[int] = (2,)  # Number of assets for best-of-k/worst-of-k options
+  weights: Iterable[tuple] = (None,)  # Custom weights for rank-weighted options (None = use formula)
+  step_param1: Iterable[float] = (-1,)  # Lower bound for step barrier random walk
+  step_param2: Iterable[float] = (1,)  # Upper bound for step barrier random walk
+  step_param3: Iterable[float] = (-1,)  # Lower bound for double step barrier
+  step_param4: Iterable[float] = (1,)  # Upper bound for double step barrier
   representations: Iterable[str] = ('TablePriceDuration',)
 
   # When adding a filter here, also add to filtering.py and read_data.py
