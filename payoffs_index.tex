@@ -1,0 +1,2480 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{booktabs} % For professional table rules (\toprule, \midrule, \bottomrule)
+\usepackage{multirow} % For cells spanning multiple rows
+\usepackage{geometry} % For adjusting page margins
+\usepackage{array} % For enhanced table formatting
+\usepackage{xcolor} % For colored text
+\usepackage{colortbl} % For colored cells
+\usepackage{amsmath} % For \begin{cases} ... \end{cases} in math mode
+\usepackage[dvipsnames]{xcolor} % To access some named colors used with \highLight
+% --- add this to the preamble with your other \usepackage lines ---
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+% optional: control depth of the table of contents (0=chapter,1=section,2=subsection)
+\usepackage{lipsum}
+\setcounter{tocdepth}{2}
+\setcounter{section}{-1}
+
+\geometry{a4paper, margin=0.5in}
+\title{New Payoffs}
+\author{Daniel Souza}
+\date{11th November 2025}
+\begin{document}
+
+\maketitle
+
+\section{Payoffs Before Barriers}
+\subsection{Simple $d>1$}
+
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{STANDARD BASKET OPTIONS (6)}} \\
+\midrule
+BasketCall & BskCall & $\max(0, \overline{S}(t) - K)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+BasketPut & BskPut & $\max(0, K - \overline{S}(t))$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+GeometricCall & GeoCall & $\max(0, G(t) - K)$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+GeometricPut & GeoPut & $\max(0, K - G(t))$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+MaxCall & MaxCall & $\max(0, \max_i S_i(t) - K)$ \\
+MinPut & MinPut & $\max(0, K - \min_i S_i(t))$ \\
+\midrule
+\end{tabular}
+\end{table}
+
+\subsection{Custom $d>1$}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{ASIAN-STYLE BASKET OPTIONS (4)}} \\
+\midrule
+AsianFixedStrikeCall & AsianFi-BskCall & $\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right)$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+AsianFixedStrikePut & AsianFi-BskPut & $\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right)$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+AsianFloatingStrikeCall & AsianFl-BskCall & $\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right)$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+AsianFloatingStrikePut & AsianFl-BskPut & $\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right)$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{RANGE \& DISPERSION BASKET OPTIONS (4)}} \\
+\midrule
+RangeCall & Range-BskCall & $\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right)$ \\
+RangePut & Range-BskPut & $\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right)$ \\
+DispersionCall & Disp-BskCall & $\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+DispersionPut & Disp-BskPut & $\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\midrule
+\multicolumn{3}{c}{\textbf{RANK-BASED BASKET OPTIONS (4)}} \\
+\midrule
+BestOfKCall & BestK-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right)$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices \\
+WorstOfKPut & WorstK-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right)$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\midrule
+\multicolumn{3}{c}{\textbf{QUANTILE BASKET OPTIONS (2)}} \\
+\midrule
+QuantileBasketCall & Quant-BskCall & $\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K)$ where $Q_\alpha$ is the $\alpha$-quantile, $\alpha \in (0,1)$ \\
+QuantileBasketPut & Quant-BskPut & $\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\})$ where $Q_\alpha$ is the $\alpha$-quantile, $\alpha \in (0,1)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Simple $d=1$}
+
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{STANDARD SINGLE OPTIONS (2)}} \\
+\midrule
+Call & Call & $\max(0, S(t) - K)$ \\
+Put & Put & $\max(0, K - S(t))$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Custom $d=1$}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{LOOKBACK SINGLE OPTIONS (4)}} \\
+\midrule
+LookbackFixedCall & LBFi-Call & $\max(0, M(t) - K)$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+LookbackFixedPut & LBFi-Put & $\max(0, K - m(t))$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+LookbackFloatingCall & LBFl-Call & $\max(0, S(t) - m(t))$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+LookbackFloatingPut & LBFl-Put & $\max(0, M(t) - S(t))$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{RANGE \& DISPERSION SINGLE OPTIONS (2)}} \\
+\midrule
+RangeCall & Range-Call & $\max\left(0, \left[M(t) - m(t)\right] - K\right)$ \\
+
+RangePut & Range-Put & $\max\left(0, K - \left[M(t) - m(t)\right]\right)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{ASIAN-STYLE SINGLE OPTIONS (4)}} \\
+\midrule
+AsianFixedStrikeCall & AsianFi-Call & $\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right)$ \\
+
+AsianFixedStrikePut & AsianFi-Put & $\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right)$ \\
+
+AsianFloatingStrikeCall & AsianFl-Call & $\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right)$ \\
+
+AsianFloatingStrikePut & AsianFl-Put & $\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{QUANTILE SINGLE OPTIONS (2)}} \\
+\midrule
+QuantileCall & Quant-Call & $\max(0, Q_\alpha\{S(t)\} - K)$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+QuantilePut & Quant-Put & $\max(0, K - Q_\alpha\{S(t)\})$ where $Q_\alpha$ is the $\alpha$-quantile (for $d=1$, $Q_\alpha = S(t)$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Barriers on Baskets}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutBasketCall & UO-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutBasketPut & UO-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutBasketCall & DO-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutBasketPut & DO-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInBasketCall & UI-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInBasketPut & UI-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInBasketCall & DI-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInBasketPut & DI-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutBasketCall & UODO-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutBasketPut & UODO-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInBasketCall & UIDI-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInBasketPut & UIDI-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutBasketCall & UIDO-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutBasketPut & UIDO-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInBasketCall & UODI-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInBasketPut & UODI-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierBasketCall & PTB-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierBasketPut & PTB-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierBasketCall & StepB-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierBasketPut & StepB-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierBasketCall & DStepB-BskCall & $\begin{cases}
+\max(0, \overline{S}(t) - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierBasketPut & DStepB-BskPut & $\begin{cases}
+\max(0, K - \overline{S}(t)) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Geometrics}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER GEOMETRIC OPTIONS (8)}} \\
+\midrule
+
+UpAndOutGeometricCall & UO-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpAndOutGeometricPut & UO-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DownAndOutGeometricCall & DO-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DownAndOutGeometricPut & DO-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpAndInGeometricCall & UI-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpAndInGeometricPut & UI-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DownAndInGeometricCall & DI-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DownAndInGeometricPut & DI-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER GEOMETRIC OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutGeometricCall & UODO-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DoubleKnockOutGeometricPut & UODO-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DoubleKnockInGeometricCall & UIDI-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DoubleKnockInGeometricPut & UIDI-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpInDownOutGeometricCall & UIDO-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpInDownOutGeometricPut & UIDO-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpOutDownInGeometricCall & UODI-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+UpOutDownInGeometricPut & UODI-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM GEOMETRIC BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierGeometricCall & PTB-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+PartialTimeBarrierGeometricPut & PTB-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+StepBarrierGeometricCall & StepB-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+StepBarrierGeometricPut & StepB-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DoubleStepBarrierGeometricCall & DStepB-GeoCall & $\begin{cases}
+\max(0, G(t) - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+DoubleStepBarrierGeometricPut & DStepB-GeoPut & $\begin{cases}
+\max(0, K - G(t)) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Max/Min}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER MAX/MIN OPTIONS (8)}} \\
+\midrule
+
+UpAndOutMaxCall & UO-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutMinPut & UO-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutMaxCall & DO-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutMinPut & DO-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInMaxCall & UI-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInMinPut & UI-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInMaxCall & DI-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInMinPut & DI-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER MAX/MIN OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutMaxCall & UODO-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutMinPut & UODO-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInMaxCall & UIDI-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInMinPut & UIDI-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutMaxCall & UIDO-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutMinPut & UIDO-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInMaxCall & UODI-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInMinPut & UODI-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM MAX/MIN BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierMaxCall & PTB-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierMinPut & PTB-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierMaxCall & StepB-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierMinPut & StepB-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierMaxCall & DStepB-MaxCall & $\begin{cases}
+\max(0, \max_i S_i(t) - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierMinPut & DStepB-MinPut & $\begin{cases}
+\max(0, K - \min_i S_i(t)) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Asian-Style Basket Options}
+
+\subsection{AsianFixedStrike-BskCall and AsianFixedStrike-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER ASIAN FIXED STRIKE BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutAsianFixedStrikeCall & UO-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndOutAsianFixedStrikePut & UO-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndOutAsianFixedStrikeCall & DO-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndOutAsianFixedStrikePut & DO-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndInAsianFixedStrikeCall & UI-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndInAsianFixedStrikePut & UI-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndInAsianFixedStrikeCall & DI-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndInAsianFixedStrikePut & DI-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER ASIAN FIXED STRIKE BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutAsianFixedStrikeCall & UODO-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockOutAsianFixedStrikePut & UODO-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockInAsianFixedStrikeCall & UIDI-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockInAsianFixedStrikePut & UIDI-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpInDownOutAsianFixedStrikeCall & UIDO-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpInDownOutAsianFixedStrikePut & UIDO-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpOutDownInAsianFixedStrikeCall & UODI-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpOutDownInAsianFixedStrikePut & UODI-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM ASIAN FIXED STRIKE BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierAsianFixedStrikeCall & PTB-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+PartialTimeBarrierAsianFixedStrikePut & PTB-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+StepBarrierAsianFixedStrikeCall & StepB-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+StepBarrierAsianFixedStrikePut & StepB-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleStepBarrierAsianFixedStrikeCall & DStepB-AsianFi-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleStepBarrierAsianFixedStrikePut & DStepB-AsianFi-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\subsection{AsianFloatingStrike-BskCall and AsianFloatingStrike-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER ASIAN FLOATING STRIKE BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutAsianFloatingStrikeCall & UO-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndOutAsianFloatingStrikePut & UO-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndOutAsianFloatingStrikeCall & DO-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndOutAsianFloatingStrikePut & DO-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndInAsianFloatingStrikeCall & UI-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpAndInAsianFloatingStrikePut & UI-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndInAsianFloatingStrikeCall & DI-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DownAndInAsianFloatingStrikePut & DI-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER ASIAN FLOATING STRIKE BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutAsianFloatingStrikeCall & UODO-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockOutAsianFloatingStrikePut & UODO-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockInAsianFloatingStrikeCall & UIDI-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleKnockInAsianFloatingStrikePut & UIDI-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpInDownOutAsianFloatingStrikeCall & UIDO-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpInDownOutAsianFloatingStrikePut & UIDO-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpOutDownInAsianFloatingStrikeCall & UODI-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+UpOutDownInAsianFloatingStrikePut & UODI-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM ASIAN FLOATING STRIKE BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierAsianFloatingStrikeCall & PTB-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+PartialTimeBarrierAsianFloatingStrikePut & PTB-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+StepBarrierAsianFloatingStrikeCall & StepB-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+StepBarrierAsianFloatingStrikePut & StepB-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleStepBarrierAsianFloatingStrikeCall & DStepB-AsianFl-BskCall & $\begin{cases}
+\max\left(0, \overline{S}(t) - \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-BskPut & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Range \& Dispersion Basket Options}
+
+\subsection{Range-BskCall and Range-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER RANGE BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutRangeCall & UO-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutRangePut & UO-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutRangeCall & DO-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutRangePut & DO-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInRangeCall & UI-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInRangePut & UI-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInRangeCall & DI-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInRangePut & DI-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANGE BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutRangeCall & UODO-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutRangePut & UODO-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInRangeCall & UIDI-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInRangePut & UIDI-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutRangeCall & UIDO-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutRangePut & UIDO-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInRangeCall & UODI-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInRangePut & UODI-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM RANGE BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierRangeCall & PTB-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierRangePut & PTB-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierRangeCall & StepB-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierRangePut & StepB-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierRangeCall & DStepB-Range-BskCall & $\begin{cases}
+\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierRangePut & DStepB-Range-BskPut & $\begin{cases}
+\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\subsection{Disp-BskCall and Disp-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER DISPERSION BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutDispersionCall & UO-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpAndOutDispersionPut & UO-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DownAndOutDispersionCall & DO-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DownAndOutDispersionPut & DO-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpAndInDispersionCall & UI-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpAndInDispersionPut & UI-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DownAndInDispersionCall & DI-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DownAndInDispersionPut & DI-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER DISPERSION BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutDispersionCall & UODO-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DoubleKnockOutDispersionPut & UODO-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DoubleKnockInDispersionCall & UIDI-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DoubleKnockInDispersionPut & UIDI-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpInDownOutDispersionCall & UIDO-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpInDownOutDispersionPut & UIDO-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpOutDownInDispersionCall & UODI-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+UpOutDownInDispersionPut & UODI-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM DISPERSION BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierDispersionCall & PTB-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+PartialTimeBarrierDispersionPut & PTB-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+StepBarrierDispersionCall & StepB-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+StepBarrierDispersionPut & StepB-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DoubleStepBarrierDispersionCall & DStepB-Disp-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+DoubleStepBarrierDispersionPut & DStepB-Disp-BskPut & $\begin{cases}
+\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Rank-Based Basket Options}
+
+\subsection{BestK-BskCall and WorstK-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER BEST/WORST-OF-K BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutBestOfKCall & UO-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndOutWorstOfKPut & UO-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndOutBestOfKCall & DO-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndOutWorstOfKPut & DO-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndInBestOfKCall & UI-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndInWorstOfKPut & UI-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndInBestOfKCall & DI-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndInWorstOfKPut & DI-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER BEST/WORST-OF-K BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutBestOfKCall & UODO-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockOutWorstOfKPut & UODO-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockInBestOfKCall & UIDI-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockInWorstOfKPut & UIDI-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpInDownOutBestOfKCall & UIDO-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+UpInDownOutWorstOfKPut & UIDO-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpOutDownInBestOfKCall & UODI-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+UpOutDownInWorstOfKPut & UODI-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM BEST/WORST-OF-K BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierBestOfKCall & PTB-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+PartialTimeBarrierWorstOfKPut & PTB-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+StepBarrierBestOfKCall & StepB-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+StepBarrierWorstOfKPut & StepB-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleStepBarrierBestOfKCall & DStepB-BestK-BskCall & $\begin{cases}
+\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleStepBarrierWorstOfKPut & DStepB-WorstK-BskPut & $\begin{cases}
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\subsection{Rank-BskCall and Rank-BskPut}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER RANK-WEIGHTED BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutRankWeightedBasketCall & UO-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndOutRankWeightedBasketPut & UO-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndOutRankWeightedBasketCall & DO-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndOutRankWeightedBasketPut & DO-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndInRankWeightedBasketCall & UI-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpAndInRankWeightedBasketPut & UI-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndInRankWeightedBasketCall & DI-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DownAndInRankWeightedBasketPut & DI-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANK-WEIGHTED BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutRankWeightedBasketCall & UODO-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockOutRankWeightedBasketPut & UODO-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockInRankWeightedBasketCall & UIDI-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleKnockInRankWeightedBasketPut & UIDI-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpInDownOutRankWeightedBasketCall & UIDO-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpInDownOutRankWeightedBasketPut & UIDO-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpOutDownInRankWeightedBasketCall & UODI-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+UpOutDownInRankWeightedBasketPut & UODI-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM RANK-WEIGHTED BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierRankWeightedBasketCall & PTB-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+PartialTimeBarrierRankWeightedBasketPut & PTB-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+StepBarrierRankWeightedBasketCall & StepB-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+StepBarrierRankWeightedBasketPut & StepB-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleStepBarrierRankWeightedBasketCall & DStepB-Rank-BskCall & $\begin{cases}
+\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+DoubleStepBarrierRankWeightedBasketPut & DStepB-Rank-BskPut & $\begin{cases}
+\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Quantile Basket Options}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER QUANTILE BASKET OPTIONS (8)}} \\
+\midrule
+
+UpAndOutQuantileBasketCall & UO-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndOutQuantileBasketPut & UO-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndOutQuantileBasketCall & DO-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndOutQuantileBasketPut & DO-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndInQuantileBasketCall & UI-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndInQuantileBasketPut & UI-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndInQuantileBasketCall & DI-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndInQuantileBasketPut & DI-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER QUANTILE BASKET OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutQuantileBasketCall & UODO-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockOutQuantileBasketPut & UODO-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockInQuantileBasketCall & UIDI-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockInQuantileBasketPut & UIDI-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpInDownOutQuantileBasketCall & UIDO-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpInDownOutQuantileBasketPut & UIDO-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpOutDownInQuantileBasketCall & UODI-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpOutDownInQuantileBasketPut & UODI-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM QUANTILE BASKET BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierQuantileBasketCall & PTB-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+PartialTimeBarrierQuantileBasketPut & PTB-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+StepBarrierQuantileBasketCall & StepB-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+StepBarrierQuantileBasketPut & StepB-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleStepBarrierQuantileBasketCall & DStepB-Quant-BskCall & $\begin{cases}
+\max(0, Q_\alpha\{S_1(t), \ldots, S_d(t)\} - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleStepBarrierQuantileBasketPut & DStepB-Quant-BskPut & $\begin{cases}
+\max(0, K - Q_\alpha\{S_1(t), \ldots, S_d(t)\}) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Single Options}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER SINGLE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutCall & UO-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutPut & UO-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutCall & DO-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutPut & DO-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInCall & UI-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInPut & UI-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInCall & DI-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInPut & DI-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER SINGLE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutCall & UODO-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutPut & UODO-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInCall & UIDI-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInPut & UIDI-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutCall & UIDO-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutPut & UIDO-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInCall & UODI-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInPut & UODI-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM SINGLE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierCall & PTB-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierPut & PTB-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierCall & StepB-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierPut & StepB-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierCall & DStepB-Call & $\begin{cases}
+\max(0, S(t) - K) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierPut & DStepB-Put & $\begin{cases}
+\max(0, K - S(t)) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Lookback Single Options}
+
+\subsection{LBFi-Call and LBFi-Put}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER LOOKBACK FIXED STRIKE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutLookbackFixedCall & UO-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpAndOutLookbackFixedPut & UO-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndOutLookbackFixedCall & DO-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DownAndOutLookbackFixedPut & DO-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndInLookbackFixedCall & UI-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpAndInLookbackFixedPut & UI-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndInLookbackFixedCall & DI-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DownAndInLookbackFixedPut & DI-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER LOOKBACK FIXED STRIKE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutLookbackFixedCall & UODO-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockOutLookbackFixedPut & UODO-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInLookbackFixedCall & UIDI-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInLookbackFixedPut & UIDI-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutLookbackFixedCall & UIDO-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutLookbackFixedPut & UIDO-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInLookbackFixedCall & UODI-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInLookbackFixedPut & UODI-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM LOOKBACK FIXED STRIKE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierLookbackFixedCall & PTB-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+PartialTimeBarrierLookbackFixedPut & PTB-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+StepBarrierLookbackFixedCall & StepB-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+StepBarrierLookbackFixedPut & StepB-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierLookbackFixedCall & DStepB-LBFi-Call & $\begin{cases}
+\max(0, M(t) - K) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierLookbackFixedPut & DStepB-LBFi-Put & $\begin{cases}
+\max(0, K - m(t)) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\subsection{LBFl-Call and LBFl-Put}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER LOOKBACK FLOATING STRIKE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutLookbackFloatingCall & UO-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndOutLookbackFloatingPut & UO-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DownAndOutLookbackFloatingCall & DO-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndOutLookbackFloatingPut & DO-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpAndInLookbackFloatingCall & UI-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndInLookbackFloatingPut & UI-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DownAndInLookbackFloatingCall & DI-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndInLookbackFloatingPut & DI-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER LOOKBACK FLOATING STRIKE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutLookbackFloatingCall & UODO-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockOutLookbackFloatingPut & UODO-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInLookbackFloatingCall & UIDI-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInLookbackFloatingPut & UIDI-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutLookbackFloatingCall & UIDO-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutLookbackFloatingPut & UIDO-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInLookbackFloatingCall & UODI-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInLookbackFloatingPut & UODI-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM LOOKBACK FLOATING STRIKE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierLookbackFloatingCall & PTB-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+PartialTimeBarrierLookbackFloatingPut & PTB-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+StepBarrierLookbackFloatingCall & StepB-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+StepBarrierLookbackFloatingPut & StepB-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierLookbackFloatingCall & DStepB-LBFl-Call & $\begin{cases}
+\max(0, S(t) - m(t)) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierLookbackFloatingPut & DStepB-LBFl-Put & $\begin{cases}
+\max(0, M(t) - S(t)) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Range \& Dispersion Single Options}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER RANGE SINGLE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutRangeCall & UO-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndOutRangePut & UO-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndOutRangeCall & DO-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndOutRangePut & DO-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndInRangeCall & UI-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpAndInRangePut & UI-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndInRangeCall & DI-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DownAndInRangePut & DI-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANGE SINGLE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutRangeCall & UODO-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockOutRangePut & UODO-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInRangeCall & UIDI-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleKnockInRangePut & UIDI-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutRangeCall & UIDO-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpInDownOutRangePut & UIDO-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInRangeCall & UODI-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+UpOutDownInRangePut & UODI-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM RANGE SINGLE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierRangeCall & PTB-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+PartialTimeBarrierRangePut & PTB-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+StepBarrierRangeCall & StepB-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+StepBarrierRangePut & StepB-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierRangeCall & DStepB-Range-Call & $\begin{cases}
+\max\left(0, \left[M(t) - m(t)\right] - K\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+DoubleStepBarrierRangePut & DStepB-Range-Put & $\begin{cases}
+\max\left(0, K - \left[M(t) - m(t)\right]\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $M(t) = \max_{\tau \le t} S(\tau)$, $m(t) = \min_{\tau \le t} S(\tau)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Asian-Style Single Options}
+
+\subsection{AsianFi-Call and AsianFi-Put}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER ASIAN FIXED STRIKE SINGLE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutAsianFixedStrikeCall & UO-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutAsianFixedStrikePut & UO-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutAsianFixedStrikeCall & DO-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutAsianFixedStrikePut & DO-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInAsianFixedStrikeCall & UI-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInAsianFixedStrikePut & UI-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInAsianFixedStrikeCall & DI-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInAsianFixedStrikePut & DI-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER ASIAN FIXED STRIKE SINGLE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutAsianFixedStrikeCall & UODO-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutAsianFixedStrikePut & UODO-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInAsianFixedStrikeCall & UIDI-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInAsianFixedStrikePut & UIDI-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutAsianFixedStrikeCall & UIDO-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutAsianFixedStrikePut & UIDO-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInAsianFixedStrikeCall & UODI-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInAsianFixedStrikePut & UODI-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM ASIAN FIXED STRIKE SINGLE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierAsianFixedStrikeCall & PTB-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierAsianFixedStrikePut & PTB-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierAsianFixedStrikeCall & StepB-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierAsianFixedStrikePut & StepB-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierAsianFixedStrikeCall & DStepB-AsianFi-Call & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - K\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierAsianFixedStrikePut & DStepB-AsianFi-Put & $\begin{cases}
+\max\left(0, K - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\subsection{AsianFl-Call and AsianFl-Put}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER ASIAN FLOATING STRIKE SINGLE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutAsianFloatingStrikeCall & UO-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndOutAsianFloatingStrikePut & UO-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutAsianFloatingStrikeCall & DO-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndOutAsianFloatingStrikePut & DO-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInAsianFloatingStrikeCall & UI-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpAndInAsianFloatingStrikePut & UI-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInAsianFloatingStrikeCall & DI-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DownAndInAsianFloatingStrikePut & DI-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER ASIAN FLOATING STRIKE SINGLE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutAsianFloatingStrikeCall & UODO-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockOutAsianFloatingStrikePut & UODO-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInAsianFloatingStrikeCall & UIDI-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleKnockInAsianFloatingStrikePut & UIDI-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutAsianFloatingStrikeCall & UIDO-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpInDownOutAsianFloatingStrikePut & UIDO-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInAsianFloatingStrikeCall & UODI-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+UpOutDownInAsianFloatingStrikePut & UODI-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM ASIAN FLOATING STRIKE SINGLE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierAsianFloatingStrikeCall & PTB-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+PartialTimeBarrierAsianFloatingStrikePut & PTB-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierAsianFloatingStrikeCall & StepB-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+StepBarrierAsianFloatingStrikePut & StepB-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierAsianFloatingStrikeCall & DStepB-AsianFl-Call & $\begin{cases}
+\max\left(0, S(t) - \frac{1}{t}\sum_{k=1}^t S(\tau_k)\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-Put & $\begin{cases}
+\max\left(0, \frac{1}{t}\sum_{k=1}^t S(\tau_k) - S(t)\right) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Barriers on Quantile Single Options}
+\begin{table}[!htbp]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.5cm}|p{2.5cm}|p{9cm}}
+\toprule
+\textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
+\midrule
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER QUANTILE SINGLE OPTIONS (8)}} \\
+\midrule
+
+UpAndOutQuantileCall & UO-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndOutQuantilePut & UO-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \max_{\tau} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndOutQuantileCall & DO-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndOutQuantilePut & DO-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \min_{\tau} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndInQuantileCall & UI-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpAndInQuantilePut & UI-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \max_{\tau} S(\tau) \ge B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndInQuantileCall & DI-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DownAndInQuantilePut & DI-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \min_{\tau} S(\tau) \le B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER QUANTILE SINGLE OPTIONS (8)}} \\
+\midrule
+
+DoubleKnockOutQuantileCall & UODO-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockOutQuantilePut & UODO-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } B_L < \min_{\tau} S(\tau) < \max_{\tau} S(\tau) < B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockInQuantileCall & UIDI-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleKnockInQuantilePut & UIDI-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \min_{\tau} S(\tau) \le B_L \text{ or } \max_{\tau} S(\tau) \ge B_U \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpInDownOutQuantileCall & UIDO-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpInDownOutQuantilePut & UIDO-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \max_{\tau} S(\tau) \ge B_U \text{ and } \min_{\tau} S(\tau) > B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpOutDownInQuantileCall & UODI-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+UpOutDownInQuantilePut & UODI-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \max_{\tau} S(\tau) < B_U \text{ and } \min_{\tau} S(\tau) \le B_L \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{CUSTOM QUANTILE SINGLE BARRIER OPTIONS (6)}} \\
+\midrule
+
+PartialTimeBarrierQuantileCall & PTB-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \max_{\tau \in [T_1,T_2]} S(\tau) < B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+PartialTimeBarrierQuantilePut & PTB-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \min_{\tau \in [T_1,T_2]} S(\tau) > B \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+StepBarrierQuantileCall & StepB-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \forall \tau: S(\tau) < B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+StepBarrierQuantilePut & StepB-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \forall \tau: S(\tau) > B(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleStepBarrierQuantileCall & DStepB-Quant-Call & $\begin{cases}
+\max(0, Q_\alpha\{S(t)\} - K) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+DoubleStepBarrierQuantilePut & DStepB-Quant-Put & $\begin{cases}
+\max(0, K - Q_\alpha\{S(t)\}) & \text{if } \forall \tau: B_L(\tau) < S(\tau) < B_U(\tau) \\
+0 & \text{otherwise}
+\end{cases}$ where $Q_\alpha$ is the $\alpha$-quantile \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
