@@ -1346,3 +1346,197 @@ quick_test_advanced = _DefaultConfig(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+# ============================================================================
+# VALIDATION TESTS - Comprehensive parameter and convergence verification
+# ============================================================================
+
+# Test 1: Barrier Convergence - Verify UO/DO with extreme barriers → vanilla
+validation_barrier_convergence = _DefaultConfig(
+    algos=['RFQI', 'RLSM', 'SRFQI', 'SRLSM'],
+    payoffs=[
+        # Vanilla baselines
+        'BasketCall', 'BasketPut', 'Call', 'Put',
+        # Up-and-Out (should converge to vanilla when barrier is very high)
+        'UO_BasketCall', 'UO_BasketPut', 'UO_Call', 'UO_Put',
+        # Down-and-Out (should converge to vanilla when barrier is very low)
+        'DO_BasketCall', 'DO_BasketPut', 'DO_Call', 'DO_Put',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    # Test multiple barrier levels: extreme (converge) vs moderate (different prices)
+    barriers=[10000, 150, 50],  # 10000=vanilla, 150=high, 50=low
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 2: Alpha Sensitivity - Quantile options with different α levels
+validation_alpha_sensitivity = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
+    payoffs=[
+        'QuantileBasketCall', 'QuantileBasketPut',
+        'QuantileCall', 'QuantilePut',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    barriers=[100000],
+    # Test multiple quantile levels: 0.5 (median), 0.75, 0.95, 0.99 (extreme)
+    # Prices should INCREASE with alpha for calls, DECREASE for puts
+    alpha=[0.5, 0.75, 0.95, 0.99],
+    volatilities=[0.25],
+    drift=[0.03],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 3: K Sensitivity - Rank options with different k values
+validation_k_sensitivity = _DefaultConfig(
+    algos=['RFQI', 'RLSM'],
+    payoffs=[
+        'BestOfKCall', 'BestOfKPut',
+        'WorstOfKCall', 'WorstOfKPut',
+        'BestOfKWeightedCall', 'WorstOfKWeightedPut',
+    ],
+    nb_stocks=[10],  # Out of 10 stocks
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    barriers=[100000],
+    # Test k = 2, 5, 8 out of 10 stocks
+    # BestOfK should have HIGHER prices with larger k (more optionality)
+    # WorstOfK should have LOWER prices with larger k (worst of more = worse)
+    k=[2, 5, 8],
+    volatilities=[0.3],
+    drift=[0.04],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 4: Step Barrier Drift - Different random walk parameters
+validation_step_barriers = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
+    payoffs=[
+        # Single step barrier
+        'StepB_BasketCall', 'StepB_BasketPut',
+        'StepB_Call', 'StepB_Put',
+        # Double step barrier
+        'DStepB_BasketCall', 'DStepB_Call',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    barriers=[120],  # Starting barrier
+    barriers_up=[120],
+    barriers_down=[80],
+    # Test different drift ranges for step barriers
+    # Positive drift [0, 2]: barrier drifts UP → easier to hit for UO
+    # Negative drift [-2, 0]: barrier drifts DOWN → easier to hit for DO
+    # Symmetric [-2, 2]: no drift bias
+    step_param1=[-2, -1, 0],
+    step_param2=[0, 1, 2],
+    step_param3=[-2],
+    step_param4=[2],
+    volatilities=[0.25],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 5: Large Basket - Test all payoff types with d=10
+validation_large_basket = _DefaultConfig(
+    algos=['RFQI', 'RLSM', 'SRFQI', 'SRLSM'],
+    payoffs=[
+        # Simple basket
+        'BasketCall', 'BasketPut', 'GeometricCall', 'MaxCall', 'MinPut',
+        # Asian
+        'AsianFixedStrikeCall', 'AsianFloatingStrikePut',
+        # Quantile
+        'QuantileBasketCall',
+        # Rank
+        'BestOfKCall', 'WorstOfKPut',
+        # Range/Dispersion
+        'RangeCall', 'DispersionCall',
+        # Barriers
+        'UO_BasketCall', 'DO_BasketPut', 'UODO_BasketCall',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    barriers=[10000, 130],  # High and moderate
+    barriers_up=[130],
+    barriers_down=[70],
+    alpha=[0.9],
+    k=[3, 7],  # Best/worst of 3 and 7 out of 10
+    volatilities=[0.2, 0.4],  # Low and high vol
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 6: UI/DI Near-Barrier Convergence
+validation_in_barriers = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
+    payoffs=[
+        # Vanilla baseline
+        'BasketCall', 'BasketPut',
+        # Up-and-In (should converge to vanilla when barrier is very LOW → always hit)
+        'UI_BasketCall', 'UI_BasketPut',
+        # Down-and-In (should converge to vanilla when barrier is very HIGH → always hit)
+        'DI_BasketCall', 'DI_BasketPut',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    # UI with barrier=80 (low) → always hit → vanilla
+    # DI with barrier=120 (high) → always hit → vanilla
+    # UI with barrier=150 (high) → rarely hit → near zero
+    # DI with barrier=50 (low) → rarely hit → near zero
+    barriers=[80, 120, 150, 50],
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 7: Lookback vs Asian vs Vanilla - Ordering verification
+validation_payoff_ordering = _DefaultConfig(
+    algos=['RFQI', 'RLSM', 'SRFQI', 'SRLSM'],
+    payoffs=[
+        # Ordering: Lookback > Asian > Vanilla (for calls)
+        'Call', 'AsianFixedStrikeCall', 'LookbackFixedCall',
+        'BasketCall', 'AsianFixedStrikeCall', 'LookbackMaxCall',
+        # Floating strike variants
+        'AsianFloatingStrikeCall', 'LookbackFloatCall',
+    ],
+    nb_stocks=[10],
+    nb_paths=[5000],
+    nb_dates=[10],
+    nb_runs=5,
+    strikes=[100],
+    spots=[100],
+    barriers=[100000],
+    volatilities=[0.3],  # Higher vol to see differences
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
