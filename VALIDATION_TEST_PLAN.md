@@ -75,9 +75,8 @@ Verify quantile options respond correctly to α parameter changes.
 Verify rank-based options respond correctly to k parameter (out of d=10 stocks).
 
 ### Payoffs Tested
-- `BestOfKCall`, `BestOfKPut`
-- `WorstOfKCall`, `WorstOfKPut`
-- `BestOfKWeightedCall`, `WorstOfKWeightedPut`
+- `BestOfKCall`, `WorstOfKPut`
+- `RankWeightedBasketCall`, `RankWeightedBasketPut`
 
 ### K Values
 - **k=2**: Best/worst of 2 out of 10
@@ -85,18 +84,16 @@ Verify rank-based options respond correctly to k parameter (out of d=10 stocks).
 - **k=8**: Best/worst of 8 out of 10
 
 ### Expected Results
-- **BestOfK Calls**: Price should **INCREASE** with k
+- **BestOfKCall**: Price should **INCREASE** with k
   - Larger k → more chances to find high performers → higher value
-- **BestOfK Puts**: Price should **DECREASE** with k
-  - Larger k → best of many is higher → worse for puts
-- **WorstOfK Calls**: Price should **DECREASE** with k
-  - Larger k → worst of many is lower → worse for calls
-- **WorstOfK Puts**: Price should **INCREASE** with k
+- **WorstOfKPut**: Price should **INCREASE** with k
   - Larger k → worst of many is lower → better for puts
+- **RankWeightedBasket**: Similar sensitivity to k (weights change with selection)
 
 ### Validation Criteria
 ✅ **PASS**: BestOfKCall(k=8) > BestOfKCall(k=5) > BestOfKCall(k=2)
-✅ **PASS**: WorstOfKCall(k=8) < WorstOfKCall(k=5) < WorstOfKCall(k=2)
+✅ **PASS**: WorstOfKPut(k=8) > WorstOfKPut(k=5) > WorstOfKPut(k=2)
+✅ **PASS**: RankWeighted options show consistent behavior with k
 ❌ **FAIL**: Non-monotonic relationship
 
 ---
