@@ -81,6 +81,9 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     drift = config.drift[0] if isinstance(config.drift, (list, tuple)) else config.drift
     volatility = config.volatilities[0] if isinstance(config.volatilities, (list, tuple)) else config.volatilities
     nb_dates = config.nb_dates[0] if isinstance(config.nb_dates, (list, tuple)) else config.nb_dates
+    hidden_size = config.hidden_size[0] if isinstance(config.hidden_size, (list, tuple)) else config.hidden_size
+    nb_epochs = config.nb_epochs[0] if isinstance(config.nb_epochs, (list, tuple)) else config.nb_epochs
+    factors = config.factors[0] if isinstance(config.factors, (list, tuple)) else config.factors
 
     # Create stock model (using stock_model.py API)
     maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
@@ -121,15 +124,27 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         **payoff_params
     )
 
-    # Create and train algorithm
-    algo = Algo(
-        payoff=payoff,
-        nb_epochs=config.nb_epochs,
-        hidden_size=config.hidden_size,
-        maturity=maturity,
-        use_payoff_as_input=config.use_payoff_as_input,
-        train_ITM_only=config.train_ITM_only,
-    )
+    # Create and train algorithm (model is first parameter!)
+    # RLSM/SRLSM don't use nb_epochs, RFQI/SRFQI do
+    if algo_name in ["RFQI", "SRFQI"]:
+        algo = Algo(
+            stock_model_obj,
+            payoff,
+            hidden_size=hidden_size,
+            factors=factors,
+            train_ITM_only=config.train_ITM_only,
+            use_payoff_as_input=config.use_payoff_as_input,
+            nb_epochs=nb_epochs
+        )
+    else:  # RLSM, SRLSM
+        algo = Algo(
+            stock_model_obj,
+            payoff,
+            hidden_size=hidden_size,
+            factors=factors,
+            train_ITM_only=config.train_ITM_only,
+            use_payoff_as_input=config.use_payoff_as_input,
+        )
 
     print(f"Training {algo_name} for {payoff_name}...")
     algo.fit(stock_paths)
