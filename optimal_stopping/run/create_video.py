@@ -142,11 +142,14 @@ def run_algorithm_for_video(config, nb_paths_for_video):
 
         for t in range(nb_dates + 1):
             if PayoffClass.is_path_dependent:
+                # Pass full history up to time t
                 X_t = stock_paths[path_idx:path_idx+1, :, :t+1]
             else:
+                # Pass only current timestep
                 X_t = stock_paths[path_idx:path_idx+1, :, t]
 
-            payoff_now = payoff(X_t)[0]
+            # Use eval() directly, not __call__()
+            payoff_now = payoff.eval(X_t)[0]
 
             # Track maximum payoff
             if payoff_now > max_payoff:
