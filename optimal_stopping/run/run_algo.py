@@ -28,13 +28,15 @@ from optimal_stopping.algorithms.standard.rfqi import RFQI
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
+# BENCHMARK ALGORITHMS - Simple implementations for comparison
+from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer, LeastSquarePricerDeg1, LeastSquarePricerLaguerre
+from optimal_stopping.algorithms.standard.fqi import FQIFast, FQIFastDeg1, FQIFastLaguerre
+from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
+from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
+
 # OLD IMPORTS - Keep for backward compatibility if needed
 try:
-    from optimal_stopping.algorithms.backward_induction import DOS
-    from optimal_stopping.algorithms.backward_induction import LSM
-    from optimal_stopping.algorithms.backward_induction import NLSM
     from optimal_stopping.algorithms.backward_induction import RRLSM
-    from optimal_stopping.algorithms.reinforcement_learning import FQI
     from optimal_stopping.algorithms.reinforcement_learning import LSPI
     from optimal_stopping.algorithms.finite_difference import binomial
     from optimal_stopping.algorithms.finite_difference import trinomial
@@ -43,7 +45,7 @@ try:
     OLD_ALGOS_AVAILABLE = True
 except ImportError:
     OLD_ALGOS_AVAILABLE = False
-    print("Warning: Old algorithm implementations not found. Only RLSM/SRLSM/RFQI/SRFQI available.")
+    print("Warning: Old algorithm implementations not found.")
 
 from optimal_stopping.run import write_figures
 from optimal_stopping.run import configs
@@ -128,32 +130,27 @@ _ALGOS = {
     "SRLSM": SRLSM,  # Path-dependent options (barriers, lookbacks)
     "RFQI": RFQI,  # Standard options
     "SRFQI": SRFQI,  # Path-dependent options (barriers, lookbacks)
+
+    # BENCHMARK ALGORITHMS - Simple implementations for comparison
+    "LSM": LeastSquaresPricer,
+    "LSMDeg1": LeastSquarePricerDeg1,
+    "LSMLaguerre": LeastSquarePricerLaguerre,
+
+    "FQI": FQIFast,
+    "FQIDeg1": FQIFastDeg1,
+    "FQILaguerre": FQIFastLaguerre,
+
+    "NLSM": NeuralNetworkPricer,
+    "DOS": DeepOptimalStopping,
 }
 
 # Add old algorithms if available
 if OLD_ALGOS_AVAILABLE:
     _ALGOS.update({
-        "LSM": LSM.LeastSquaresPricer,
-        "LSMLaguerre": LSM.LeastSquarePricerLaguerre,
-        "LSMRidge": LSM.LeastSquarePricerRidge,
-        "LSMDeg1": LSM.LeastSquarePricerDeg1,
-
-        "FQI": FQI.FQIFast,
-        "FQILaguerre": FQI.FQIFastLaguerre,
-        "FQIRidge": FQI.FQIFastRidge,
-        "FQILasso": FQI.FQIFastLasso,
-        "FQIDeg1": FQI.FQIFastDeg1,
-
         "LSPI": LSPI.LSPI,
-
-        "NLSM": NLSM.NeuralNetworkPricer,
-        "DOS": DOS.DeepOptimalStopping,
-        "pathDOS": DOS.DeepOptimalStopping,
-
         "RRLSM": RRLSM.ReservoirRNNLeastSquarePricer2,
         "RRLSMmix": RRLSM.ReservoirRNNLeastSquarePricer,
         "RRLSMRidge": RRLSM.ReservoirRNNLeastSquarePricer2Ridge,
-
         "EOP": backward_induction_pricer.EuropeanOptionPricer,
         "B": binomial.BinomialPricer,
         "Trinomial": trinomial.TrinomialPricer,
@@ -340,30 +337,56 @@ def _run_algo(
                 nb_epochs=nb_epochs if algo == "SRFQI" else None
             )
 
+        # BENCHMARK ALGORITHMS - Simple implementations
+        elif algo in ['NLSM']:
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                factors=factors,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo in ["DOS"]:
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                factors=factors,
+                use_path=False,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo in ["LSM", "LSMDeg1", "LSMLaguerre"]:
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                factors=factors,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo in ["FQI", "FQIDeg1", "FQILaguerre"]:
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                factors=factors,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
         # OLD ALGORITHMS - Keep for backward compatibility
         elif OLD_ALGOS_AVAILABLE and algo in _ALGOS:
-            # Use old algorithm initialization logic
-            if algo in ['NLSM']:
-                pricer = _ALGOS[algo](stock_model_obj, payoff_obj, nb_epochs=nb_epochs,
-                                      hidden_size=hidden_size,
-                                      train_ITM_only=train_ITM_only,
-                                      use_payoff_as_input=use_payoff_as_input)
-            elif algo in ["DOS", "pathDOS"]:
-                use_path = (algo == "pathDOS")
-                pricer = _ALGOS[algo](stock_model_obj, payoff_obj, nb_epochs=nb_epochs,
-                                      hidden_size=hidden_size, use_path=use_path,
-                                      use_payoff_as_input=use_payoff_as_input)
-            elif algo in ["LSM", "LSMDeg1", "LSMLaguerre"]:
-                pricer = _ALGOS[algo](stock_model_obj, payoff_obj, nb_epochs=nb_epochs,
-                                      train_ITM_only=train_ITM_only,
-                                      use_payoff_as_input=use_payoff_as_input)
-            elif "FQI" in algo:
-                pricer = _ALGOS[algo](stock_model_obj, payoff_obj, nb_epochs=nb_epochs,
-                                      train_ITM_only=train_ITM_only,
-                                      use_payoff_as_input=use_payoff_as_input)
-            else:
-                pricer = _ALGOS[algo](stock_model_obj, payoff_obj, nb_epochs=nb_epochs,
-                                      use_payoff_as_input=use_payoff_as_input)
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
         else:
             raise ValueError(f"Unknown algorithm: {algo}")
 

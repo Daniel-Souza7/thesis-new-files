@@ -1548,3 +1548,15 @@ video_testing = _DefaultConfig(
     nb_runs=[1],
     payoffs=['BasketPut'],
 )
+
+# Benchmark Algorithms: Test all benchmark algorithms
+benchmark_algorithms = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'LSM', 'FQI', 'NLSM', 'DOS'],
+    nb_stocks=[1, 2],
+    nb_paths=[10000],
+    nb_dates=[20],
+    nb_runs=[3],
+    payoffs=['BasketCall', 'BasketPut'],
+    nb_epochs=[20],
+    hidden_size=[50],
+)
