@@ -1540,3 +1540,11 @@ validation_payoff_ordering = _DefaultConfig(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+# Video Testing: Simple config for testing video generation
+video_testing = _DefaultConfig(
+    algos=['RLSM'],
+    nb_stocks=[2],
+    nb_runs=[1],
+    payoffs=['BasketPut'],
+)

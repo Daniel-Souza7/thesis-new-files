@@ -82,6 +82,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     volatility = config.volatilities[0] if isinstance(config.volatilities, (list, tuple)) else config.volatilities
 
     # Create stock model (using stock_model.py API)
+    maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
     stock_model_obj = BlackScholes(
         drift=drift,
         volatility=volatility,
@@ -90,7 +91,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         nb_dates=config.nb_dates,
         spot=spot,
         dividend=0,
-        maturity=config.maturity
+        maturity=maturity
     )
 
     # Generate paths
@@ -124,7 +125,7 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         payoff=payoff,
         nb_epochs=config.nb_epochs,
         hidden_size=config.hidden_size,
-        maturity=config.maturity,
+        maturity=maturity,
         use_payoff_as_input=config.use_payoff_as_input,
         train_ITM_only=config.train_ITM_only,
     )
@@ -360,7 +361,7 @@ def main():
         description="Create animated video of optimal stopping exercise decisions"
     )
     parser.add_argument(
-        '--config',
+        '--configs',
         type=str,
         required=True,
         help='Config name from configs.py (must have exactly 1 algo and 1 payoff)'
@@ -375,10 +376,10 @@ def main():
     args = parser.parse_args()
 
     # Load config
-    print(f"Loading config: {args.config}")
-    if not hasattr(configs, args.config):
-        raise ValueError(f"Config '{args.config}' not found in configs.py")
-    config = getattr(configs, args.config)
+    print(f"Loading config: {args.configs}")
+    if not hasattr(configs, args.configs):
+        raise ValueError(f"Config '{args.configs}' not found in configs.py")
+    config = getattr(configs, args.configs)
 
     # Validate config
     validate_config(config)
@@ -397,12 +398,12 @@ def main():
         run_algorithm_for_video(config, nb_paths_to_plot)
 
     # Create output directory
-    output_dir = Path('results') / args.config
+    output_dir = Path('results') / args.configs
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_path = output_dir / f'video_{args.config}_{timestamp}.mp4'
+    output_path = output_dir / f'video_{args.configs}_{timestamp}.mp4'
 
     # Create video
     create_video(
