@@ -117,11 +117,12 @@ def extract_data_for_excel(config: configs._DefaultConfig):
         else:
             print(f"    {col}: {len(unique_vals)} unique values")
 
-    # Filter by other parameters (not algo yet)
+    # Filter by other parameters (not algo or barriers yet)
     from optimal_stopping.utilities import filtering
     for filter_name, column_name in filtering.FILTERS:
-        if filter_name == 'algos':
-            continue  # Skip algo filter for now
+        # Skip algo and barrier filters - handled separately below
+        if filter_name in ['algos', 'barriers', 'barriers_up', 'barriers_down']:
+            continue
 
         if column_name not in df.index.names:
             continue
