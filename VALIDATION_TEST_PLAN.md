@@ -190,7 +190,7 @@ Verify "knock-in" barriers converge to vanilla when barrier is always hit.
 ## Test 7: `validation_payoff_ordering`
 
 ### Purpose
-Verify fundamental option pricing inequality: **Lookback > Asian > Vanilla**
+Verify fundamental option pricing inequality: **Lookback > Vanilla > Asian**
 
 ### Payoffs Tested
 - Vanilla: `Call`, `BasketCall`
@@ -199,16 +199,18 @@ Verify fundamental option pricing inequality: **Lookback > Asian > Vanilla**
 - Floating: `AsianFloatingStrikeCall`, `LookbackFloatCall`
 
 ### Expected Ordering (for Calls)
-1. **Lookback** (most valuable): Uses maximum over all paths
-2. **Asian** (moderate): Uses average over all paths
-3. **Vanilla** (least valuable): Uses only terminal value
+1. **Lookback** (most valuable): Uses maximum over all paths → max(S) ≥ S(T) always
+2. **Vanilla** (moderate): Uses terminal value S(T) → full volatility exposure
+3. **Asian** (least valuable): Uses average over all paths → reduced effective volatility
 
 **Mathematical Justification**:
-- max(S) ≥ avg(S) ≥ S(T) for any path
-- Therefore: Lookback ≥ Asian ≥ Vanilla
+- Lookback: Payoff uses max(S) which is always ≥ S(T), so Lookback ≥ Vanilla
+- Vanilla vs Asian: Averaging reduces effective volatility. Since option value increases with volatility (vega > 0), Asian < Vanilla
+- Therefore: **Lookback > Vanilla > Asian**
 
 ### Validation Criteria
-✅ **PASS**: LookbackFixedCall > AsianFixedStrikeCall > Call
+✅ **PASS**: LookbackFixedCall > Call > AsianFixedStrikeCall (correct ordering)
+✅ **PASS**: LookbackFloatCall > AsianFloatingStrikeCall (floating strike variants)
 ✅ **PASS**: For BasketCall, verify ordering with Asian variants
 ❌ **FAIL**: Any violation of the ordering
 
