@@ -194,16 +194,20 @@ def extract_data_for_excel(config: configs._DefaultConfig):
     print(f"  Sample data:")
     print(df.head(3))
 
-    #Group by index and calculate statistics
-    print(f"  Grouping by: {list(df.index.names)}")
-
-    # DEBUG: Check if there are any duplicate index entries
+    # CRITICAL FIX: Remove duplicates BEFORE grouping
     if df.index.has_duplicates:
         print(f"  ⚠️ WARNING: Index has duplicates!")
         dup_count = df.index.duplicated().sum()
         print(f"     {dup_count} duplicate index entries found")
+        print(f"     Removing duplicates (keeping last)...")
+        df = df[~df.index.duplicated(keep='last')]
+        print(f"     After removing duplicates: {len(df)} rows")
 
-    grouped = df.groupby(level=list(range(len(df.index.names))))  # Use level numbers instead of names
+    # Group by index and calculate statistics
+    print(f"  Grouping by: {list(df.index.names)}")
+
+    # Use dropna=False to handle NaN values in index
+    grouped = df.groupby(level=list(range(len(df.index.names))), dropna=False)
     print(f"  Number of groups: {len(grouped)}")
 
     # DEBUG: Try to see a sample group
