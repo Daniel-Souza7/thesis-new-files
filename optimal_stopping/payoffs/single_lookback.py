@@ -4,6 +4,7 @@ Lookback single option payoffs (d = 1) - PATH-DEPENDENT.
 Lookback options depend on the maximum or minimum price reached over the path.
 """
 
+import warnings
 import numpy as np
 from .payoff import Payoff
 
@@ -16,6 +17,13 @@ class LookbackFixedCall(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"LookbackFixedCall is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]  # Extract single stock: (nb_paths, nb_dates+1)
 
         # Maximum over time: (nb_paths,)
@@ -31,6 +39,13 @@ class LookbackFixedPut(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"LookbackFixedPut is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         # Minimum over time: (nb_paths,)
@@ -46,6 +61,13 @@ class LookbackFloatCall(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"LookbackFloatCall is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         # Price at maturity: (nb_paths,)
@@ -64,6 +86,13 @@ class LookbackFloatPut(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, 1, nb_dates+1) or (nb_paths, nb_dates+1)"""
         if X.ndim == 3:
+            if X.shape[1] > 1:
+                warnings.warn(
+                    f"LookbackFloatPut is a single-asset payoff but received {X.shape[1]} stocks. "
+                    f"Using only stock 0. Set nb_stocks=1 to avoid this warning.",
+                    UserWarning,
+                    stacklevel=2
+                )
             X = X[:, 0, :]
 
         # Price at maturity: (nb_paths,)
