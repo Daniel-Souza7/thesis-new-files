@@ -168,9 +168,11 @@ def extract_data_for_excel(config: configs._DefaultConfig):
 
     # NOW filter barriers
     if 'barrier' in df.index.names:
+        # Check if config wants actual barrier options (barrier < 100000)
+        # vs standard options (barrier >= 100000)
+        barrier_values = config.barriers if isinstance(config.barriers, (list, tuple)) else [config.barriers]
         config_has_barriers = hasattr(config, 'barriers') and config.barriers and \
-                              any(b is not None for b in (
-                                  config.barriers if isinstance(config.barriers, (list, tuple)) else [config.barriers]))
+                              any(b is not None and b < 100000 for b in barrier_values)
 
         if not config_has_barriers:
             # Keep only high barrier (standard options)
