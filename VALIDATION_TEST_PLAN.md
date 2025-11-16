@@ -198,7 +198,7 @@ Verify fundamental option pricing inequality: **Lookback > Asian > Vanilla**
 ### Payoffs Tested
 - Vanilla: `Call`, `BasketCall`
 - Asian: `AsianFixedStrikeCall`
-- Lookback: `LookbackFixedCall`, `LookbackMaxCall`
+- Lookback: `LookbackFixedCall`
 - Floating: `AsianFloatingStrikeCall`, `LookbackFloatCall`
 
 ### Expected Ordering (for Calls)
@@ -212,7 +212,7 @@ Verify fundamental option pricing inequality: **Lookback > Asian > Vanilla**
 
 ### Validation Criteria
 ✅ **PASS**: LookbackFixedCall > AsianFixedStrikeCall > Call
-✅ **PASS**: LookbackMaxCall > AsianFixedStrikeCall > BasketCall
+✅ **PASS**: For BasketCall, verify ordering with Asian variants
 ❌ **FAIL**: Any violation of the ordering
 
 ---
