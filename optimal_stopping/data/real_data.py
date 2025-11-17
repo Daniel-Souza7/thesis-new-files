@@ -245,10 +245,18 @@ class RealDataModel(Model):
             'UNP', 'NSC', 'CSX', 'CP', 'CNI', 'KSU', 'UPS', 'FDX', 'XPO', 'JBHT',
         ]
 
+        # Remove duplicates while preserving order (keep first occurrence)
+        seen = set()
+        unique_tickers = []
+        for ticker in all_tickers:
+            if ticker not in seen:
+                seen.add(ticker)
+                unique_tickers.append(ticker)
+
         # Return up to 1.5x requested stocks to account for failures
         # This ensures we get at least nb_stocks even with download failures
-        max_tickers = min(int(nb_stocks * 1.5), len(all_tickers))
-        return all_tickers[:max_tickers]
+        max_tickers = min(int(nb_stocks * 1.5), len(unique_tickers))
+        return unique_tickers[:max_tickers]
 
     def _download_data(self):
         """Download historical price data using yfinance."""
@@ -319,8 +327,19 @@ class RealDataModel(Model):
                     f"Consider using fewer stocks or a different date range."
                 )
 
-            # Filter to selected tickers
-            self.prices = self.prices[good_tickers]
+            # Make sure all good_tickers are actually in self.prices
+            # (they should be since coverage was calculated from self.prices)
+            available_tickers = [t for t in good_tickers if t in self.prices.columns]
+
+            if len(available_tickers) != len(good_tickers):
+                missing = set(good_tickers) - set(available_tickers)
+                warnings.warn(
+                    f"Warning: {len(missing)} selected tickers not in price data: {list(missing)[:5]}"
+                )
+
+            # Filter to selected tickers that are actually available
+            self.prices = self.prices[available_tickers]
+            good_tickers = available_tickers
 
             # Report removed tickers
             removed_tickers = set(self.tickers) - set(good_tickers)
@@ -345,13 +364,25 @@ class RealDataModel(Model):
             dropped_rows = initial_rows - len(self.prices)
 
             if dropped_rows > 0:
-                print(f"   Dropped {dropped_rows} rows with missing data across {self.nb_stocks} stocks")
+                print(f"   Dropped {dropped_rows} rows with missing data")
 
             if len(self.prices) == 0:
                 raise ValueError(
                     f"No common dates found across {len(good_tickers)} tickers. "
                     f"Try a different date range or fewer stocks."
                 )
+
+            # Verify we still have the right number of stocks
+            final_stock_count = len(self.prices.columns)
+            if final_stock_count != target_stocks:
+                warnings.warn(
+                    f"After data cleaning, have {final_stock_count} stocks instead of {target_stocks}. "
+                    f"This may happen with sparse data."
+                )
+
+            # Final update of tickers list
+            self.tickers = self.prices.columns.tolist()
+            self.nb_stocks = len(self.tickers)
 
         except Exception as e:
             raise RuntimeError(
