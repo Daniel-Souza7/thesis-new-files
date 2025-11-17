@@ -3,6 +3,7 @@
 - Heston
 - Fractional Brownian motion
 - Rough Heston
+- Real Data (block bootstrap)
 """
 
 import math
@@ -573,6 +574,15 @@ class RoughHestonWithVar(RoughHeston):
 
 # ==============================================================================
 # Dictionary for supported stock models to get them from their name
+
+# Import RealDataModel (lazy import to avoid yfinance dependency if not used)
+try:
+    from optimal_stopping.data.real_data import RealDataModel
+    _HAS_REAL_DATA = True
+except ImportError:
+    _HAS_REAL_DATA = False
+    RealDataModel = None
+
 STOCK_MODELS = {
     "BlackScholes": BlackScholes,
     'FractionalBlackScholes': FractionalBlackScholes,
@@ -583,6 +593,11 @@ STOCK_MODELS = {
     "HestonWithVar": HestonWithVar,
     "RoughHestonWithVar": RoughHestonWithVar,
 }
+
+# Add RealData if available
+if _HAS_REAL_DATA:
+    STOCK_MODELS["RealData"] = RealDataModel
+
 # ==============================================================================
 
 

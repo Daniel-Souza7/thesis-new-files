@@ -1572,3 +1572,173 @@ test_lsm = _DefaultConfig(
     nb_epochs=[5],
     hidden_size=[20],
 )
+
+# ==============================================================================
+# REAL DATA MODEL TESTS
+# ==============================================================================
+# NOTE: RealData requires yfinance: pip install yfinance
+
+# Quick test: Minimal config for fast testing
+test_real_data_quick = _DefaultConfig(
+    algos=['RLSM'],
+    stock_models=['RealData'],
+    nb_stocks=[3],  # AAPL, MSFT, GOOGL
+    nb_paths=[1000],
+    nb_dates=[20],
+    nb_runs=1,
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    maturities=[0.25],
+    nb_epochs=[10],
+    hidden_size=[30],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 1: Basic Real Data with FAANG stocks
+test_real_data_basic = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'LSM'],
+    stock_models=['RealData'],
+    nb_stocks=[5],  # AAPL, MSFT, GOOGL, AMZN, NVDA
+    nb_paths=[10000],
+    nb_dates=[252],  # 1 year of daily steps
+    nb_runs=3,
+    payoffs=['BasketCall', 'BasketPut', 'MaxCall', 'MinPut'],
+    spots=[100],
+    strikes=[100, 110],  # ATM and OTM
+    maturities=[1.0],
+    volatilities=[0.2],  # Will be overridden by real data unless drift_override used
+    drift=[0.05],  # Will be overridden by real data unless drift_override used
+    nb_epochs=[30],
+    hidden_size=[50],
+    train_ITM_only=[True],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 2: Crisis vs Non-Crisis comparison
+test_real_data_crisis = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['RealData'],
+    nb_stocks=[3],
+    nb_paths=[5000],
+    nb_dates=[63],  # ~3 months
+    nb_runs=5,
+    payoffs=['BasketPut', 'MaxCall'],  # Puts more interesting during crises
+    spots=[100],
+    strikes=[100],
+    maturities=[0.25],
+    nb_epochs=[20],
+    hidden_size=[50],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+    # Note: To actually test crisis vs non-crisis, you'd need to modify
+    # the RealDataModel initialization in run_algo.py to pass exclude_crisis parameter
+)
+
+# Test 3: Real Data vs Black-Scholes comparison
+test_real_data_vs_bs = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRFQI', 'SRLSM'],
+    stock_models=['RealData', 'BlackScholes'],
+    nb_stocks=[5, 10],
+    nb_paths=[10000],
+    nb_dates=[50, 100],
+    nb_runs=5,
+    payoffs=['BasketCall', 'AsianFixedStrikeCall', 'LookbackFixedCall'],
+    spots=[100],
+    strikes=[90, 100, 110],  # ITM, ATM, OTM
+    maturities=[1.0],
+    volatilities=[0.2, 0.3],
+    drift=[0.05],
+    nb_epochs=[30],
+    hidden_size=[50],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 4: High-dimensional Real Data (many stocks)
+test_real_data_multidim = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRFQI', 'SRLSM'],
+    stock_models=['RealData'],
+    nb_stocks=[10, 25, 50],  # Test scaling
+    nb_paths=[5000, 10000],
+    nb_dates=[50],
+    nb_runs=3,
+    payoffs=['BasketCall', 'MaxCall', 'MinPut', 'AsianFixedStrikeCall'],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
+    nb_epochs=[20],
+    hidden_size=[50, 100],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 5: Real Data with exotic payoffs
+test_real_data_exotics = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRFQI', 'SRLSM'],
+    stock_models=['RealData'],
+    nb_stocks=[5],
+    nb_paths=[10000],
+    nb_dates=[100],
+    nb_runs=3,
+    payoffs=[
+        # Basket options
+        'BasketCall', 'BasketPut',
+        # Best/worst of
+        'MaxCall', 'MinPut',
+        # Path-dependent
+        'AsianFixedStrikeCall', 'LookbackFixedCall',
+        # Barriers
+        'UI_BasketCall', 'DI_BasketPut',
+        # Quantile
+        'QuantileCall',
+    ],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
+    barriers=[80, 120],  # For barrier options
+    alpha=[0.75],  # For quantile options
+    nb_epochs=[30],
+    hidden_size=[50],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 6: Real Data short maturity (high frequency)
+test_real_data_short = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['RealData'],
+    nb_stocks=[3],
+    nb_paths=[10000],
+    nb_dates=[21],  # 1 month, daily
+    nb_runs=5,
+    payoffs=['BasketCall', 'BasketPut', 'MaxCall'],
+    spots=[100],
+    strikes=[95, 100, 105],
+    maturities=[1/12],  # 1 month
+    nb_epochs=[20],
+    hidden_size=[30],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test 7: Real Data algorithm comparison (all algorithms)
+test_real_data_all_algos = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'LSM', 'FQI', 'NLSM', 'DOS', 'SRFQI', 'SRLSM'],
+    stock_models=['RealData'],
+    nb_stocks=[5],
+    nb_paths=[10000],
+    nb_dates=[50],
+    nb_runs=3,
+    payoffs=['BasketCall', 'BasketPut'],
+    spots=[100],
+    strikes=[100],
+    maturities=[0.5],
+    nb_epochs=[20, 30],
+    hidden_size=[50],
+    train_ITM_only=[True, False],  # Compare ITM-only vs all paths
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
