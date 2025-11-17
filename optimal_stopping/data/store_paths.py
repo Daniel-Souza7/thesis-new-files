@@ -32,6 +32,18 @@ import argparse
 import sys
 from optimal_stopping.data.path_storage import store_paths, list_stored_paths, delete_stored_paths
 
+# Telegram setup
+try:
+    from telegram_notifications import send_bot_message as SBM
+    TELEGRAM_ENABLED = True
+except:
+    TELEGRAM_ENABLED = False
+
+    class SBM:
+        @staticmethod
+        def send_notification(*args, **kwargs):
+            pass
+
 
 def _parse_value(value_str: str):
     """Parse command-line value to appropriate Python type.
@@ -108,7 +120,23 @@ def main():
     parser.add_argument('--exclude_crisis', action='store_true',
                         help='Exclude crisis periods for RealData')
 
+    # Telegram parameters
+    parser.add_argument('--telegram_token', type=str,
+                        default="8239319342:AAGIIcoDaxJ1uauHbWfdByF4yzNYdQ5jpiA",
+                        help='Telegram bot token')
+    parser.add_argument('--telegram_chat_id', type=str,
+                        default="798647521",
+                        help='Telegram chat ID')
+    parser.add_argument('--send_telegram', action='store_true', default=True,
+                        help='Whether to send notifications via Telegram (default: True)')
+    parser.add_argument('--no_telegram', action='store_true',
+                        help='Disable Telegram notifications')
+
     args = parser.parse_args()
+
+    # Handle no_telegram flag
+    if args.no_telegram:
+        args.send_telegram = False
 
     # Handle list operation
     if args.list:
@@ -159,6 +187,20 @@ def main():
     if args.exclude_crisis:
         model_params['exclude_crisis'] = True
 
+    # Send start notification
+    if TELEGRAM_ENABLED and args.send_telegram:
+        try:
+            SBM.send_notification(
+                token=args.telegram_token,
+                text=f'💾 Starting path storage...\n\n'
+                     f'Model: {args.stock_model}\n'
+                     f'Stocks: {args.nb_stocks}, Paths: {args.nb_paths:,}\n'
+                     f'Dates: {args.nb_dates}, Maturity: {args.maturity}y',
+                chat_id=args.telegram_chat_id
+            )
+        except Exception as e:
+            print(f"⚠️  Telegram notification failed: {e}")
+
     # Store paths
     try:
         storage_id = store_paths(
@@ -172,12 +214,42 @@ def main():
             **model_params
         )
         print(f"\n✅ Success! Storage ID: {storage_id}")
+
+        # Send completion notification
+        if TELEGRAM_ENABLED and args.send_telegram:
+            try:
+                SBM.send_notification(
+                    token=args.telegram_token,
+                    text=f'✅ Path storage complete!\n\n'
+                         f'Storage ID: {storage_id}\n'
+                         f'Model: {args.stock_model}Stored{storage_id}\n\n'
+                         f'Use in config:\n'
+                         f"stock_models=['{args.stock_model}Stored{storage_id}']",
+                    chat_id=args.telegram_chat_id
+                )
+            except Exception as e:
+                print(f"⚠️  Telegram notification failed: {e}")
+
         return 0
 
     except Exception as e:
         print(f"\n❌ Error: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
+
+        # Send error notification
+        if TELEGRAM_ENABLED and args.send_telegram:
+            try:
+                SBM.send_notification(
+                    token=args.telegram_token,
+                    text=f'❌ Path storage failed!\n\n'
+                         f'Model: {args.stock_model}\n'
+                         f'Error: {str(e)[:200]}',
+                    chat_id=args.telegram_chat_id
+                )
+            except:
+                pass
+
         return 1
 
 
