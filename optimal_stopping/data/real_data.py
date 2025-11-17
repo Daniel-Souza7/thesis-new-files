@@ -124,17 +124,18 @@ class RealDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self, nb_stocks: int) -> List[str]:
-        """Get default tickers from S&P 500 (top 250 by market cap with 15+ years data).
+        """Get default tickers from S&P 500 (top 400+ with 15+ years data).
 
         Args:
             nb_stocks: Number of stocks requested
 
         Returns:
-            List of tickers (up to 250)
+            List of tickers (requests 1.5x nb_stocks to account for download failures)
         """
-        # Top 250 S&P 500 stocks by market cap with 15+ years of continuous trading
+        # Top 400+ S&P 500 stocks by market cap with long trading history
         # Updated as of 2024, sorted by market cap
         # Note: BRK.B removed due to yfinance timezone issues with dotted tickers
+        # Requesting more tickers than needed to account for yfinance download failures
         all_tickers = [
             # Mega caps (Top 10)
             'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'LLY', 'V', 'UNH',
@@ -172,10 +173,33 @@ class RealDataModel(Model):
             'SYY', 'DAL', 'EIX', 'CBRE', 'IFF', 'BALL', 'ETR', 'WBD', 'ANSS', 'HES',
             'RJF', 'EQR', 'K', 'FE', 'PPL', 'AVB', 'VMC', 'MLM', 'NTRS', 'CHD',
             'PEG', 'DTE', 'AEE', 'LH', 'HBAN', 'CAH', 'SBAC', 'SWKS', 'NVR', 'KEY',
+
+            # Additional buffer (251-300) - for yfinance download failures
+            'IP', 'IR', 'LYB', 'LVS', 'AES', 'BBY', 'BXP', 'CNP', 'DG', 'DLTR',
+            'DRI', 'EXPE', 'FIS', 'GRMN', 'HIG', 'HST', 'JBHT', 'L', 'LEN', 'LNC',
+            'LUV', 'MKC', 'NDAQ', 'NEM', 'NI', 'NWSA', 'OMC', 'PKG', 'PKI', 'POOL',
+            'PFG', 'RE', 'RF', 'RSG', 'SNPS', 'STE', 'SWK', 'TECH', 'TSN', 'TYL',
+            'UDR', 'ULTA', 'URI', 'VFC', 'WDC', 'WYNN', 'ZBRA', 'CDNS', 'AMAT', 'MU',
+
+            # More buffer (301-350)
+            'PYPL', 'PANW', 'CRWD', 'NOW', 'SHOP', 'SQ', 'ABNB', 'UBER', 'COIN', 'SNOW',
+            'FTNT', 'DDOG', 'ZS', 'NET', 'OKTA', 'TWLO', 'DOCU', 'ZM', 'ROKU', 'PINS',
+            'SNAP', 'LYFT', 'DASH', 'RBLX', 'U', 'PATH', 'BILL', 'S', 'MDB', 'TEAM',
+            'WDAY', 'ZI', 'VEEV', 'HUBS', 'ESTC', 'SPLK', 'RNG', 'GNRC', 'PODD', 'ALGN',
+            'ILMN', 'INCY', 'TECH', 'TTWO', 'ATVI', 'NTAP', 'JNPR', 'FFIV', 'AKAM', 'CTXS',
+
+            # Even more buffer (351-400)
+            'TFX', 'PKG', 'WST', 'HOLX', 'JKHY', 'CPRT', 'CDAY', 'BR', 'LII', 'CBOE',
+            'CINF', 'GL', 'AIZ', 'EXPD', 'CHRW', 'WAB', 'SIVB', 'TRMB', 'NDSN', 'PAYC',
+            'APA', 'DVN', 'FANG', 'MRO', 'HES', 'OKE', 'WMB', 'TRGP', 'LNG', 'CHTR',
+            'DPZ', 'ULTA', 'RLGY', 'BLDR', 'BBWI', 'TPR', 'PVH', 'RL', 'NCLH', 'CCL',
+            'RCL', 'MGM', 'BYD', 'ALB', 'CE', 'FMC', 'EMN', 'CF', 'MOS', 'APH',
         ]
 
-        # Return up to nb_stocks tickers
-        return all_tickers[:min(nb_stocks, len(all_tickers))]
+        # Return up to 1.5x requested stocks to account for failures
+        # This ensures we get at least nb_stocks even with download failures
+        max_tickers = min(int(nb_stocks * 1.5), len(all_tickers))
+        return all_tickers[:max_tickers]
 
     def _download_data(self):
         """Download historical price data using yfinance."""
