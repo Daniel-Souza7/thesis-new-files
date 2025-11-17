@@ -292,21 +292,43 @@ class RealDataModel(Model):
             # Drop columns (tickers) with all NaN values (failed downloads)
             self.prices = self.prices.dropna(axis=1, how='all')
 
+            if len(self.prices.columns) == 0:
+                raise ValueError("All tickers failed to download - no data available.")
+
+            # Calculate data availability for each ticker
+            # Only keep tickers with at least 80% data coverage
+            total_rows = len(self.prices)
+            coverage = self.prices.count() / total_rows
+            good_tickers = coverage[coverage >= 0.80].index.tolist()
+
+            if len(good_tickers) == 0:
+                # If no ticker has 80% coverage, relax to 50%
+                good_tickers = coverage[coverage >= 0.50].index.tolist()
+                if len(good_tickers) == 0:
+                    raise ValueError("No tickers have sufficient data coverage (>50%).")
+
+            # Filter to good tickers
+            self.prices = self.prices[good_tickers]
+
             # Check if we lost any tickers
-            failed_tickers = set(self.tickers) - set(self.prices.columns)
+            failed_tickers = set(self.tickers) - set(good_tickers)
             if failed_tickers:
                 warnings.warn(
-                    f"Failed to download data for {len(failed_tickers)} ticker(s): {sorted(failed_tickers)}"
+                    f"Removed {len(failed_tickers)} ticker(s) with insufficient data coverage: "
+                    f"{sorted(list(failed_tickers)[:10])}{'...' if len(failed_tickers) > 10 else ''}"
                 )
-                # Update tickers list to only include successful downloads
-                self.tickers = list(self.prices.columns)
+                # Update tickers list to only include good tickers
+                self.tickers = good_tickers
                 self.nb_stocks = len(self.tickers)
 
-            # Drop rows with any NaN values
+            # Now drop rows with any NaN values (should be minimal after filtering tickers)
             self.prices = self.prices.dropna()
 
             if len(self.prices) == 0:
-                raise ValueError("No data downloaded. Check tickers and date range.")
+                raise ValueError(
+                    f"No common dates found across {len(good_tickers)} tickers. "
+                    f"Try a different date range or fewer stocks."
+                )
 
             if len(self.tickers) == 0:
                 raise ValueError("All tickers failed to download.")
