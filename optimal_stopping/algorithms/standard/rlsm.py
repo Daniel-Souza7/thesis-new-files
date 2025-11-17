@@ -122,7 +122,7 @@ class RLSM:
         self.split = len(stock_paths) // train_eval_split
 
         nb_paths, nb_stocks_plus, nb_dates = stock_paths.shape
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / (nb_dates - 1))
 
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
