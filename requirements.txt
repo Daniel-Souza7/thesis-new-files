@@ -13,3 +13,4 @@ xlrd
 openpyxl
 git+https://github.com/FlorianKrach/Telegram-Bot-Install@v2.1.0
 fbm
+yfinance
