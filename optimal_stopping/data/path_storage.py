@@ -118,6 +118,7 @@ def store_paths(
         nb_dates=nb_dates,
         maturity=maturity,
         spot=spot,
+        name=stock_model,  # Required by base Model class
         **model_params
     )
 
