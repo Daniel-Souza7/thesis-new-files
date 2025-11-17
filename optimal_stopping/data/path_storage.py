@@ -133,14 +133,25 @@ def store_paths(
     filename = f"{stock_model}_{storage_id}.h5"
     filepath = STORAGE_DIR / filename
 
+    # Calculate expected file size
+    data_size_mb = (paths.nbytes + (variance_paths.nbytes if variance_paths is not None else 0)) / (1024 * 1024)
     print(f"💾 Saving to {filepath}...")
+    print(f"   Data size: {data_size_mb:.1f} MB (uncompressed)")
+    print(f"   This may take 1-2 minutes with compression...")
+
+    save_start = time.time()
     with h5py.File(filepath, 'w') as f:
-        # Store paths
-        f.create_dataset('paths', data=paths, compression='gzip', compression_opts=4)
+        # Store paths with light compression for speed
+        # compression_opts=1 is much faster than 4, with good compression ratio
+        print(f"   Compressing and writing paths...")
+        f.create_dataset('paths', data=paths, compression='gzip', compression_opts=1,
+                        chunks=True)  # Auto-chunking for better performance
 
         # Store variance paths (None if not applicable)
         if variance_paths is not None:
-            f.create_dataset('variance_paths', data=variance_paths, compression='gzip', compression_opts=4)
+            print(f"   Compressing and writing variance paths...")
+            f.create_dataset('variance_paths', data=variance_paths, compression='gzip',
+                           compression_opts=1, chunks=True)
 
         # Store metadata
         metadata = {
@@ -167,8 +178,11 @@ def store_paths(
         for key, value in metadata.items():
             f.attrs[key] = value
 
+    save_elapsed = time.time() - save_start
     file_size_mb = filepath.stat().st_size / (1024 * 1024)
-    print(f"✅ Stored {file_size_mb:.1f} MB to {filename}")
+    compression_ratio = (data_size_mb / file_size_mb) if file_size_mb > 0 else 1
+    print(f"✅ Saved in {save_elapsed:.1f}s")
+    print(f"   File size: {file_size_mb:.1f} MB (compression ratio: {compression_ratio:.1f}x)")
     print(f"📝 Use in config: stock_models=['{stock_model}Stored{storage_id}']")
 
     return storage_id
