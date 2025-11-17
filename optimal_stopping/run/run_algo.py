@@ -33,6 +33,7 @@ from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer, LeastSq
 from optimal_stopping.algorithms.standard.fqi import FQIFast, FQIFastDeg1, FQIFastLaguerre
 from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
 from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
+from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 
 # OLD IMPORTS - Keep for backward compatibility if needed
 try:
@@ -142,6 +143,7 @@ _ALGOS = {
 
     "NLSM": NeuralNetworkPricer,
     "DOS": DeepOptimalStopping,
+    "EOP": EuropeanOptionPrice,  # European option (exercise only at maturity)
 }
 
 # Add old algorithms if available
@@ -151,7 +153,7 @@ if OLD_ALGOS_AVAILABLE:
         "RRLSM": RRLSM.ReservoirRNNLeastSquarePricer2,
         "RRLSMmix": RRLSM.ReservoirRNNLeastSquarePricer,
         "RRLSMRidge": RRLSM.ReservoirRNNLeastSquarePricer2Ridge,
-        "EOP": backward_induction_pricer.EuropeanOptionPricer,
+        # "EOP": backward_induction_pricer.EuropeanOptionPricer,  # Replaced by new EOP
         "B": binomial.BinomialPricer,
         "Trinomial": trinomial.TrinomialPricer,
     })
@@ -445,7 +447,7 @@ def _run_algo(
         'model': stock_model_name,
         'payoff': payoff_name,
         'drift': drift,
-        'risk_free_rate': risk_free_rate,
+        'risk_free_rate': stock_model_obj.rate,  # Use actual rate from model (drift - 0.04 if None)
         'volatility': volatility,
         'mean': mean,
         'speed': speed,

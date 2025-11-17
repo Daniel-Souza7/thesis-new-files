@@ -86,6 +86,29 @@ test_risk_free_rate = _DefaultConfig(
     nb_paths=(50000,), nb_dates=(10,), nb_runs=3
 )
 
+'''
+Test config for EOP algorithm
+'''
+test_eop = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(1,),
+    algos=('RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'),
+    payoffs=('Call',)
+)
+
+'''
+Exercise times analysis with varying hidden sizes
+'''
+Exercisetimes = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(1,),
+    algos=('RLSM', 'LSM', 'RFQI', 'FQI'),
+    payoffs=('Call',),
+    hidden_size=(1, 2, 4, 20, 100)
+)
+
 
 '''
 Comparison prices and computation time
