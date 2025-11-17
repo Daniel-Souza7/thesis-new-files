@@ -296,42 +296,62 @@ class RealDataModel(Model):
                 raise ValueError("All tickers failed to download - no data available.")
 
             # Calculate data availability for each ticker
-            # Only keep tickers with at least 80% data coverage
             total_rows = len(self.prices)
             coverage = self.prices.count() / total_rows
-            good_tickers = coverage[coverage >= 0.80].index.tolist()
 
-            if len(good_tickers) == 0:
-                # If no ticker has 80% coverage, relax to 50%
-                good_tickers = coverage[coverage >= 0.50].index.tolist()
-                if len(good_tickers) == 0:
-                    raise ValueError("No tickers have sufficient data coverage (>50%).")
+            # Sort tickers by coverage (best to worst)
+            coverage_sorted = coverage.sort_values(ascending=False)
 
-            # Filter to good tickers
+            # Determine how many stocks we need
+            # User requested nb_stocks, but we may have downloaded fewer
+            target_stocks = min(self.nb_stocks, len(coverage_sorted))
+
+            # Strategy: Take the top N stocks with best coverage
+            # This ensures we get exactly N stocks (or as many as downloaded)
+            if len(coverage_sorted) >= target_stocks:
+                # Take top N stocks by coverage
+                good_tickers = coverage_sorted.head(target_stocks).index.tolist()
+            else:
+                # We have fewer stocks than requested, use all of them
+                good_tickers = coverage_sorted.index.tolist()
+                warnings.warn(
+                    f"Only {len(good_tickers)} stocks available (requested {self.nb_stocks}). "
+                    f"Consider using fewer stocks or a different date range."
+                )
+
+            # Filter to selected tickers
             self.prices = self.prices[good_tickers]
 
-            # Check if we lost any tickers
-            failed_tickers = set(self.tickers) - set(good_tickers)
-            if failed_tickers:
+            # Report removed tickers
+            removed_tickers = set(self.tickers) - set(good_tickers)
+            if removed_tickers and len(removed_tickers) <= 20:
                 warnings.warn(
-                    f"Removed {len(failed_tickers)} ticker(s) with insufficient data coverage: "
-                    f"{sorted(list(failed_tickers)[:10])}{'...' if len(failed_tickers) > 10 else ''}"
+                    f"Removed {len(removed_tickers)} ticker(s) with lowest coverage: "
+                    f"{sorted(list(removed_tickers))}"
                 )
-                # Update tickers list to only include good tickers
-                self.tickers = good_tickers
-                self.nb_stocks = len(self.tickers)
+            elif removed_tickers:
+                warnings.warn(
+                    f"Removed {len(removed_tickers)} ticker(s) with lowest coverage: "
+                    f"{sorted(list(removed_tickers)[:10])}... and {len(removed_tickers)-10} more"
+                )
 
-            # Now drop rows with any NaN values (should be minimal after filtering tickers)
+            # Update tickers list to selected stocks
+            self.tickers = good_tickers
+            self.nb_stocks = len(self.tickers)
+
+            # Now drop rows with any NaN values across selected stocks
+            initial_rows = len(self.prices)
             self.prices = self.prices.dropna()
+            dropped_rows = initial_rows - len(self.prices)
+
+            if dropped_rows > 0:
+                print(f"   Dropped {dropped_rows} rows with missing data across {self.nb_stocks} stocks")
 
             if len(self.prices) == 0:
                 raise ValueError(
                     f"No common dates found across {len(good_tickers)} tickers. "
                     f"Try a different date range or fewer stocks."
                 )
-
-            if len(self.tickers) == 0:
-                raise ValueError("All tickers failed to download.")
 
         except Exception as e:
             raise RuntimeError(
