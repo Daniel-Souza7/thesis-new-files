@@ -117,7 +117,8 @@ class RealDataModel(Model):
         if self.avg_block_length is None:
             self.avg_block_length = self._estimate_block_length()
 
-        print(f"✅ Loaded {len(self.returns)} days of returns")
+        print(f"✅ Loaded {len(self.tickers)} stocks: {', '.join(self.tickers)}")
+        print(f"   {len(self.returns)} days of returns ({self.start_date} to {self.end_date})")
         print(f"   Average return: {self.empirical_drift_annual:.2%}")
         print(f"   Average volatility: {self.empirical_vol_annual:.2%}")
         print(f"   Block length: {self.avg_block_length} days")
@@ -133,13 +134,14 @@ class RealDataModel(Model):
         """
         # Top 250 S&P 500 stocks by market cap with 15+ years of continuous trading
         # Updated as of 2024, sorted by market cap
+        # Note: BRK.B removed due to yfinance timezone issues with dotted tickers
         all_tickers = [
             # Mega caps (Top 10)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK.B', 'V', 'UNH',
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'LLY', 'V', 'UNH',
 
             # Large caps (11-50)
-            'JNJ', 'XOM', 'WMT', 'JPM', 'MA', 'PG', 'LLY', 'CVX', 'HD', 'MRK',
-            'ABBV', 'KO', 'AVGO', 'PEP', 'COST', 'ADBE', 'MCD', 'CSCO', 'CRM', 'TMO',
+            'JNJ', 'XOM', 'WMT', 'JPM', 'MA', 'PG', 'AVGO', 'CVX', 'HD', 'MRK',
+            'ABBV', 'KO', 'PEP', 'COST', 'ADBE', 'MCD', 'CSCO', 'CRM', 'TMO', 'BAC',
             'ACN', 'ABT', 'NFLX', 'WFC', 'DHR', 'NKE', 'DIS', 'VZ', 'CMCSA', 'INTC',
             'TXN', 'NEE', 'PM', 'UNP', 'RTX', 'ORCL', 'AMD', 'COP', 'UPS', 'MS',
 
@@ -185,15 +187,27 @@ class RealDataModel(Model):
                 "Install with: pip install yfinance"
             )
 
-        # Download data
+        # Download data (suppress yfinance warnings/errors)
+        import logging
+        logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
         try:
-            data = yf.download(
-                self.tickers,
-                start=self.start_date,
-                end=self.end_date,
-                progress=False,
-                auto_adjust=True  # Adjust for splits and dividends
-            )
+            # Suppress stdout from yfinance
+            import sys
+            from io import StringIO
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                data = yf.download(
+                    self.tickers,
+                    start=self.start_date,
+                    end=self.end_date,
+                    progress=False,
+                    auto_adjust=True  # Adjust for splits and dividends
+                )
+            finally:
+                sys.stdout = old_stdout
 
             # Handle single ticker case
             if len(self.tickers) == 1:
@@ -202,11 +216,27 @@ class RealDataModel(Model):
             else:
                 self.prices = data['Close'][self.tickers]
 
-            # Drop NaN values
+            # Drop columns (tickers) with all NaN values (failed downloads)
+            self.prices = self.prices.dropna(axis=1, how='all')
+
+            # Check if we lost any tickers
+            failed_tickers = set(self.tickers) - set(self.prices.columns)
+            if failed_tickers:
+                warnings.warn(
+                    f"Failed to download data for {len(failed_tickers)} ticker(s): {sorted(failed_tickers)}"
+                )
+                # Update tickers list to only include successful downloads
+                self.tickers = list(self.prices.columns)
+                self.nb_stocks = len(self.tickers)
+
+            # Drop rows with any NaN values
             self.prices = self.prices.dropna()
 
             if len(self.prices) == 0:
                 raise ValueError("No data downloaded. Check tickers and date range.")
+
+            if len(self.tickers) == 0:
+                raise ValueError("All tickers failed to download.")
 
         except Exception as e:
             raise RuntimeError(
