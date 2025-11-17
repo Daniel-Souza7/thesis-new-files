@@ -109,6 +109,20 @@ Exercisetimes = _DefaultConfig(
     hidden_size=(1, 2, 4, 20, 100)
 )
 
+'''
+Diagnostic config to debug early exercise issue
+Tests with train_ITM_only=False and more basis functions
+'''
+debug_early_exercise = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(1,),
+    algos=('RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'),
+    payoffs=('Call',),
+    train_ITM_only=(False,),  # Train on ALL paths, not just ITM
+    hidden_size=(50, 100)  # More basis functions for better approximation
+)
+
 
 '''
 Comparison prices and computation time

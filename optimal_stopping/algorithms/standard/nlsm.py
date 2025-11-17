@@ -92,17 +92,18 @@ class NeuralNetworkPricer:
         # Split into training and evaluation sets
         self.split = len(stock_paths) // train_eval_split
 
-        nb_paths, nb_stocks, nb_dates = stock_paths.shape
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / (nb_dates - 1))
+        nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
+        # Use model's nb_dates (actual time steps) for consistency across all algorithms
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
 
         # Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, nb_dates - 1, dtype=int)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
 
         # Backward induction from T-1 to 1
-        for date in range(nb_dates - 2, 0, -1):
+        for date in range(self.model.nb_dates - 1, 0, -1):
             # Current immediate exercise value
             immediate_exercise = payoffs[:, date]
 

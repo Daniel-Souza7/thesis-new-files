@@ -84,8 +84,9 @@ class FQIFast:
         # Split into training and evaluation sets
         self.split = len(stock_paths) // train_eval_split
 
-        nb_paths, nb_stocks, nb_dates = stock_paths.shape
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / (nb_dates - 1))
+        nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
+        # Use model's nb_dates (actual time steps) for consistency across all algorithms
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
         # Prepare state with time features
         if self.use_payoff_as_input:
@@ -97,7 +98,7 @@ class FQIFast:
             paths = np.concatenate([paths, var_paths], axis=1)
 
         # Evaluate basis functions for all paths and times
-        eval_bases = self._evaluate_bases_all(paths, nb_dates)
+        eval_bases = self._evaluate_bases_all(paths, nb_dates_from_shape)
 
         # FQI iterations
         for epoch in range(self.nb_epochs):
