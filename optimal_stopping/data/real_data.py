@@ -73,22 +73,10 @@ class RealDataModel(Model):
         """
         # Extract drift/volatility from kwargs if not explicitly provided
         # This allows configs to work: drift=0.05 in config → drift_override=0.05
-        # Configs pass tuples/lists, so extract first element if needed
         if drift_override is None and 'drift' in kwargs:
-            drift_val = kwargs['drift']
-            # Handle tuple/list from configs: (0.02,) → 0.02
-            if isinstance(drift_val, (tuple, list)) and len(drift_val) > 0:
-                drift_override = float(drift_val[0])
-            elif drift_val is not None:
-                drift_override = float(drift_val)
-
+            drift_override = kwargs['drift']
         if volatility_override is None and 'volatility' in kwargs:
-            vol_val = kwargs['volatility']
-            # Handle tuple/list from configs: (0.2,) → 0.2
-            if isinstance(vol_val, (tuple, list)) and len(vol_val) > 0:
-                volatility_override = float(vol_val[0])
-            elif vol_val is not None:
-                volatility_override = float(vol_val)
+            volatility_override = kwargs['volatility']
 
         # Initialize base class
         super().__init__(**kwargs)
