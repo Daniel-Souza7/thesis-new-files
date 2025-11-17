@@ -1574,6 +1574,26 @@ test_lsm = _DefaultConfig(
 )
 
 # ==============================================================================
+# STORED PATHS TESTS
+# ==============================================================================
+# NOTE: First store paths using: python -m optimal_stopping.data.store_paths
+# Then update the storage ID below and run experiments
+
+# Example stored paths config - UPDATE THE STORAGE ID!
+test_stored = _DefaultConfig(
+    stock_models=['RealDataStored1763383103077'],  # Use stored ID
+    nb_stocks=[10, 25, 50],    # Can use subset (≤50)
+    nb_paths=[50000],          # Can use subset (≤100000)
+    nb_dates=[252],            # Must match exactly
+    maturities=[1.0],          # Must match exactly
+    spots=[90, 100, 110],      # Will automatically rescale!
+    strikes=[100, 110],
+    payoffs=['BasketCall', 'MaxCall', 'MinPut'],
+    algos=['RLSM', 'RFQI', 'LSM'],
+    nb_runs=10,
+)
+
+# ==============================================================================
 # REAL DATA MODEL TESTS
 # ==============================================================================
 # NOTE: RealData requires yfinance: pip install yfinance

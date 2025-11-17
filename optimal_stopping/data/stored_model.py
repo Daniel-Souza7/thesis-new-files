@@ -74,6 +74,9 @@ class StoredPathsModel(Model):
         **kwargs
     ):
         """Initialize stored paths model."""
+        # Remove 'name' from kwargs if present to avoid conflict
+        kwargs.pop('name', None)
+
         # Initialize base class with dummy drift/volatility
         # (These don't matter since we use stored paths)
         super().__init__(

@@ -32,6 +32,18 @@ from optimal_stopping.algorithms.standard.rfqi import RFQI
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
+# Telegram setup
+try:
+    from telegram_notifications import send_bot_message as SBM
+    TELEGRAM_ENABLED = True
+except:
+    TELEGRAM_ENABLED = False
+
+    class SBM:
+        @staticmethod
+        def send_notification(*args, **kwargs):
+            pass
+
 # Algorithm registry
 _ALGOS = {
     "RLSM": RLSM,
@@ -392,8 +404,22 @@ def main():
         default=None,
         help='Number of paths to plot (default: max(100, 5*d))'
     )
+    parser.add_argument('--telegram_token', type=str,
+                        default="8239319342:AAGIIcoDaxJ1uauHbWfdByF4yzNYdQ5jpiA",
+                        help='Telegram bot token')
+    parser.add_argument('--telegram_chat_id', type=str,
+                        default="798647521",
+                        help='Telegram chat ID')
+    parser.add_argument('--send_telegram', action='store_true', default=True,
+                        help='Whether to send notifications via Telegram (default: True)')
+    parser.add_argument('--no_telegram', action='store_true',
+                        help='Disable Telegram notifications')
 
     args = parser.parse_args()
+
+    # Handle no_telegram flag
+    if args.no_telegram:
+        args.send_telegram = False
 
     # Load config
     print(f"Loading config: {args.configs}")
@@ -412,6 +438,19 @@ def main():
         nb_paths_to_plot = args.nb_paths_to_plot
 
     print(f"Will plot {nb_paths_to_plot} paths for {nb_stocks} stock(s)")
+
+    # Send start notification
+    if TELEGRAM_ENABLED and args.send_telegram:
+        try:
+            SBM.send_notification(
+                token=args.telegram_token,
+                text=f'🎬 Starting video creation...\n\n'
+                     f'Config: {args.configs}\n'
+                     f'Paths: {nb_paths_to_plot}, Stocks: {nb_stocks}',
+                chat_id=args.telegram_chat_id
+            )
+        except Exception as e:
+            print(f"⚠️  Telegram notification failed: {e}")
 
     # Run algorithm
     stock_paths, exercise_times, payoff_values, algo_name, payoff_name = \
@@ -437,6 +476,24 @@ def main():
     print(f"  Paths: {nb_paths_to_plot}")
     print(f"  Avg exercise time: {exercise_times.mean():.2f}")
     print(f"  Avg payoff: {payoff_values.mean():.2f}")
+
+    # Send completion notification with video
+    if TELEGRAM_ENABLED and args.send_telegram:
+        try:
+            SBM.send_notification(
+                token=args.telegram_token,
+                text=f'✅ Video creation complete!\n\n'
+                     f'Config: {args.configs}\n'
+                     f'Algo: {algo_name}\n'
+                     f'Payoff: {payoff_name}\n'
+                     f'Paths: {nb_paths_to_plot}\n'
+                     f'Avg exercise: {exercise_times.mean():.2f}\n'
+                     f'Avg payoff: {payoff_values.mean():.2f}',
+                files=[str(output_path)],
+                chat_id=args.telegram_chat_id
+            )
+        except Exception as e:
+            print(f"⚠️  Telegram notification failed: {e}")
 
 
 if __name__ == '__main__':
