@@ -307,25 +307,36 @@ class RealDataModel(Model):
             total_rows = len(self.prices)
             coverage = self.prices.count() / total_rows
 
-            # Sort tickers by coverage (best to worst)
-            coverage_sorted = coverage.sort_values(ascending=False)
+            # CRITICAL: For large stock counts, we need stocks with excellent coverage
+            # Otherwise we'll have no common dates across all stocks
+            # Use stricter filtering: require 90% coverage minimum
+            min_coverage_threshold = 0.90
+            high_coverage_tickers = coverage[coverage >= min_coverage_threshold]
 
-            # Determine how many stocks we need
-            # User requested nb_stocks, but we may have downloaded fewer
+            if len(high_coverage_tickers) < self.nb_stocks:
+                # Not enough high-coverage stocks, relax threshold
+                min_coverage_threshold = 0.80
+                high_coverage_tickers = coverage[coverage >= min_coverage_threshold]
+
+                if len(high_coverage_tickers) < self.nb_stocks:
+                    # Still not enough, relax further
+                    min_coverage_threshold = 0.70
+                    high_coverage_tickers = coverage[coverage >= min_coverage_threshold]
+
+            # Sort by coverage (best to worst)
+            coverage_sorted = high_coverage_tickers.sort_values(ascending=False)
+
+            # Determine how many stocks we can actually get
             target_stocks = min(self.nb_stocks, len(coverage_sorted))
 
-            # Strategy: Take the top N stocks with best coverage
-            # This ensures we get exactly N stocks (or as many as downloaded)
-            if len(coverage_sorted) >= target_stocks:
-                # Take top N stocks by coverage
-                good_tickers = coverage_sorted.head(target_stocks).index.tolist()
-            else:
-                # We have fewer stocks than requested, use all of them
-                good_tickers = coverage_sorted.index.tolist()
+            if target_stocks < self.nb_stocks:
                 warnings.warn(
-                    f"Only {len(good_tickers)} stocks available (requested {self.nb_stocks}). "
-                    f"Consider using fewer stocks or a different date range."
+                    f"Only {target_stocks} stocks have >{min_coverage_threshold:.0%} coverage "
+                    f"(requested {self.nb_stocks}). Consider a shorter date range for more stocks."
                 )
+
+            # Take the top N stocks with best coverage
+            good_tickers = coverage_sorted.head(target_stocks).index.tolist()
 
             # Make sure all good_tickers are actually in self.prices
             # (they should be since coverage was calculated from self.prices)
