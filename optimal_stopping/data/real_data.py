@@ -124,7 +124,7 @@ class RealDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self, nb_stocks: int) -> List[str]:
-        """Get default tickers from S&P 500 (top 400+ with 15+ years data).
+        """Get default tickers from S&P 500 and beyond (700+ stocks with 15+ years data).
 
         Args:
             nb_stocks: Number of stocks requested
@@ -132,10 +132,10 @@ class RealDataModel(Model):
         Returns:
             List of tickers (requests 1.5x nb_stocks to account for download failures)
         """
-        # Top 400+ S&P 500 stocks by market cap with long trading history
-        # Updated as of 2024, sorted by market cap
+        # 700+ liquid stocks with long trading history
+        # Updated as of 2024, sorted roughly by market cap and liquidity
         # Note: BRK.B removed due to yfinance timezone issues with dotted tickers
-        # Requesting more tickers than needed to account for yfinance download failures
+        # Requesting 1.5x more tickers than needed to account for yfinance download failures
         all_tickers = [
             # Mega caps (Top 10)
             'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'LLY', 'V', 'UNH',
@@ -174,26 +174,75 @@ class RealDataModel(Model):
             'RJF', 'EQR', 'K', 'FE', 'PPL', 'AVB', 'VMC', 'MLM', 'NTRS', 'CHD',
             'PEG', 'DTE', 'AEE', 'LH', 'HBAN', 'CAH', 'SBAC', 'SWKS', 'NVR', 'KEY',
 
-            # Additional buffer (251-300) - for yfinance download failures
+            # S&P 500 continued (251-300)
             'IP', 'IR', 'LYB', 'LVS', 'AES', 'BBY', 'BXP', 'CNP', 'DG', 'DLTR',
             'DRI', 'EXPE', 'FIS', 'GRMN', 'HIG', 'HST', 'JBHT', 'L', 'LEN', 'LNC',
             'LUV', 'MKC', 'NDAQ', 'NEM', 'NI', 'NWSA', 'OMC', 'PKG', 'PKI', 'POOL',
             'PFG', 'RE', 'RF', 'RSG', 'SNPS', 'STE', 'SWK', 'TECH', 'TSN', 'TYL',
             'UDR', 'ULTA', 'URI', 'VFC', 'WDC', 'WYNN', 'ZBRA', 'CDNS', 'AMAT', 'MU',
 
-            # More buffer (301-350)
+            # Tech and growth (301-350)
             'PYPL', 'PANW', 'CRWD', 'NOW', 'SHOP', 'SQ', 'ABNB', 'UBER', 'COIN', 'SNOW',
             'FTNT', 'DDOG', 'ZS', 'NET', 'OKTA', 'TWLO', 'DOCU', 'ZM', 'ROKU', 'PINS',
             'SNAP', 'LYFT', 'DASH', 'RBLX', 'U', 'PATH', 'BILL', 'S', 'MDB', 'TEAM',
             'WDAY', 'ZI', 'VEEV', 'HUBS', 'ESTC', 'SPLK', 'RNG', 'GNRC', 'PODD', 'ALGN',
-            'ILMN', 'INCY', 'TECH', 'TTWO', 'ATVI', 'NTAP', 'JNPR', 'FFIV', 'AKAM', 'CTXS',
+            'ILMN', 'INCY', 'TTWO', 'ATVI', 'NTAP', 'JNPR', 'FFIV', 'AKAM', 'CTXS', 'MPWR',
 
-            # Even more buffer (351-400)
-            'TFX', 'PKG', 'WST', 'HOLX', 'JKHY', 'CPRT', 'CDAY', 'BR', 'LII', 'CBOE',
-            'CINF', 'GL', 'AIZ', 'EXPD', 'CHRW', 'WAB', 'SIVB', 'TRMB', 'NDSN', 'PAYC',
-            'APA', 'DVN', 'FANG', 'MRO', 'HES', 'OKE', 'WMB', 'TRGP', 'LNG', 'CHTR',
-            'DPZ', 'ULTA', 'RLGY', 'BLDR', 'BBWI', 'TPR', 'PVH', 'RL', 'NCLH', 'CCL',
-            'RCL', 'MGM', 'BYD', 'ALB', 'CE', 'FMC', 'EMN', 'CF', 'MOS', 'APH',
+            # More S&P 500 (351-400)
+            'TFX', 'WST', 'HOLX', 'JKHY', 'CPRT', 'CDAY', 'BR', 'LII', 'CBOE', 'CINF',
+            'GL', 'AIZ', 'EXPD', 'CHRW', 'WAB', 'SIVB', 'TRMB', 'NDSN', 'PAYC', 'APA',
+            'DVN', 'FANG', 'MRO', 'OKE', 'WMB', 'TRGP', 'LNG', 'CHTR', 'DPZ', 'RLGY',
+            'BLDR', 'BBWI', 'TPR', 'PVH', 'RL', 'NCLH', 'CCL', 'RCL', 'MGM', 'ALB',
+            'CE', 'FMC', 'EMN', 'CF', 'MOS', 'SEE', 'FLR', 'JEF', 'ALLE', 'AOS',
+
+            # Industrial and materials (401-450)
+            'BG', 'AVY', 'PHM', 'KBH', 'TOL', 'LEN', 'DHI', 'NVR', 'MTD', 'SNA',
+            'PNR', 'HUBB', 'LDOS', 'HII', 'TXT', 'HWM', 'AXON', 'FLS', 'GNRC', 'IEX',
+            'DOV', 'ITT', 'RRX', 'CR', 'BLDR', 'SSD', 'VMI', 'MLI', 'MAS', 'OC',
+            'RPM', 'NEU', 'STLD', 'NUE', 'X', 'CLF', 'AA', 'ATI', 'MP', 'HUN',
+            'LYB', 'WLK', 'APD', 'ECL', 'NEM', 'GOLD', 'AEM', 'FCX', 'SCCO', 'TECK',
+
+            # Energy expansion (451-500)
+            'APA', 'DVN', 'FANG', 'MRO', 'CVE', 'CNQ', 'SU', 'IMO', 'OVV', 'MTDR',
+            'PR', 'SM', 'MGY', 'CHRD', 'RRC', 'AR', 'CTRA', 'NOG', 'VTLE', 'CPE',
+            'OXY', 'COP', 'CVX', 'XOM', 'EOG', 'PSX', 'VLO', 'MPC', 'HFC', 'ANDV',
+            'SLB', 'HAL', 'BKR', 'FTI', 'NOV', 'HP', 'PTEN', 'LBRT', 'NINE', 'WHD',
+            'KMI', 'WMB', 'OKE', 'EPD', 'ET', 'MPLX', 'PAA', 'ENLC', 'DKL', 'USAC',
+
+            # Financial services (501-550)
+            'MS', 'GS', 'JPM', 'BAC', 'C', 'WFC', 'USB', 'PNC', 'TFC', 'FITB',
+            'RF', 'CFG', 'KEY', 'HBAN', 'MTB', 'ZION', 'WTFC', 'FHN', 'SNV', 'ONB',
+            'SIVB', 'SBNY', 'CMA', 'CFR', 'EWBC', 'PACW', 'WAL', 'SSB', 'UMBF', 'HWC',
+            'BLK', 'SCHW', 'TROW', 'BEN', 'IVZ', 'STT', 'NTRS', 'AMG', 'SEIC', 'APAM',
+            'AXP', 'V', 'MA', 'PYPL', 'SQ', 'FISV', 'FIS', 'GPN', 'FLT', 'JKHY',
+
+            # Healthcare expansion (551-600)
+            'UNH', 'CVS', 'CI', 'HUM', 'CNC', 'MOH', 'ANTM', 'ELV', 'HCA', 'THC',
+            'UHS', 'CYH', 'LPLA', 'CHE', 'ENSG', 'RDNT', 'DVA', 'AMED', 'LHC', 'ACHC',
+            'JNJ', 'PFE', 'ABBV', 'MRK', 'LLY', 'AMGN', 'GILD', 'BMY', 'REGN', 'VRTX',
+            'BIIB', 'ALNY', 'INCY', 'JAZZ', 'SGEN', 'EXEL', 'BPMC', 'NBIX', 'UTHR', 'RARE',
+            'ABT', 'TMO', 'DHR', 'SYK', 'BSX', 'EW', 'MDT', 'BDX', 'ZBH', 'BAX',
+
+            # Consumer and retail (601-650)
+            'AMZN', 'WMT', 'COST', 'TGT', 'DG', 'DLTR', 'BIG', 'BBY', 'FIVE', 'OLLI',
+            'TSCO', 'AZO', 'ORLY', 'AAP', 'GPC', 'KR', 'SFM', 'GO', 'TJX', 'ROST',
+            'BURL', 'GPS', 'ANF', 'AEO', 'URBN', 'DKS', 'FL', 'WSM', 'RH', 'HD',
+            'LOW', 'BLDR', 'BECN', 'SHW', 'NUE', 'VMC', 'MLM', 'USCR', 'MAS', 'CARR',
+            'KO', 'PEP', 'MNST', 'CELH', 'KDP', 'STZ', 'TAP', 'BF', 'SAM', 'FIZZ',
+
+            # Tech and telecom expansion (651-700)
+            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'META', 'NVDA', 'AMD', 'INTC', 'QCOM', 'AVGO',
+            'TXN', 'ADI', 'MCHP', 'SWKS', 'NXPI', 'ON', 'MPWR', 'MU', 'LRCX', 'KLAC',
+            'AMAT', 'ASML', 'TSM', 'CDNS', 'SNPS', 'ANSS', 'ADSK', 'CTSH', 'ACN', 'IBM',
+            'ORCL', 'CRM', 'NOW', 'WDAY', 'PANW', 'CRWD', 'ZS', 'OKTA', 'FTNT', 'NET',
+            'DDOG', 'S', 'MDB', 'TEAM', 'HUBS', 'VEEV', 'TWLO', 'ZM', 'DOCU', 'BILL',
+
+            # Final buffer (701-750) - maximum diversification
+            'VZ', 'T', 'TMUS', 'CHTR', 'CMCSA', 'DIS', 'NFLX', 'PARA', 'WBD', 'LGF',
+            'FOXA', 'FOX', 'DISH', 'SIRI', 'LUMN', 'FYBR', 'AMC', 'CNK', 'IMAX', 'LYV',
+            'BA', 'RTX', 'LMT', 'NOC', 'GD', 'HII', 'TDG', 'HEI', 'TXT', 'LDOS',
+            'SAIC', 'CACI', 'KTOS', 'AVAV', 'CW', 'WWD', 'AJRD', 'ALEX', 'AIR', 'SPR',
+            'UNP', 'NSC', 'CSX', 'CP', 'CNI', 'KSU', 'UPS', 'FDX', 'XPO', 'JBHT',
         ]
 
         # Return up to 1.5x requested stocks to account for failures
