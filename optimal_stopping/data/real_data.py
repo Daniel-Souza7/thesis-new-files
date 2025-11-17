@@ -73,10 +73,22 @@ class RealDataModel(Model):
         """
         # Extract drift/volatility from kwargs if not explicitly provided
         # This allows configs to work: drift=0.05 in config → drift_override=0.05
+        # Configs pass tuples/lists, so extract first element if needed
         if drift_override is None and 'drift' in kwargs:
-            drift_override = kwargs['drift']
+            drift_val = kwargs['drift']
+            # Handle tuple/list from configs: (0.02,) → 0.02
+            if isinstance(drift_val, (tuple, list)) and len(drift_val) > 0:
+                drift_override = float(drift_val[0])
+            elif drift_val is not None:
+                drift_override = float(drift_val)
+
         if volatility_override is None and 'volatility' in kwargs:
-            volatility_override = kwargs['volatility']
+            vol_val = kwargs['volatility']
+            # Handle tuple/list from configs: (0.2,) → 0.2
+            if isinstance(vol_val, (tuple, list)) and len(vol_val) > 0:
+                volatility_override = float(vol_val[0])
+            elif vol_val is not None:
+                volatility_override = float(vol_val)
 
         # Initialize base class
         super().__init__(**kwargs)
@@ -119,8 +131,14 @@ class RealDataModel(Model):
 
         print(f"✅ Loaded {len(self.tickers)} stocks: {', '.join(self.tickers)}")
         print(f"   {len(self.returns)} days of returns ({self.start_date} to {self.end_date})")
-        print(f"   Average return: {self.empirical_drift_annual:.2%}")
-        print(f"   Average volatility: {self.empirical_vol_annual:.2%}")
+        print(f"   Empirical return: {self.empirical_drift_annual:.2%}, volatility: {self.empirical_vol_annual:.2%}")
+
+        # Show if overrides are active
+        if self.drift_override is not None:
+            print(f"   ⚠️  Using OVERRIDE drift: {self.drift_override:.2%} (ignoring empirical)")
+        if self.volatility_override is not None:
+            print(f"   ⚠️  Using OVERRIDE volatility: {self.volatility_override:.2%} (ignoring empirical)")
+
         print(f"   Block length: {self.avg_block_length} days")
 
     def _get_default_tickers(self, nb_stocks: int) -> List[str]:
