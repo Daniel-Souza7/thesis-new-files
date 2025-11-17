@@ -28,27 +28,27 @@ class RealDataModel(Model):
     - Uses empirical drift/volatility by default (configurable)
     - Supports up to 250 S&P 500 stocks
 
-    Drift/Volatility Control:
-    - Set drift=None, volatility=None in config → uses empirical values
-    - Set drift=0.05, volatility=0.2 in config → overrides empirical
-    - Don't set drift/volatility in config → uses _DefaultConfig values (0.02, 0.2)
+    Drift/Volatility Control (in configs):
+    - Set drift=(None,), volatilities=(None,) → uses empirical values
+    - Set drift=(0.05,), volatilities=(0.2,) → overrides empirical
+    - Don't set drift/volatilities → uses _DefaultConfig values (0.02, 0.2)
 
-    Example:
-        >>> # Use empirical drift/volatility
-        >>> model = RealDataModel(
-        ...     tickers=['AAPL', 'MSFT', 'GOOGL'],
-        ...     drift=None,  # Use empirical
-        ...     volatility=None,  # Use empirical
-        ...     nb_stocks=3,
-        ... )
-        >>>
-        >>> # Override to use specific drift/volatility
-        >>> model = RealDataModel(
-        ...     tickers=['AAPL', 'MSFT', 'GOOGL'],
-        ...     drift=0.05,  # Force 5% drift
-        ...     volatility=0.25,  # Force 25% volatility
-        ...     nb_stocks=3,
-        ... )
+    Example configs:
+        # Use empirical drift/volatility
+        test_config = _DefaultConfig(
+            stock_models=['RealData'],
+            drift=(None,),  # Use empirical
+            volatilities=(None,),  # Use empirical
+            ...
+        )
+
+        # Override to use specific drift/volatility
+        test_config = _DefaultConfig(
+            stock_models=['RealData'],
+            drift=(0.05,),  # Force 5% drift
+            volatilities=(0.2,),  # Force 20% volatility
+            ...
+        )
     """
 
     def __init__(
@@ -77,14 +77,16 @@ class RealDataModel(Model):
             avg_block_length: Average block length (None = auto-calculate from data)
             cache_data: Cache downloaded data to avoid re-downloading
             **kwargs: Additional arguments passed to Model base class
-                     Supports 'drift' and 'volatility' from configs:
-                     - drift=None → use empirical drift
-                     - drift=0.05 → override to 5% drift
+                     Supports 'drift' and 'volatilities' from configs:
+                     - drift=(None,) → use empirical drift
+                     - drift=(0.05,) → override to 5% drift
+                     - volatilities=(None,) → use empirical volatility
+                     - volatilities=(0.2,) → override to 20% volatility
         """
         # Extract drift/volatility from kwargs if not explicitly provided
         # This allows configs to control behavior:
-        # - drift=None in config → use empirical (no override)
-        # - drift=0.05 in config → use 5% drift (override empirical)
+        # - drift=(None,) in config → use empirical (no override)
+        # - drift=(0.05,) in config → use 5% drift (override empirical)
         if drift_override is None and 'drift' in kwargs:
             drift_override = kwargs['drift']
         if volatility_override is None:
