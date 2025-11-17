@@ -110,6 +110,13 @@ class RealDataModel(Model):
                 else:
                     volatility_override = vol_val
 
+        # Base Model class requires drift and volatility for calculations
+        # If None, provide sensible defaults (will use empirical values later)
+        if 'drift' not in kwargs or kwargs.get('drift') is None:
+            kwargs['drift'] = 0.05  # Default 5% annual drift for base class
+        if 'volatility' not in kwargs or kwargs.get('volatility') is None:
+            kwargs['volatility'] = 0.2  # Default 20% annual volatility for base class
+
         # Initialize base class
         super().__init__(**kwargs)
 
