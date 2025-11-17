@@ -178,9 +178,11 @@ def _write_table_with_barriers(
 
     # Replace NaNs
     df.reset_index(inplace=True)
-    df[read_data.INDEX] = df[read_data.INDEX].replace(np.nan, "no_val")
+    # Only use INDEX columns that exist in the dataframe
+    available_index_cols = [col for col in read_data.INDEX if col in df.columns]
+    df[available_index_cols] = df[available_index_cols].replace(np.nan, "no_val")
     rmfi = FLAGS.rm_from_index
-    index = read_data.INDEX.copy()
+    index = available_index_cols.copy()
     if rmfi is not None:
         df.drop(columns=rmfi, inplace=True)
         for i in rmfi:
@@ -305,9 +307,11 @@ def _write_table_without_barriers(
 
     # Replace NaNs
     df.reset_index(inplace=True)
-    df[read_data.INDEX] = df[read_data.INDEX].replace(np.nan, "no_val")
+    # Only use INDEX columns that exist in the dataframe
+    available_index_cols = [col for col in read_data.INDEX if col in df.columns]
+    df[available_index_cols] = df[available_index_cols].replace(np.nan, "no_val")
     rmfi = FLAGS.rm_from_index
-    index = read_data.INDEX.copy()
+    index = available_index_cols.copy()
     if rmfi is not None:
         df.drop(columns=rmfi, inplace=True)
         for i in rmfi:

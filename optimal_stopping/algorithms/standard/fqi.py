@@ -140,6 +140,9 @@ class FQIFast:
         # Find exercise dates
         ex_dates = np.argmax(exercise, axis=1)
 
+        # Track exercise dates for statistics
+        self._exercise_dates = ex_dates.copy()
+
         # Compute prices
         prices = np.take_along_axis(
             payoffs, np.expand_dims(ex_dates, axis=1), axis=1
@@ -193,8 +196,13 @@ class FQIFast:
         self.weights = np.linalg.solve(matrixU, vectorV)
 
     def get_exercise_time(self):
-        """Return average exercise time (not implemented for FQI)."""
-        return None
+        """Return average exercise time normalized to [0, 1]."""
+        if not hasattr(self, '_exercise_dates'):
+            return None
+
+        nb_dates = self.model.nb_dates
+        normalized_times = self._exercise_dates / nb_dates
+        return float(np.mean(normalized_times))
 
 
 class FQIFastDeg1(FQIFast):

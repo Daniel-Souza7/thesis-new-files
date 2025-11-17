@@ -22,11 +22,17 @@ NB_JOBS_PATH_GEN = 1
 
 class Model:
     def __init__(self, drift, dividend, volatility, spot, nb_stocks,
-                 nb_paths, nb_dates, maturity, name, **keywords):
+                 nb_paths, nb_dates, maturity, name, risk_free_rate=None, **keywords):
         self.name = name
-        self.drift = drift - dividend
-        self.rate = drift  # Store original drift as rate for discounting
+        self.drift = drift - dividend  # Drift for path generation (real-world or risk-neutral)
         self.dividend = dividend
+
+        # Risk-free rate for discounting: default to drift - 0.04 if not provided
+        if risk_free_rate is None:
+            self.rate = drift - 0.04
+        else:
+            self.rate = risk_free_rate
+
         self.volatility = volatility
         self.spot = spot
         self.nb_stocks = nb_stocks
@@ -34,7 +40,7 @@ class Model:
         self.nb_dates = nb_dates
         self.maturity = maturity
         self.dt = self.maturity / self.nb_dates
-        self.df = math.exp(-self.rate * self.dt)  # Use rate, not drift
+        self.df = math.exp(-self.rate * self.dt)  # Discount factor using risk-free rate
         self.return_var = False
 
     def disc_factor(self, date_begin, date_end):
@@ -73,7 +79,7 @@ class BlackScholes(Model):
         super(BlackScholes, self).__init__(
             drift=drift, dividend=dividend, volatility=volatility,
             nb_stocks=nb_stocks, nb_paths=nb_paths, nb_dates=nb_dates,
-            spot=spot, maturity=maturity, name="BlackScholes")
+            spot=spot, maturity=maturity, name="BlackScholes", **keywords)
 
     def drift_fct(self, x, t):
         del t
@@ -164,7 +170,7 @@ class FractionalBlackScholes(Model):
         super(FractionalBlackScholes, self).__init__(
             drift=drift, dividend=dividend, volatility=volatility,
             nb_stocks=nb_stocks, nb_paths=nb_paths, nb_dates=nb_dates,
-            spot=spot, maturity=maturity, name="FractionalBlackScholes"
+            spot=spot, maturity=maturity, name="FractionalBlackScholes", **keywords
         )
         self.hurst = hurst
         self.fBM = FBM(n=nb_dates, hurst=self.hurst, length=maturity, method='cholesky')
@@ -209,7 +215,7 @@ class FractionalBrownianMotion(Model):
         super(FractionalBrownianMotion, self).__init__(
             drift=drift, dividend=dividend, volatility=volatility,
             nb_stocks=nb_stocks, nb_paths=nb_paths, nb_dates=nb_dates,
-            spot=spot, maturity=maturity, name="FractionalBrownianMotion"
+            spot=spot, maturity=maturity, name="FractionalBrownianMotion", **keywords
         )
         self.hurst = hurst
         if self.hurst == 1:
@@ -270,7 +276,7 @@ class Heston(Model):
         super(Heston, self).__init__(
             drift=drift, volatility=volatility, nb_stocks=nb_stocks,
             nb_paths=nb_paths, nb_dates=nb_dates,
-            spot=spot, maturity=maturity, dividend=dividend, name="Heston"
+            spot=spot, maturity=maturity, dividend=dividend, name="Heston", **kwargs
         )
         self.mean = mean
         self.speed = speed
@@ -410,7 +416,7 @@ class RoughHeston(Model):
             drift=drift, volatility=volatility, nb_stocks=nb_stocks,
             nb_paths=nb_paths, nb_dates=nb_dates,
             spot=spot, maturity=maturity, dividend=dividend,
-            name="RoughHeston")
+            name="RoughHeston", **kwargs)
         self.mean = mean
         self.speed = speed
         self.nb_steps_mult = nb_steps_mult

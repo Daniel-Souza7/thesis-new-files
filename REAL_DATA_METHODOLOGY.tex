@@ -1,0 +1,591 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Page geometry
+\geometry{margin=1in}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    language=Python,
+    showstringspaces=false,
+    commentstyle=\color{gray},
+    keywordstyle=\color{blue},
+    stringstyle=\color{red}
+}
+
+\title{Real Data Model: Methodology Specification\\
+\large Stationary Block Bootstrap for Option Pricing Simulations}
+
+\author{Implementation Documentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes the methodological choices made in implementing the \texttt{RealDataModel} class for simulating stock price paths using real market data. The model employs \textbf{stationary block bootstrap} \cite{politis1994stationary} to generate realistic price paths that preserve empirical properties of financial time series, including autocorrelation, volatility clustering, and cross-sectional correlation. We justify each design decision by comparing it to alternative approaches and explaining the theoretical and practical rationale for our choices.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%============================================================================
+\section{Bootstrap Method: Stationary Block Bootstrap}
+%============================================================================
+
+\subsection{Choice: Stationary Block Bootstrap}
+
+We implement the \textbf{stationary block bootstrap} of \cite{politis1994stationary}, where:
+\begin{itemize}[leftmargin=*]
+    \item Block lengths follow a \textbf{geometric distribution} with mean $p$
+    \item Starting points are randomly selected from the entire historical sample
+    \item Blocks wrap around circularly to utilize all available data
+\end{itemize}
+
+\subsection{Alternative: Moving Block Bootstrap}
+
+The moving block bootstrap \cite{kunsch1989jackknife} uses:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Fixed block lengths} $\ell$
+    \item Non-overlapping or overlapping sequential blocks
+    \item Deterministic block structure
+\end{itemize}
+
+\subsection{Rationale}
+
+The stationary block bootstrap was chosen for the following reasons:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Stationarity preservation}: The bootstrap sample is strictly stationary if the original data is stationary \cite{politis1994stationary}, Theorem 1. This is critical for financial time series where stationarity is often assumed.
+
+    \item \textbf{No boundary effects}: Random block lengths eliminate artificial discontinuities at block boundaries that occur with fixed-length blocks. These discontinuities can introduce spurious autocorrelation patterns.
+
+    \item \textbf{Asymptotic validity}: The method provides consistent variance estimates for time series statistics \cite{politis1994stationary}, which is essential for pricing algorithms that rely on accurate uncertainty quantification.
+
+    \item \textbf{Mixing properties}: The geometric distribution of block lengths better captures the mixing properties of financial returns, where dependence decays gradually rather than abruptly.
+\end{enumerate}
+
+%============================================================================
+\section{Block Length Selection: Automatic Data-Driven Estimation}
+%============================================================================
+
+\subsection{Choice: Automatic Estimation via Autocorrelation Decay}
+
+The optimal block length $\ell^*$ is estimated using the method of \cite{politis2004automatic}:
+
+\begin{equation}
+\ell^* = \min\left\{k : |\rho(k)| < \frac{2}{\sqrt{n}}\right\}
+\end{equation}
+
+where $\rho(k)$ is the sample autocorrelation at lag $k$ and $n$ is the sample size.
+
+\textbf{Implementation} (lines 506--544 in \texttt{real\_data.py}):
+\begin{enumerate}[leftmargin=*]
+    \item Calculate autocorrelation function (ACF) for up to 100 lags
+    \item Find where ACF falls below significance threshold $2/\sqrt{n}$
+    \item Use the last significant lag as optimal block length
+    \item Average across multiple stocks and bound between 5--50 days
+\end{enumerate}
+
+\subsection{Alternative: Fixed Block Length}
+
+Using a predetermined block length such as $\ell = 20$ days regardless of data characteristics.
+
+\subsection{Rationale}
+
+Automatic selection was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Data-adaptive}: The method tailors block length to the actual autocorrelation structure in the historical sample, which varies across stocks and time periods.
+
+    \item \textbf{Theoretically grounded}: Follows the optimal block length selection criterion of \cite{politis2004automatic}, which minimizes mean squared error of the bootstrap variance estimator.
+
+    \item \textbf{Robust}: The bounds $\ell^* \in [5, 50]$ prevent pathological cases (too short destroys autocorrelation; too long introduces excessive persistence) while maintaining flexibility.
+
+    \item \textbf{Preserves temporal dependence}: Ensures that short-term autocorrelation (e.g., momentum effects, bid-ask bounce) is maintained in bootstrap samples.
+\end{enumerate}
+
+A fixed block length ignores heterogeneity across stocks and can be either:
+\begin{itemize}
+    \item Too short: Destroys autocorrelation structure
+    \item Too long: Introduces artificial long-memory effects
+\end{itemize}
+
+%============================================================================
+\section{Return Calculation: Logarithmic Returns}
+%============================================================================
+
+\subsection{Choice: Log Returns}
+
+We compute log returns as:
+\begin{equation}
+r_t = \log\left(\frac{S_t}{S_{t-1}}\right) = \log(S_t) - \log(S_{t-1})
+\end{equation}
+
+\subsection{Alternative: Simple Returns}
+
+Simple (arithmetic) returns are defined as:
+\begin{equation}
+r_t^{\text{simple}} = \frac{S_t - S_{t-1}}{S_{t-1}}
+\end{equation}
+
+\subsection{Rationale}
+
+Log returns were chosen for the following reasons:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Time additivity}: Log returns sum across time periods:
+    \begin{equation}
+    \log\left(\frac{S_T}{S_0}\right) = \sum_{t=1}^{T} r_t
+    \end{equation}
+    whereas simple returns do not: $r_{\text{total}}^{\text{simple}} \neq \sum_{t=1}^{T} r_t^{\text{simple}}$.
+
+    \item \textbf{Symmetry}: Log returns treat gains and losses symmetrically. A $+10\%$ log return followed by a $-10\%$ log return returns close to the original price, whereas simple returns do not ($1.10 \times 0.90 = 0.99$).
+
+    \item \textbf{Approximate normality}: For daily data, log returns are approximately normally distributed \cite{campbell1997econometrics}, which facilitates statistical analysis and inference.
+
+    \item \textbf{Correct path reconstruction}: Prices are reconstructed via:
+    \begin{equation}
+    S_{t+1} = S_t \cdot \exp(r_{t+1})
+    \end{equation}
+    which ensures $S_t > 0$ for all $t$ and correctly compounds returns.
+
+    \item \textbf{Consistency with continuous-time models}: Geometric Brownian motion (GBM) has:
+    \begin{equation}
+    d\log(S_t) = \left(\mu - \frac{\sigma^2}{2}\right)dt + \sigma dW_t
+    \end{equation}
+    making log returns the natural discrete-time analog.
+\end{enumerate}
+
+Simple returns have asymmetric bounds ($r_t^{\text{simple}} \in (-1, \infty)$) and can lead to negative prices if naively added, violating limited liability.
+
+%============================================================================
+\section{Drift and Volatility: Hybrid Empirical with Optional Override}
+%============================================================================
+
+\subsection{Choice: Hybrid Approach}
+
+\textbf{Default behavior}: Use empirical statistics from historical data:
+\begin{align}
+\hat{\mu}_{\text{annual}} &= 252 \cdot \mathbb{E}[r_t] \\
+\hat{\sigma}_{\text{annual}} &= \sqrt{252} \cdot \text{SD}[r_t]
+\end{align}
+
+\textbf{Optional override}: User can specify $(\mu, \sigma)$ parameters. Sampled returns are then rescaled:
+\begin{equation}
+\tilde{r}_t = \frac{r_t - \hat{\mu}}{\hat{\sigma}} \cdot \sigma_{\text{target}} + \mu_{\text{target}}
+\end{equation}
+
+\subsection{Alternatives}
+
+\begin{enumerate}
+    \item \textbf{Always use empirical}: Forces all simulations to use historical drift/volatility
+    \item \textbf{Always use override}: Loses empirical autocorrelation and higher moments
+\end{enumerate}
+
+\subsection{Rationale}
+
+The hybrid approach was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Flexibility}: Researchers can use empirical values for realism OR specify parameters for controlled experiments and sensitivity analysis.
+
+    \item \textbf{Preserves autocorrelation}: The rescaling in Equation (7) is applied \textit{after} bootstrap sampling, so temporal dependence structure is maintained. The ACF of $\tilde{r}_t$ matches that of $r_t$.
+
+    \item \textbf{Preserves cross-sectional correlation}: The transformation is applied uniformly across stocks at each time $t$, maintaining the correlation matrix structure:
+    \begin{equation}
+    \text{Corr}(\tilde{r}_t^{(i)}, \tilde{r}_t^{(j)}) = \text{Corr}(r_t^{(i)}, r_t^{(j)})
+    \end{equation}
+
+    \item \textbf{Benchmark comparisons}: Enables fair comparison with Black-Scholes and other parametric models by matching first and second moments.
+
+    \item \textbf{Transparency}: Override warnings are printed to console, ensuring users are aware of which regime is active.
+\end{enumerate}
+
+Using only empirical values prevents comparison with theoretical models. Using only overrides discards valuable empirical information about autocorrelation, skewness, and kurtosis.
+
+%============================================================================
+\section{Crisis Period Filtering}
+%============================================================================
+
+\subsection{Choice: Optional Crisis Period Filtering}
+
+Three options are available:
+\begin{enumerate}
+    \item \textbf{Default}: Use all historical data (2010--2024)
+    \item \textbf{\texttt{exclude\_crisis=True}}: Remove financial crisis periods:
+    \begin{itemize}
+        \item 2008 Financial Crisis: October 2007 -- June 2009
+        \item COVID-19 Crash: February 2020 -- May 2020
+    \end{itemize}
+    \item \textbf{\texttt{only\_crisis=True}}: Use ONLY crisis periods
+\end{enumerate}
+
+\subsection{Alternatives}
+
+\begin{enumerate}
+    \item \textbf{Always include all data}: Forces crisis periods into all simulations
+    \item \textbf{Always exclude crises}: Ignores tail risk and stress scenarios
+\end{enumerate}
+
+\subsection{Rationale}
+
+Optional filtering was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Use case dependent}: Different applications require different scenarios:
+    \begin{itemize}
+        \item \textit{Stress testing}: Include crises to capture tail risk
+        \item \textit{Typical pricing}: Exclude crises to represent normal conditions
+        \item \textit{Crisis analysis}: Use only crises to study extreme events
+    \end{itemize}
+
+    \item \textbf{Statistical heterogeneity}: Crisis periods exhibit fundamentally different properties:
+    \begin{itemize}
+        \item Higher volatility clustering
+        \item Negative skewness
+        \item Fat tails (excess kurtosis)
+        \item Elevated cross-sectional correlation (contagion effects)
+    \end{itemize}
+
+    \item \textbf{Transparency}: Explicit date ranges are documented in code (lines 462--475), allowing reproducibility and validation.
+
+    \item \textbf{Research flexibility}: Enables comparative studies examining how crisis vs. normal periods affect option prices.
+
+    \item \textbf{Conservative defaults}: By default, ALL data is used with no hidden exclusions, ensuring no survivorship bias.
+\end{enumerate}
+
+Always including crises may not represent ``normal'' market conditions. Always excluding crises underestimates tail risk and violates the assumption that financial markets occasionally experience turbulence.
+
+%============================================================================
+\section{Data Quality: Strict Coverage-Based Filtering}
+%============================================================================
+
+\subsection{Choice: Strict Coverage Requirements}
+
+\textbf{Implementation} (lines 355--415):
+\begin{enumerate}[leftmargin=*]
+    \item Calculate data coverage: $\text{coverage}_i = \frac{\text{\# non-missing days for stock } i}{\text{total days}}$
+    \item Filter tickers with $\text{coverage}_i \geq 90\%$ (relaxes to 80\%, then 70\% if needed)
+    \item Sort by coverage and select top $N$ stocks
+    \item Drop all rows with ANY missing values across selected stocks
+\end{enumerate}
+
+\subsection{Alternative: Interpolation or Forward-Filling}
+
+Methods such as:
+\begin{itemize}
+    \item Forward-fill: $S_t = S_{t-k}$ where $t-k$ is last observed price
+    \item Linear interpolation: $S_t = \lambda S_{t-k} + (1-\lambda) S_{t+j}$
+\end{itemize}
+
+\subsection{Rationale}
+
+Strict filtering was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Data integrity}: Only actual observed prices are used. No artificial data points are introduced that could distort statistical properties.
+
+    \item \textbf{Consistent time windows}: All stocks have the same date range, enabling proper correlation estimation. The correlation matrix is computed on synchronized observations:
+    \begin{equation}
+    \hat{\rho}_{ij} = \frac{\sum_{t=1}^{T} (r_t^{(i)} - \bar{r}^{(i)})(r_t^{(j)} - \bar{r}^{(j)})}{\sqrt{\sum_{t=1}^{T}(r_t^{(i)} - \bar{r}^{(i)})^2} \sqrt{\sum_{t=1}^{T}(r_t^{(j)} - \bar{r}^{(j)})^2}}
+    \end{equation}
+
+    \item \textbf{No artificial autocorrelation}: Forward-filling introduces spurious autocorrelation at lag 1, since $r_t = 0$ whenever $S_t = S_{t-1}$ (filled value).
+
+    \item \textbf{Scalability}: For large baskets (e.g., 100 stocks), overlapping date ranges are essential. Even 5\% missing data per stock compounds to near-zero overlap.
+
+    \item \textbf{Transparent failures}: The code explicitly warns users about removed tickers rather than silently filling gaps, preventing hidden data quality issues.
+\end{enumerate}
+
+Interpolation methods create fake prices that never traded, distorting:
+\begin{itemize}
+    \item Volatility estimates (smoothing reduces variance)
+    \item Autocorrelation structure (artificially inflated)
+    \item Correlation matrix (filled values create spurious correlations)
+\end{itemize}
+
+%============================================================================
+\section{Correlation Preservation: Joint Sampling Across Stocks}
+%============================================================================
+
+\subsection{Choice: Joint Bootstrap Sampling}
+
+All stocks are sampled using the \textit{same} bootstrap indices at each time step:
+
+\begin{lstlisting}[language=Python]
+# Generate bootstrap indices for this path
+indices = self._stationary_bootstrap_indices(self.nb_dates)
+
+# Sample returns jointly across all stocks
+sampled_returns = self.returns_array[indices, :]  # Shape: (nb_dates, nb_stocks)
+\end{lstlisting}
+
+This ensures that if day $t$ is sampled, returns for \textit{all} stocks on day $t$ are used.
+
+\subsection{Alternative: Independent Sampling}
+
+Sample each stock with independent bootstrap indices:
+
+\begin{lstlisting}[language=Python]
+for stock in range(nb_stocks):
+    indices_stock = bootstrap_indices()  # Different for each stock
+    sampled_returns[:, stock] = returns[:, stock][indices_stock]
+\end{lstlisting}
+
+\subsection{Rationale}
+
+Joint sampling was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Realistic correlation structure}: Financial stocks are correlated, especially during market-wide events (systematic risk). Independent sampling would produce $\text{Corr}(S_t^{(i)}, S_t^{(j)}) \approx 0$ for all $i \neq j$, which is unrealistic.
+
+    \item \textbf{Multi-asset option pricing}: Basket options, dispersion options, best-of options, and other multi-asset derivatives are highly sensitive to correlation. Independent paths would severely misprice these products:
+    \begin{equation}
+    \text{BasketCall} = \mathbb{E}\left[\max\left(\sum_{i=1}^{d} S_T^{(i)} - K, 0\right)\right]
+    \end{equation}
+    requires correlated $S_T^{(i)}$ values.
+
+    \item \textbf{Empirical preservation}: The bootstrap sample's correlation matrix approximates the historical correlation matrix:
+    \begin{equation}
+    \mathbb{E}[\hat{\mathbf{C}}_{\text{bootstrap}}] \approx \mathbf{C}_{\text{empirical}}
+    \end{equation}
+
+    \item \textbf{Block structure consistency}: Using the same block indices across stocks maintains both temporal dependence (within each stock) and cross-sectional dependence (across stocks).
+\end{enumerate}
+
+Independent sampling destroys correlation and produces unrealistic diversification benefits, leading to:
+\begin{itemize}
+    \item Underpricing of basket calls (correlation increases basket volatility)
+    \item Overpricing of dispersion trades (assumes zero correlation)
+    \item Incorrect hedge ratios for multi-asset portfolios
+\end{itemize}
+
+%============================================================================
+\section{Path Construction: Multiplicative Compounding}
+%============================================================================
+
+\subsection{Choice: Exponential of Log Returns}
+
+Prices are reconstructed via:
+\begin{equation}
+S_{t+1} = S_t \cdot \exp(r_{t+1})
+\end{equation}
+
+where $r_{t+1} = \log(S_{t+1}/S_t)$ is the log return.
+
+\subsection{Alternative: Additive Returns}
+
+Using simple returns additively:
+\begin{equation}
+S_{t+1} = S_t + r_{t+1}^{\text{simple}} \cdot S_t = S_t(1 + r_{t+1}^{\text{simple}})
+\end{equation}
+
+However, if log returns are used, one could mistakenly add them:
+\begin{equation}
+S_{t+1} = S_t + r_{t+1} \quad \text{(INCORRECT)}
+\end{equation}
+
+\subsection{Rationale}
+
+Multiplicative reconstruction was chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Consistency with log returns}: Since we compute $r_t = \log(S_t/S_{t-1})$, exponentiating correctly recovers price ratios:
+    \begin{equation}
+    \exp(r_t) = \frac{S_t}{S_{t-1}} \implies S_t = S_{t-1} \cdot \exp(r_t)
+    \end{equation}
+
+    \item \textbf{Positive prices guaranteed}: Since $\exp(x) > 0$ for all $x \in \mathbb{R}$, we have $S_t > 0$ for all $t$, respecting limited liability.
+
+    \item \textbf{Matches continuous-time models}: Geometric Brownian motion (GBM) under the risk-neutral measure has:
+    \begin{equation}
+    S_T = S_0 \exp\left[\left(r - \frac{\sigma^2}{2}\right)T + \sigma W_T\right]
+    \end{equation}
+    The discrete analog is Equation (11).
+
+    \item \textbf{Correct compounding}: Multi-period returns compound multiplicatively, not additively:
+    \begin{equation}
+    \frac{S_T}{S_0} = \prod_{t=1}^{T} \frac{S_t}{S_{t-1}} = \prod_{t=1}^{T} \exp(r_t) = \exp\left(\sum_{t=1}^{T} r_t\right)
+    \end{equation}
+\end{enumerate}
+
+Additive reconstruction (Equation 13) violates:
+\begin{itemize}
+    \item Limited liability: Can produce $S_t < 0$ if $r_t < -S_{t-1}$
+    \item Inconsistency with log returns: Mixes log returns (input) with linear prices (output)
+    \item Incorrect volatility scaling: Does not match GBM dynamics
+\end{itemize}
+
+%============================================================================
+\section{Data Source: Yahoo Finance with Adjusted Prices}
+%============================================================================
+
+\subsection{Choice: Adjusted Close Prices}
+
+We download data using:
+\begin{lstlisting}[language=Python]
+data = yf.download(
+    self.tickers,
+    start=self.start_date,
+    end=self.end_date,
+    auto_adjust=True  # Adjust for splits and dividends
+)
+\end{lstlisting}
+
+The \texttt{auto\_adjust=True} flag ensures all historical prices are retroactively adjusted for:
+\begin{itemize}
+    \item Stock splits
+    \item Reverse splits
+    \item Dividend payments
+    \item Special distributions
+\end{itemize}
+
+\subsection{Alternative: Unadjusted Close Prices}
+
+Using raw closing prices without adjustments (\texttt{auto\_adjust=False}).
+
+\subsection{Rationale}
+
+Adjusted prices were chosen because:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Statistical validity}: Returns reflect actual investor returns (total return), not corporate actions. A 2-for-1 stock split does not change investor wealth but would create a spurious $-50\%$ return in unadjusted data.
+
+    \item \textbf{No spurious volatility}: Stock splits create artificial volatility spikes on split dates. For example:
+    \begin{itemize}
+        \item Day 1: $S = 100$
+        \item Day 2 (2:1 split): $S = 50$ (unadjusted) $\implies r = \log(50/100) = -69\%$ (spurious!)
+        \item Day 2 (adjusted): $S = 100$ $\implies r \approx 0$ (correct)
+    \end{itemize}
+
+    \item \textbf{Dividend consistency}: Adjusted prices treat dividends as reinvested, matching the assumption that investors reinvest cash flows. This is consistent with the total return index used in portfolio theory.
+
+    \item \textbf{Cross-stock comparability}: All stocks are on equal footing regardless of their split history. A stock that split 10 times is comparable to one that never split.
+
+    \item \textbf{Standard practice}: Academic research and quantitative finance universally use adjusted prices for return calculations \cite{campbell1997econometrics}.
+\end{enumerate}
+
+Unadjusted prices introduce:
+\begin{itemize}
+    \item Fake jumps on split dates (not due to information)
+    \item Underestimation of true returns (ignores dividends)
+    \item Incomparable statistics across stocks with different split histories
+\end{itemize}
+
+%============================================================================
+\section{Summary and Comparison Table}
+%============================================================================
+
+Table~\ref{tab:summary} summarizes the key methodological choices and their justifications.
+
+\begin{table}[htbp]
+\centering
+\caption{Summary of Methodological Choices}
+\label{tab:summary}
+\small
+\begin{tabular}{@{}lllp{5cm}@{}}
+\toprule
+\textbf{Aspect} & \textbf{Our Choice} & \textbf{Alternative} & \textbf{Primary Rationale} \\
+\midrule
+Bootstrap method & Stationary block & Moving block & Preserves stationarity, no boundary effects \\
+\addlinespace
+Block length & Data-driven (ACF) & Fixed & Adapts to actual autocorrelation structure \\
+\addlinespace
+Return type & Log returns & Simple returns & Time-additive, symmetric, approximately normal \\
+\addlinespace
+Drift/volatility & Empirical (optional override) & Always fixed or always empirical & Flexibility for research while preserving dependence \\
+\addlinespace
+Crisis filtering & Optional & Always include or exclude & Use-case dependent (stress test vs.\ typical) \\
+\addlinespace
+Missing data & Strict filtering & Interpolation/forward-fill & Data integrity, no fake values \\
+\addlinespace
+Correlation & Joint sampling & Independent & Preserves cross-sectional dependence \\
+\addlinespace
+Path reconstruction & Multiplicative (exp) & Additive & Ensures positive prices, correct compounding \\
+\addlinespace
+Price data & Adjusted close & Unadjusted & Removes corporate action artifacts \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%============================================================================
+\section{Implementation Details}
+%============================================================================
+
+\textbf{File location}: \texttt{optimal\_stopping/data/real\_data.py}
+
+\textbf{Key methods}:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{\_download\_data()}: Lines 306--448
+    \item \texttt{\_calculate\_returns()}: Lines 450--456
+    \item \texttt{\_apply\_crisis\_filters()}: Lines 458--476
+    \item \texttt{\_calculate\_statistics()}: Lines 478--504
+    \item \texttt{\_estimate\_block\_length()}: Lines 506--544
+    \item \texttt{\_stationary\_bootstrap\_indices()}: Lines 546--578
+    \item \texttt{generate\_paths()}: Lines 580--615
+\end{itemize}
+
+%============================================================================
+\section{Conclusion}
+%============================================================================
+
+The \texttt{RealDataModel} implementation carefully balances \textit{realism} (using actual market data), \textit{statistical validity} (preserving autocorrelation and correlation), and \textit{flexibility} (allowing parameter overrides for experiments). Each methodological choice was made to:
+\begin{enumerate}
+    \item Preserve the empirical properties of financial returns (autocorrelation, correlation, higher moments)
+    \item Ensure theoretical consistency (stationarity, positive prices, correct compounding)
+    \item Enable rigorous research (transparent filtering, reproducible results, controlled experiments)
+\end{enumerate}
+
+The stationary block bootstrap is particularly well-suited for option pricing simulations because it captures the complex temporal dynamics of real markets while maintaining the flexibility needed for academic research and stress testing.
+
+%============================================================================
+\begin{thebibliography}{9}
+%============================================================================
+
+\bibitem{politis1994stationary}
+Politis, D.~N., and Romano, J.~P. (1994).
+\newblock The stationary bootstrap.
+\newblock \textit{Journal of the American Statistical Association}, 89(428), 1303--1313.
+
+\bibitem{politis2004automatic}
+Politis, D.~N., and White, H. (2004).
+\newblock Automatic block-length selection for the dependent bootstrap.
+\newblock \textit{Econometric Reviews}, 23(1), 53--70.
+
+\bibitem{kunsch1989jackknife}
+K{\"u}nsch, H.~R. (1989).
+\newblock The jackknife and the bootstrap for general stationary observations.
+\newblock \textit{The Annals of Statistics}, 17(3), 1217--1241.
+
+\bibitem{campbell1997econometrics}
+Campbell, J.~Y., Lo, A.~W., and MacKinlay, A.~C. (1997).
+\newblock \textit{The Econometrics of Financial Markets}.
+\newblock Princeton University Press.
+
+\end{thebibliography}
+
+\end{document}

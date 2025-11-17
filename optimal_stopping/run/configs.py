@@ -40,6 +40,7 @@ class _DefaultConfig:
   dividends: Iterable[float] = (0.0,)
   nb_dates: Iterable[int] = (10,)
   drift: Iterable[float] = (0.02,)
+  risk_free_rate: Iterable[float] = (None,)  # Risk-free rate for discounting (None = drift - 0.04)
   mean: Iterable[float] = (0.01,)
   speed: Iterable[float] = (2,)
   correlation: Iterable[float] = (-0.3,)
@@ -73,6 +74,17 @@ class _DefaultConfig:
   representations: Iterable[str] = ('TablePriceDuration',)
 
   # When adding a filter here, also add to filtering.py and read_data.py
+
+
+'''
+Test config for risk_free_rate functionality
+'''
+
+test_risk_free_rate = _DefaultConfig(
+    algos=('RLSM', 'RFQI'), payoffs=('BasketCall',), nb_stocks=(50,),
+    drift=(0.05,), risk_free_rate=(None, 0.05, 0.1, 0.2, 0.3,),
+    nb_paths=(50000,), nb_dates=(10,), nb_runs=3
+)
 
 
 '''
@@ -1582,15 +1594,14 @@ test_lsm = _DefaultConfig(
 # Example stored paths config - UPDATE THE STORAGE ID!
 test_stored = _DefaultConfig(
     stock_models=['RealDataStored1763383103077'],  # Use stored ID
-    nb_stocks=[10, 25, 50],    # Can use subset (≤50)
-    nb_paths=[50000],          # Can use subset (≤100000)
+    nb_stocks=[3],    # Can use subset (≤50)
+    nb_paths=[5000],          # Can use subset (≤100000)
     nb_dates=[252],            # Must match exactly
     maturities=[1.0],          # Must match exactly
-    spots=[90, 100, 110],      # Will automatically rescale!
-    strikes=[100, 110],
+    spots=[100],      # Will automatically rescale!
     payoffs=['BasketCall', 'MaxCall', 'MinPut'],
-    algos=['RLSM', 'RFQI', 'LSM'],
-    nb_runs=10,
+    algos=['RLSM', 'LSM'],
+    nb_runs=2,
 )
 
 # ==============================================================================

@@ -102,7 +102,7 @@ flags.DEFINE_bool("DEBUG", False, "Turn on debug mode")
 flags.DEFINE_integer("train_eval_split", 2,
                      "divisor for the train/eval split")
 
-_CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
+_CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'risk_free_rate', 'volatility', 'mean',
                 'speed', 'correlation', 'hurst', 'nb_stocks',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
                 'barrier', 'barriers_up', 'barriers_down',
@@ -185,6 +185,7 @@ def _run_algos():
         combinations = list(itertools.product(
             config.algos, config.dividends, config.maturities, config.nb_dates,
             config.nb_paths, config.nb_stocks, config.payoffs, config.drift,
+            config.risk_free_rate,
             config.spots, config.stock_models, config.strikes, config.barriers,
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
@@ -243,7 +244,7 @@ def _run_algos():
 
 def _run_algo(
         metrics_fpath, algo, dividend, maturity, nb_dates, nb_paths,
-        nb_stocks, payoff_name, drift, spot, stock_model_name, strike, barrier,
+        nb_stocks, payoff_name, drift, risk_free_rate, spot, stock_model_name, strike, barrier,
         volatility, mean, speed, correlation, hurst, nb_epochs, hidden_size=10,
         factors=(1., 1., 1.), ridge_coeff=1.,
         train_ITM_only=True, use_payoff_as_input=False,
@@ -294,12 +295,13 @@ def _run_algo(
     is_path_dependent = getattr(payoff_obj, 'is_path_dependent', False)
 
     # Instantiate stock model
+    # Note: Don't pass 'name' - each model sets its own name internally
     stock_model_obj = _STOCK_MODELS[stock_model_name](
-        drift=drift, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
+        drift=drift, risk_free_rate=risk_free_rate, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=nb_paths, nb_dates=nb_dates,
         spot=spot, dividend=dividend,
-        maturity=maturity, name=stock_model_name)
+        maturity=maturity)
 
     # Instantiate pricer based on algorithm and payoff type
     try:
@@ -443,6 +445,7 @@ def _run_algo(
         'model': stock_model_name,
         'payoff': payoff_name,
         'drift': drift,
+        'risk_free_rate': risk_free_rate,
         'volatility': volatility,
         'mean': mean,
         'speed': speed,

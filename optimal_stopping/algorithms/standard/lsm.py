@@ -85,6 +85,9 @@ class LeastSquaresPricer:
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
 
+        # Track exercise dates (initialize to maturity)
+        self._exercise_dates = np.full(nb_paths, nb_dates - 1, dtype=int)
+
         # Backward induction from T-1 to 1
         for date in range(nb_dates - 2, 0, -1):
             # Current immediate exercise value
@@ -110,6 +113,9 @@ class LeastSquaresPricer:
             # Update values: max(exercise now, continue)
             exercise_now = immediate_exercise > continuation_values
             values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Track exercise dates - only update if exercising earlier
+            self._exercise_dates[exercise_now] = date
 
         # Final price: average over evaluation paths
         price = np.mean(values[self.split:])
@@ -158,8 +164,13 @@ class LeastSquaresPricer:
         return np.dot(basis_matrix, coefficients)
 
     def get_exercise_time(self):
-        """Return average exercise time (not implemented for LSM)."""
-        return None
+        """Return average exercise time normalized to [0, 1]."""
+        if not hasattr(self, '_exercise_dates'):
+            return None
+
+        nb_dates = self.model.nb_dates
+        normalized_times = self._exercise_dates / nb_dates
+        return float(np.mean(normalized_times))
 
 
 class LeastSquarePricerDeg1(LeastSquaresPricer):

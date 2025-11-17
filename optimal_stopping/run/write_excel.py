@@ -80,25 +80,25 @@ def extract_data_for_excel(config: configs._DefaultConfig):
     dfs = []
     for path in csv_paths:
         try:
-            # Try reading with full INDEX
-            df = pd.read_csv(path, index_col=read_data.INDEX)
+            # Read CSV without setting index first
+            df = pd.read_csv(path)
+
+            # Add missing INDEX columns with NaN to ensure all DataFrames have same columns
+            for col in read_data.INDEX:
+                if col not in df.columns:
+                    df[col] = pd.NA
+
+            # Now set index with full INDEX (all DataFrames will have same index structure)
+            df = df.set_index(read_data.INDEX)
             dfs.append(df)
-        except Exception:
-            # Fallback: read without index, then set index with available columns
-            try:
-                df = pd.read_csv(path)
-                # Only use INDEX columns that exist
-                available_index = [col for col in read_data.INDEX if col in df.columns]
-                if available_index:
-                    df = df.set_index(available_index)
-                    dfs.append(df)
-            except Exception as e:
-                print(f"    Skipping {os.path.basename(path)}: {e}")
-                pass
+        except Exception as e:
+            print(f"    Skipping {os.path.basename(path)}: {e}")
+            pass
 
     if not dfs:
         raise AssertionError("No CSVs found")
 
+    # Now all DataFrames have same index structure, concat will work properly
     df = pd.concat(dfs)
     print(f"  Total rows read: {len(df)}")
 
@@ -111,6 +111,8 @@ def extract_data_for_excel(config: configs._DefaultConfig):
     # DEBUG: Show what's actually in the data
     print(f"  Data contains:")
     for col in df.index.names[:5]:  # Just show first 5 to avoid clutter
+        if col is None:  # Skip None columns from missing data
+            continue
         unique_vals = df.index.get_level_values(col).unique()
         if len(unique_vals) <= 10:
             print(f"    {col}: {list(unique_vals)}")
