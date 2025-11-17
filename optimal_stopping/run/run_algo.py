@@ -453,7 +453,7 @@ def _run_algo(
         'model': stock_model_name,
         'payoff': payoff_name,
         'drift': drift,
-        'risk_free_rate': stock_model_obj.rate,  # Use actual rate from model (drift - 0.04 if None)
+        'risk_free_rate': risk_free_rate,
         'volatility': volatility,
         'mean': mean,
         'speed': speed,

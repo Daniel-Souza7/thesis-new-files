@@ -39,8 +39,8 @@ class _DefaultConfig:
                           'RLSM', 'SRFQI', 'SRLSM')
   dividends: Iterable[float] = (0.0,)
   nb_dates: Iterable[int] = (10,)
-  drift: Iterable[float] = (0.02,)
-  risk_free_rate: Iterable[float] = (None,)  # Risk-free rate for discounting (None = drift - 0.04)
+  drift: Iterable[float] = (0.06,)
+  risk_free_rate: Iterable[float] = (None,)  # Risk-free rate for discounting (None = drift - 0.04 = 0.02)
   mean: Iterable[float] = (0.01,)
   speed: Iterable[float] = (2,)
   correlation: Iterable[float] = (-0.3,)
@@ -94,8 +94,7 @@ test_eop = _DefaultConfig(
     nb_paths=(100000,),
     nb_stocks=(1,),
     algos=('RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'),
-    payoffs=('Call',),
-    risk_free_rate=(-0.02,)  # drift (0.02) - 0.04 = -0.02 (matches CSV output when None)
+    payoffs=('Call',)
 )
 
 '''
@@ -107,8 +106,7 @@ Exercisetimes = _DefaultConfig(
     nb_stocks=(1,),
     algos=('RLSM', 'LSM', 'RFQI', 'FQI'),
     payoffs=('Call',),
-    hidden_size=(1, 2, 4, 20, 100),
-    risk_free_rate=(-0.02,)  # drift (0.02) - 0.04 = -0.02 (matches CSV output when None)
+    hidden_size=(1, 2, 4, 20, 100)
 )
 
 
