@@ -87,8 +87,12 @@ class RealDataModel(Model):
         # - drift=0.05 in config → use 5% drift (override empirical)
         if drift_override is None and 'drift' in kwargs:
             drift_override = kwargs['drift']
-        if volatility_override is None and 'volatility' in kwargs:
-            volatility_override = kwargs['volatility']
+        if volatility_override is None:
+            # Check both 'volatilities' (config param) and 'volatility' (singular)
+            if 'volatilities' in kwargs:
+                volatility_override = kwargs['volatilities']
+            elif 'volatility' in kwargs:
+                volatility_override = kwargs['volatility']
 
         # Initialize base class
         super().__init__(**kwargs)
