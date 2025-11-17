@@ -598,6 +598,54 @@ STOCK_MODELS = {
 if _HAS_REAL_DATA:
     STOCK_MODELS["RealData"] = RealDataModel
 
+
+# ==============================================================================
+# Dynamically register stored path models
+# ==============================================================================
+
+def _register_stored_models():
+    """Scan stored_paths directory and register all stored models.
+
+    This function is called automatically to make stored models available
+    in STOCK_MODELS dictionary. Stored models are named like:
+    'RealDataStored1700000000123', 'BlackScholesStored123', etc.
+    """
+    try:
+        from optimal_stopping.data.stored_model import create_stored_model_class
+        from optimal_stopping.data.path_storage import STORAGE_DIR
+        from pathlib import Path
+        import h5py
+
+        if not STORAGE_DIR.exists():
+            return  # No storage directory yet
+
+        # Scan all .h5 files in storage directory
+        for filepath in STORAGE_DIR.glob('*.h5'):
+            try:
+                # Read metadata to get model and storage_id
+                with h5py.File(filepath, 'r') as f:
+                    base_model = f.attrs.get('stock_model')
+                    storage_id = f.attrs.get('storage_id')
+
+                    if base_model and storage_id:
+                        # Create and register the stored model class
+                        model_name = f"{base_model}Stored{storage_id}"
+                        STOCK_MODELS[model_name] = create_stored_model_class(base_model, storage_id)
+
+            except Exception as e:
+                # Silently skip corrupted files
+                import warnings
+                warnings.warn(f"Could not register stored model from {filepath.name}: {e}")
+                continue
+
+    except ImportError:
+        # stored_model or path_storage not available - skip registration
+        pass
+
+
+# Register stored models on module import
+_register_stored_models()
+
 # ==============================================================================
 
 
