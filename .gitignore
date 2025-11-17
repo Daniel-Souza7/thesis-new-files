@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Output and generated files
+output/
+results/
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.pickle
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Data files (uncomment if you don't want to track data)
+# data/
+# *.dat
+
+# Temporary files
+*.tmp
+*.bak
