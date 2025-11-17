@@ -27,7 +27,6 @@ Usage in configs:
 import numpy as np
 from typing import Optional, Tuple
 from optimal_stopping.data.stock_model import Model
-from optimal_stopping.data.path_storage import load_paths
 
 
 class StoredPathsModel(Model):
@@ -95,44 +94,90 @@ class StoredPathsModel(Model):
         self.base_model = base_model
         self.storage_id = storage_id
 
-        # Load paths from storage (with validation)
-        print(f"📂 Loading stored {base_model} paths (ID: {storage_id})...")
-        self._stored_paths, self._stored_variance_paths, self._metadata = load_paths(
-            stock_model=base_model,
-            storage_id=storage_id,
-            nb_stocks=nb_stocks,
-            nb_paths=nb_paths,
-            nb_dates=nb_dates,
-            maturity=maturity,
-            spot=spot,
-            verbose=True
-        )
+        # Open HDF5 file and validate (but don't load into memory yet)
+        from optimal_stopping.data.path_storage import STORAGE_DIR
+        import h5py
+
+        filename = f"{base_model}_{storage_id}.h5"
+        filepath = STORAGE_DIR / filename
+
+        if not filepath.exists():
+            raise FileNotFoundError(f"Stored paths not found: {filepath}")
+
+        print(f"📂 Opening stored {base_model} paths (ID: {storage_id})...")
+
+        # Keep HDF5 file open for memory-mapped access
+        self._h5_file = h5py.File(filepath, 'r')
+        self._metadata = dict(self._h5_file.attrs)
+
+        # Validate parameters
+        stored_stocks = self._metadata['nb_stocks']
+        stored_paths = self._metadata['nb_paths']
+        stored_dates = self._metadata['nb_dates']
+        stored_maturity = self._metadata['maturity']
+        stored_spot = self._metadata['spot']
+
+        print(f"   Stored: {stored_stocks} stocks, {stored_paths:,} paths, {stored_dates} dates")
+        print(f"   Requested: {nb_stocks} stocks, {nb_paths:,} paths, {nb_dates} dates")
+
+        # Validate
+        errors = []
+        if nb_dates != stored_dates:
+            errors.append(f"nb_dates mismatch: requested {nb_dates}, stored {stored_dates}")
+        if not np.isclose(maturity, stored_maturity, rtol=1e-6):
+            errors.append(f"maturity mismatch: requested {maturity}, stored {stored_maturity}")
+        if nb_stocks > stored_stocks:
+            errors.append(f"nb_stocks too large: requested {nb_stocks}, only {stored_stocks} stored")
+        if nb_paths > stored_paths:
+            errors.append(f"nb_paths too large: requested {nb_paths:,}, only {stored_paths:,} stored")
+
+        if errors:
+            self._h5_file.close()
+            raise ValueError("Incompatible parameters:\n" + "\n".join(f"  - {e}" for e in errors))
+
+        # Store slicing parameters
+        self._nb_stocks_requested = nb_stocks
+        self._nb_paths_requested = nb_paths
+        self._spot_scale = spot / stored_spot
+
+        if not np.isclose(self._spot_scale, 1.0, rtol=1e-6):
+            print(f"   📊 Will rescale paths: {stored_spot} → {spot} (×{self._spot_scale:.4f})")
+
+        print(f"✅ Ready to use stored paths (memory-mapped)")
 
         # Track which paths have been used (for sequential access)
         self._next_path_idx = 0
 
     def generate_paths(self, nb_paths: Optional[int] = None) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        """Return stored paths.
+        """Return stored paths (read from memory-mapped HDF5).
 
         Args:
-            nb_paths: Number of paths to return (default: all stored paths)
+            nb_paths: Number of paths to return (default: requested paths)
                      If less than stored, returns first nb_paths
 
         Returns:
             paths: Array of shape (nb_paths, nb_stocks, nb_dates+1)
             variance_paths: Array of shape (nb_paths, nb_stocks, nb_dates+1) or None
         """
-        nb_paths = nb_paths or self.nb_paths
+        nb_paths = nb_paths or self._nb_paths_requested
 
-        if nb_paths > self._stored_paths.shape[0]:
+        if nb_paths > self._nb_paths_requested:
             raise ValueError(
-                f"Requested {nb_paths} paths but only {self._stored_paths.shape[0]} stored. "
-                f"Use nb_paths ≤ {self._stored_paths.shape[0]}"
+                f"Requested {nb_paths} paths but only {self._nb_paths_requested} configured. "
+                f"Use nb_paths ≤ {self._nb_paths_requested}"
             )
 
-        # Return first nb_paths
-        paths = self._stored_paths[:nb_paths]
-        variance_paths = self._stored_variance_paths[:nb_paths] if self._stored_variance_paths is not None else None
+        # Read from memory-mapped HDF5 (only loads what we need)
+        paths = self._h5_file['paths'][:nb_paths, :self._nb_stocks_requested, :]
+
+        # Apply spot rescaling if needed
+        if not np.isclose(self._spot_scale, 1.0, rtol=1e-6):
+            paths = paths * self._spot_scale
+
+        # Read variance paths if present
+        variance_paths = None
+        if 'variance_paths' in self._h5_file:
+            variance_paths = self._h5_file['variance_paths'][:nb_paths, :self._nb_stocks_requested, :]
 
         return paths, variance_paths
 
@@ -142,14 +187,28 @@ class StoredPathsModel(Model):
         Returns:
             path: Array of shape (nb_stocks, nb_dates+1)
         """
-        if self._next_path_idx >= self._stored_paths.shape[0]:
+        if self._next_path_idx >= self._nb_paths_requested:
             # Wrap around to beginning
             self._next_path_idx = 0
 
-        path = self._stored_paths[self._next_path_idx]
+        # Read single path from memory-mapped HDF5
+        path = self._h5_file['paths'][self._next_path_idx, :self._nb_stocks_requested, :]
+
+        # Apply spot rescaling if needed
+        if not np.isclose(self._spot_scale, 1.0, rtol=1e-6):
+            path = path * self._spot_scale
+
         self._next_path_idx += 1
 
         return path
+
+    def __del__(self):
+        """Close HDF5 file when object is destroyed."""
+        if hasattr(self, '_h5_file'):
+            try:
+                self._h5_file.close()
+            except:
+                pass
 
     def drift_fct(self, x, t):
         """Drift function (placeholder - paths already generated)."""
