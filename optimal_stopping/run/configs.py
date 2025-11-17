@@ -94,7 +94,8 @@ test_eop = _DefaultConfig(
     nb_paths=(100000,),
     nb_stocks=(1,),
     algos=('RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'),
-    payoffs=('Call',)
+    payoffs=('Call',),
+    risk_free_rate=(-0.02,)  # drift (0.02) - 0.04 = -0.02 (matches CSV output when None)
 )
 
 '''
@@ -106,7 +107,8 @@ Exercisetimes = _DefaultConfig(
     nb_stocks=(1,),
     algos=('RLSM', 'LSM', 'RFQI', 'FQI'),
     payoffs=('Call',),
-    hidden_size=(1, 2, 4, 20, 100)
+    hidden_size=(1, 2, 4, 20, 100),
+    risk_free_rate=(-0.02,)  # drift (0.02) - 0.04 = -0.02 (matches CSV output when None)
 )
 
 

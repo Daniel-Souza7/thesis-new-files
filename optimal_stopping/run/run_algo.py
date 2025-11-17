@@ -383,6 +383,12 @@ def _run_algo(
                 use_payoff_as_input=use_payoff_as_input
             )
 
+        elif algo == "EOP":
+            # European Option Price - exercises only at maturity
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj
+            )
+
         # OLD ALGORITHMS - Keep for backward compatibility
         elif OLD_ALGOS_AVAILABLE and algo in _ALGOS:
             pricer = _ALGOS[algo](
