@@ -1,38 +1,39 @@
 """
 Deep Optimal Stopping (DOS) for American option pricing.
 
-Simple benchmark implementation of the DOS algorithm from:
-"Deep optimal stopping" (Becker, Cheridito and Jentzen, 2020)
+Implementation of Deep Optimal Stopping introduced in
+(Deep optimal stopping, Becker, Cheridito and Jentzen, 2019).
+
+This is a benchmark algorithm that directly learns the stopping decision.
 """
 
 import numpy as np
-import math
-import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as tdata
+import time
+import math
 from optimal_stopping.run import configs
 from optimal_stopping.algorithms.utils import neural_networks
 
 
 def init_weights(m):
-    """Initialize neural network weights."""
+    """Initialize network weights."""
     if isinstance(m, torch.nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
 
-class DeepOptimalStopping:
+class DOS:
     """
-    Computes American option price using Deep Optimal Stopping (DOS).
+    Deep Optimal Stopping pricer.
 
-    Uses a neural network to learn the optimal stopping rule directly.
+    Uses a neural network to learn the stopping rule directly.
     """
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=10,
-                 factors=None, use_path=False, train_ITM_only=False,
-                 use_payoff_as_input=False):
+                 use_payoff_as_input=False, **kwargs):
         """
         Initialize DOS pricer.
 
@@ -41,36 +42,80 @@ class DeepOptimalStopping:
             payoff: Payoff function
             nb_epochs: Number of training epochs
             hidden_size: Number of neurons in hidden layer
-            factors: Ignored (for API compatibility)
-            use_path: If True, use full path history as input
-            train_ITM_only: Ignored for DOS
-            use_payoff_as_input: If True, include payoff as feature
+            use_payoff_as_input: If True, include payoff in state
         """
         self.model = model
         self.payoff = payoff
         self.nb_epochs = nb_epochs
         self.hidden_size = hidden_size
-        self.use_path = use_path
         self.use_payoff_as_input = use_payoff_as_input
-
-        # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
+        self.batch_size = 2000
 
-        # Determine state size
-        if self.use_path:
-            # Full path history: (nb_stocks * (nb_dates+1))
-            state_size = (model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1) * (model.nb_dates + 1)
-        else:
-            # Only current state
-            state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
+        # State size
+        self.state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
 
-        self.state_size = state_size
+    def _train_stopping_network(self, X_inputs, immediate_payoffs, discounted_next_values):
+        """
+        Train neural network to make stopping decisions.
 
-        # Create neural network for stopping decision
-        self.neural_network = neural_networks.NetworkDOS(
-            self.state_size, hidden_size=self.hidden_size
-        ).double()
-        self.neural_network.apply(init_weights)
+        Network outputs probability of stopping in [0, 1].
+        Objective: maximize expected value = stop_prob * immediate_payoff + (1-stop_prob) * continuation
+
+        Args:
+            X_inputs: State features
+            immediate_payoffs: Immediate exercise values
+            discounted_next_values: Discounted future values if not stopping
+        """
+        # Create network
+        network = neural_networks.NetworkDOS(self.state_size, hidden_size=self.hidden_size).double()
+        network.apply(init_weights)
+
+        # Prepare data
+        X_inputs = torch.from_numpy(X_inputs).double()
+        immediate_payoffs = torch.from_numpy(immediate_payoffs).double()
+        discounted_next_values = torch.from_numpy(discounted_next_values).double()
+
+        # Train
+        optimizer = optim.Adam(network.parameters())
+        network.train(True)
+
+        for _ in range(self.nb_epochs):
+            for batch in tdata.BatchSampler(
+                    tdata.RandomSampler(range(len(X_inputs)), replacement=False),
+                    batch_size=self.batch_size, drop_last=False):
+                optimizer.zero_grad()
+                with torch.set_grad_enabled(True):
+                    # Network outputs stopping probability
+                    stop_prob = network(X_inputs[batch]).reshape(-1)
+
+                    # Expected value if we use this stopping rule
+                    values = (immediate_payoffs[batch] * stop_prob +
+                             discounted_next_values[batch] * (1 - stop_prob))
+
+                    # Maximize expected value (minimize negative)
+                    loss = -torch.mean(values)
+                    loss.backward()
+                    optimizer.step()
+
+        return network
+
+    def _evaluate_stopping_network(self, network, X_inputs):
+        """
+        Evaluate stopping network.
+
+        Args:
+            network: Trained stopping network
+            X_inputs: State features
+
+        Returns:
+            Stopping probabilities [0, 1]
+        """
+        network.train(False)
+        X_inputs = torch.from_numpy(X_inputs).double()
+        with torch.no_grad():
+            outputs = network(X_inputs)
+        return outputs.view(len(X_inputs)).detach().numpy()
 
     def price(self, train_eval_split=2):
         """
@@ -88,147 +133,74 @@ class DeepOptimalStopping:
         if configs.path_gen_seed.get_seed() is not None:
             np.random.seed(configs.path_gen_seed.get_seed())
 
-        path_result = self.model.generate_paths()
-        if isinstance(path_result, tuple):
-            stock_paths, var_paths = path_result
-        else:
-            stock_paths = path_result
-            var_paths = None
+        stock_paths, var_paths = self.model.generate_paths()
+        time_for_path_gen = time.time() - t_start
 
-        time_path_gen = time.time() - t_start
-        print(f"time path gen: {time_path_gen:.4f} ", end="")
-
-        # Compute payoffs for all paths
+        # Calculate payoffs
         payoffs = self.payoff(stock_paths)
 
-        # Split into training and evaluation sets
-        self.split = len(stock_paths) // train_eval_split
+        # Split data
+        self.split = int(len(stock_paths) / train_eval_split)
 
-        nb_paths, nb_stocks, nb_dates = stock_paths.shape
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / (nb_dates - 1))
+        # Discount factor
+        nb_dates = self.model.nb_dates
+        deltaT = self.model.maturity / nb_dates
+        discount_factor = math.exp(-self.model.rate * deltaT)
 
-        # Initialize with terminal payoff
+        # Initialize values at maturity
         values = payoffs[:, -1].copy()
 
         # Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, nb_dates - 1, dtype=int)
+        nb_paths = len(stock_paths)
+        self._exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
 
-        # Backward induction from T-1 to 1
-        for date in range(nb_dates - 2, 0, -1):
-            # Current immediate exercise value
-            immediate_exercise = payoffs[:, date]
+        # Store networks for each timestep
+        networks = [None] * nb_dates
 
-            # Prepare state
-            if self.use_path:
-                # Use full path history up to current time
-                current_state = stock_paths[:, :, :date+1]
+        # Backward induction - train networks
+        for t in range(nb_dates - 1, 0, -1):
+            # Current stock prices
+            stock_at_t = stock_paths[:, :, t]
 
-                if self.use_var and var_paths is not None:
-                    current_state = np.concatenate([current_state, var_paths[:, :, :date+1]], axis=1)
+            # Add variance if needed
+            if self.use_var:
+                stock_at_t = np.concatenate([stock_at_t, var_paths[:, :, t]], axis=1)
 
-                # Add zeros to get fixed shape (nb_stocks, nb_dates+1)
-                padding_shape = (current_state.shape[0], current_state.shape[1], nb_dates - date)
-                padding = np.zeros(padding_shape)
-                current_state = np.concatenate([current_state, padding], axis=-1)
+            # Add payoff if needed
+            if self.use_payoff_as_input:
+                stock_at_t = np.concatenate([stock_at_t, payoffs[:, t:t+1]], axis=1)
 
-                # Flatten for network input
-                current_state = current_state.reshape((current_state.shape[0], -1))
-            else:
-                # Use only current state
-                current_state = stock_paths[:, :, date]
+            # Immediate exercise values
+            immediate_payoffs = payoffs[:, t]
 
-                if self.use_payoff_as_input:
-                    current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
+            # Discounted next values
+            discounted_next = discount_factor * values
 
-                if self.use_var and var_paths is not None:
-                    current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+            # Train network on training paths
+            X_train = stock_at_t[:self.split]
+            immediate_train = immediate_payoffs[:self.split]
+            discounted_train = discounted_next[:self.split]
 
-            # Discount future values
-            discounted_values = values * disc_factor
+            network = self._train_stopping_network(X_train, immediate_train, discounted_train)
+            networks[t] = network
 
-            # Train network to maximize expected value
-            self._train_network(
-                current_state[:self.split],
-                immediate_exercise[:self.split],
-                discounted_values[:self.split]
-            )
+            # Evaluate stopping decisions for all paths
+            stop_prob = self._evaluate_stopping_network(network, stock_at_t)
 
-            # Predict stopping decision
-            stopping_rule = self._evaluate_network(current_state)
+            # Threshold at 0.5 for binary decision
+            stop = stop_prob >= 0.5
 
             # Track exercise dates - only update if exercising earlier
-            exercise_now = stopping_rule > 0.5
-            self._exercise_dates[exercise_now] = date
+            self._exercise_dates[stop] = t
 
-            # Update values: exercise if stopping_rule > 0.5, else continue
-            values = np.where(
-                exercise_now,
-                immediate_exercise,
-                discounted_values
-            )
+            # Update values
+            values = np.where(stop, immediate_payoffs, discounted_next)
 
-        # Final price: average over evaluation paths
+        # Calculate price
         price = np.mean(values[self.split:])
+        price = max(price, payoffs[0, 0])
 
-        return price, time_path_gen
-
-    def _train_network(self, stock_values, immediate_exercise, discounted_next_values, batch_size=2000):
-        """
-        Train neural network to learn optimal stopping rule.
-
-        The loss is -E[value], where value = stopping_prob * immediate_payoff + (1-stopping_prob) * continuation
-
-        Args:
-            stock_values: Current state
-            immediate_exercise: Payoff if exercised now
-            discounted_next_values: Continuation value
-            batch_size: Batch size for training
-        """
-        optimizer = optim.Adam(self.neural_network.parameters())
-
-        immediate_exercise = torch.from_numpy(immediate_exercise).double().reshape(-1, 1)
-        discounted_next_values = torch.from_numpy(discounted_next_values).double()
-        X_inputs = torch.from_numpy(stock_values).double()
-
-        self.neural_network.train(True)
-
-        for epoch in range(self.nb_epochs):
-            for batch in tdata.BatchSampler(
-                tdata.RandomSampler(range(len(X_inputs)), replacement=False),
-                batch_size=batch_size,
-                drop_last=False
-            ):
-                optimizer.zero_grad()
-                with torch.set_grad_enabled(True):
-                    # Network outputs stopping probability
-                    stopping_prob = self.neural_network(X_inputs[batch]).reshape(-1)
-
-                    # Expected value: stop * immediate + continue * discounted_next
-                    values = (
-                        immediate_exercise[batch].reshape(-1) * stopping_prob +
-                        discounted_next_values[batch] * (1 - stopping_prob)
-                    )
-
-                    # Maximize expected value = minimize negative expected value
-                    loss = -torch.mean(values)
-
-                    loss.backward()
-                    optimizer.step()
-
-    def _evaluate_network(self, X_inputs):
-        """
-        Evaluate network to get stopping probabilities.
-
-        Args:
-            X_inputs: Input states
-
-        Returns:
-            Stopping probabilities (0 to 1)
-        """
-        self.neural_network.train(False)
-        X_inputs = torch.from_numpy(X_inputs).double()
-        outputs = self.neural_network(X_inputs)
-        return outputs.view(len(X_inputs)).detach().numpy()
+        return price, time_for_path_gen
 
     def get_exercise_time(self):
         """Return average exercise time normalized to [0, 1]."""
