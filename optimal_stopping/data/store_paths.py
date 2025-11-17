@@ -132,18 +132,19 @@ def main():
     }
 
     # Add optional parameters if provided
+    # Note: Pass scalar values directly (not tuples) since we're instantiating
+    # the model directly, not going through config/itertools.product
     if args.drift is not None:
-        # Convert to tuple format expected by configs
         drift_val = _parse_value(args.drift)
-        model_params['drift'] = (drift_val,) if drift_val is not None else (None,)
+        model_params['drift'] = drift_val
 
     if args.volatility is not None:
         vol_val = _parse_value(args.volatility)
-        model_params['volatility'] = (vol_val,) if vol_val is not None else (None,)
+        model_params['volatility'] = vol_val
 
     if args.volatilities is not None:
         vol_val = _parse_value(args.volatilities)
-        model_params['volatilities'] = (vol_val,) if vol_val is not None else (None,)
+        model_params['volatilities'] = vol_val
 
     if args.correlation is not None:
         model_params['correlation'] = args.correlation
