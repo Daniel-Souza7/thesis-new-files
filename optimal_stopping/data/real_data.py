@@ -25,22 +25,29 @@ class RealDataModel(Model):
     - Automatic optimal block length from autocorrelation structure
     - Configurable time periods and crisis handling
     - Preserves real correlations between stocks
-    - Configurable drift override
+    - Uses empirical drift/volatility by default (configurable)
     - Supports up to 250 S&P 500 stocks
 
+    Important: By default, this model uses EMPIRICAL drift and volatility from
+    historical data. The 'drift' and 'volatility' parameters in configs are
+    IGNORED unless you explicitly pass drift_override or volatility_override.
+
     Example:
+        >>> # Use empirical drift/volatility (default)
         >>> model = RealDataModel(
         ...     tickers=['AAPL', 'MSFT', 'GOOGL'],
         ...     start_date='2015-01-01',
         ...     end_date='2024-01-01',
-        ...     exclude_crisis=True,
         ...     nb_stocks=3,
-        ...     nb_paths=10000,
-        ...     nb_dates=252,
-        ...     spot=100,
-        ...     maturity=1.0
         ... )
-        >>> paths, _ = model.generate_paths()
+        >>>
+        >>> # Override to use specific drift/volatility
+        >>> model = RealDataModel(
+        ...     tickers=['AAPL', 'MSFT', 'GOOGL'],
+        ...     drift_override=0.05,  # 5% drift
+        ...     volatility_override=0.25,  # 25% volatility
+        ...     nb_stocks=3,
+        ... )
     """
 
     def __init__(
@@ -64,20 +71,12 @@ class RealDataModel(Model):
             end_date: End date for historical data (YYYY-MM-DD)
             exclude_crisis: If True, exclude 2008 and 2020 crisis periods
             only_crisis: If True, only use crisis periods (overrides exclude_crisis)
-            drift_override: Override historical drift (None = use config drift if available, else historical)
-            volatility_override: Override historical volatility (None = use config vol if available, else historical)
+            drift_override: Override historical drift (None = use empirical historical drift)
+            volatility_override: Override historical volatility (None = use empirical historical volatility)
             avg_block_length: Average block length (None = auto-calculate from data)
             cache_data: Cache downloaded data to avoid re-downloading
             **kwargs: Additional arguments passed to Model base class
-                     Note: If 'drift' or 'volatility' in kwargs, they're used as overrides
         """
-        # Extract drift/volatility from kwargs if not explicitly provided
-        # This allows configs to work: drift=0.05 in config → drift_override=0.05
-        if drift_override is None and 'drift' in kwargs:
-            drift_override = kwargs['drift']
-        if volatility_override is None and 'volatility' in kwargs:
-            volatility_override = kwargs['volatility']
-
         # Initialize base class
         super().__init__(**kwargs)
 
