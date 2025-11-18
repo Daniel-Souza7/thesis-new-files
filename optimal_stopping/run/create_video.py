@@ -29,6 +29,11 @@ from optimal_stopping.data.stock_model import BlackScholes
 from optimal_stopping.payoffs import get_payoff_class
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer
+from optimal_stopping.algorithms.standard.fqi import FQIFast
+from optimal_stopping.algorithms.standard.nlsm import NeuralLSM
+from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
+from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
@@ -50,6 +55,11 @@ _ALGOS = {
     "SRLSM": SRLSM,
     "RFQI": RFQI,
     "SRFQI": SRFQI,
+    "LSM": LeastSquaresPricer,
+    "FQI": FQIFast,
+    "NLSM": NeuralLSM,
+    "DOS": DeepOptimalStopping,
+    "EOP": EuropeanOptionPrice,
 }
 
 

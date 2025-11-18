@@ -139,30 +139,50 @@ class LeastSquaresPricer:
         if self.train_ITM_only:
             # Only train on in-the-money paths
             train_mask = (immediate_exercise[:self.split] > 0)
+            # Also identify ITM paths for all paths (training + evaluation)
+            itm_mask = (immediate_exercise > 0)
         else:
             # Train on all paths
             train_mask = np.ones(self.split, dtype=bool)
+            itm_mask = np.ones(len(immediate_exercise), dtype=bool)
 
-        # Evaluate basis functions for all paths
+        # Initialize continuation values to 0 (like old LSM code)
+        # This prevents noisy extrapolation for OTM paths
         nb_paths = current_state.shape[0]
-        basis_matrix = np.zeros((nb_paths, self.nb_base_fcts))
+        continuation_values = np.zeros(nb_paths)
 
-        for i in range(nb_paths):
-            for j in range(self.nb_base_fcts):
-                basis_matrix[i, j] = self.basis.base_fct(j, current_state[i])
+        # Only compute continuation values for ITM paths when train_ITM_only=True
+        if itm_mask.sum() > 0:
+            # Evaluate basis functions only for ITM paths (or all if train_ITM_only=False)
+            itm_indices = np.where(itm_mask)[0]
+            basis_matrix = np.zeros((itm_mask.sum(), self.nb_base_fcts))
 
-        # Least squares regression on training set
-        if train_mask.sum() > 0:
-            coefficients = np.linalg.lstsq(
-                basis_matrix[:self.split][train_mask],
-                future_values[:self.split][train_mask],
-                rcond=None
-            )[0]
-        else:
-            coefficients = np.zeros(self.nb_base_fcts)
+            for idx, i in enumerate(itm_indices):
+                for j in range(self.nb_base_fcts):
+                    basis_matrix[idx, j] = self.basis.base_fct(j, current_state[i])
 
-        # Predict continuation values on all paths
-        return np.dot(basis_matrix, coefficients)
+            # Least squares regression on training set
+            if train_mask.sum() > 0:
+                # Get basis for training ITM paths
+                train_itm_mask = train_mask & itm_mask[:self.split]
+                if train_itm_mask.sum() > 0:
+                    train_itm_indices = np.where(train_itm_mask)[0]
+                    basis_train = np.zeros((train_itm_mask.sum(), self.nb_base_fcts))
+
+                    for idx, i in enumerate(train_itm_indices):
+                        for j in range(self.nb_base_fcts):
+                            basis_train[idx, j] = self.basis.base_fct(j, current_state[i])
+
+                    coefficients = np.linalg.lstsq(
+                        basis_train,
+                        future_values[train_itm_mask],
+                        rcond=None
+                    )[0]
+
+                    # Predict continuation values only for ITM paths
+                    continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
+
+        return continuation_values
 
     def get_exercise_time(self):
         """Return average exercise time normalized to [0, 1] (evaluation set only)."""

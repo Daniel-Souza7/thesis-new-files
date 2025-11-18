@@ -193,23 +193,44 @@ class RLSM:
         if self.train_ITM_only:
             # Only train on in-the-money paths
             train_mask = (immediate_exercise[:self.split] > 0)
+            # Also identify ITM paths for all paths (training + evaluation)
+            itm_mask = (immediate_exercise > 0)
         else:
             # Train on all paths
             train_mask = np.ones(self.split, dtype=bool)
+            itm_mask = np.ones(len(immediate_exercise), dtype=bool)
 
-        # Evaluate basis functions on all paths
-        X_tensor = torch.from_numpy(current_state).type(torch.float32)
-        basis = self.reservoir(X_tensor).detach().numpy()
+        # Initialize continuation values to 0 (prevents noisy extrapolation for OTM paths)
+        nb_paths = current_state.shape[0]
+        continuation_values = np.zeros(nb_paths)
 
-        # Add constant term (intercept)
-        basis = np.concatenate([basis, np.ones((len(basis), 1))], axis=1)
+        # Only compute continuation values for ITM paths when train_ITM_only=True
+        if itm_mask.sum() > 0:
+            # Evaluate basis functions only for ITM paths
+            X_itm = current_state[itm_mask]
+            X_tensor = torch.from_numpy(X_itm).type(torch.float32)
+            basis_itm = self.reservoir(X_tensor).detach().numpy()
 
-        # Least squares regression on training set
-        coefficients = np.linalg.lstsq(
-            basis[:self.split][train_mask],
-            future_values[:self.split][train_mask],
-            rcond=None
-        )[0]
+            # Add constant term (intercept)
+            basis_itm = np.concatenate([basis_itm, np.ones((len(basis_itm), 1))], axis=1)
 
-        # Predict continuation values on all paths
-        return np.dot(basis, coefficients)
+            # Least squares regression on training ITM paths
+            if train_mask.sum() > 0:
+                train_itm_mask = train_mask & itm_mask[:self.split]
+                if train_itm_mask.sum() > 0:
+                    # Evaluate basis for training ITM paths
+                    X_train_itm = current_state[train_itm_mask]
+                    X_train_tensor = torch.from_numpy(X_train_itm).type(torch.float32)
+                    basis_train = self.reservoir(X_train_tensor).detach().numpy()
+                    basis_train = np.concatenate([basis_train, np.ones((len(basis_train), 1))], axis=1)
+
+                    coefficients = np.linalg.lstsq(
+                        basis_train,
+                        future_values[train_itm_mask],
+                        rcond=None
+                    )[0]
+
+                    # Predict continuation values only for ITM paths
+                    continuation_values[itm_mask] = np.dot(basis_itm, coefficients)
+
+        return continuation_values

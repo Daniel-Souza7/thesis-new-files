@@ -200,6 +200,16 @@ def _run_algos():
             for i in range(config.nb_runs):
                 tmp_file_path = os.path.join(tmp_dirpath, str(tmp_files_idx))
                 tmp_files_idx += 1
+
+                # Generate different seed for each run to ensure std != 0
+                if FLAGS.path_gen_seed is None:
+                    # Use random seed that varies across runs (time-based + run index)
+                    import random
+                    run_seed = random.randint(0, 2**32 - 1)
+                else:
+                    # Use base seed + run index to ensure reproducibility but variation
+                    run_seed = FLAGS.path_gen_seed + i
+
                 delayed_jobs.append(joblib.delayed(_run_algo)(
                     tmp_file_path, *params, fail_on_error=FLAGS.print_errors,
                     compute_greeks=FLAGS.compute_greeks,
@@ -207,7 +217,7 @@ def _run_algos():
                     eps=FLAGS.eps, poly_deg=FLAGS.poly_deg,
                     fd_freeze_exe_boundary=FLAGS.fd_freeze_exe_boundary,
                     fd_compute_gamma_via_PDE=FLAGS.fd_compute_gamma_via_PDE,
-                    reg_eps=FLAGS.reg_eps, path_gen_seed=FLAGS.path_gen_seed,
+                    reg_eps=FLAGS.reg_eps, path_gen_seed=run_seed,
                     compute_upper_bound=FLAGS.compute_upper_bound,
                     DEBUG=FLAGS.DEBUG, train_eval_split=FLAGS.train_eval_split))
 
