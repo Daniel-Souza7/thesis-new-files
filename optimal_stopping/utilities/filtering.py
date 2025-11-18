@@ -66,6 +66,10 @@ def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = Fals
         if filter_name == "factors":
             values = [str(x) for x in values]
 
+        # Special handling for custom_spots: convert tuples to strings to match CSV format
+        if filter_name == "custom_spots":
+            values = [str(x) if x is not None else None for x in values]
+
         # Special handling for None values (match NaN, None, empty, "None")
         if None in values:
             col_values = df.index.get_level_values(column_name)
