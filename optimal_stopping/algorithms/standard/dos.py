@@ -8,6 +8,7 @@ Simple benchmark implementation of the DOS algorithm from:
 import numpy as np
 import math
 import time
+import copy
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -71,6 +72,9 @@ class DeepOptimalStopping:
             self.state_size, hidden_size=self.hidden_size
         ).double()
         self.neural_network.apply(init_weights)
+
+        # Store network state for each time step (for backward_induction_on_paths)
+        self._learned_networks = {}
 
     def price(self, train_eval_split=2):
         """
@@ -156,6 +160,9 @@ class DeepOptimalStopping:
                 immediate_exercise[:self.split],
                 discounted_values[:self.split]
             )
+
+            # Store network state for this time step (deep copy)
+            self._learned_networks[date] = copy.deepcopy(self.neural_network)
 
             # Predict stopping decision
             stopping_rule = self._evaluate_network(current_state)
@@ -243,3 +250,101 @@ class DeepOptimalStopping:
         # Only use evaluation set paths (self.split:), not training paths
         normalized_times = self._exercise_dates[self.split:] / nb_dates
         return float(np.mean(normalized_times))
+
+    def backward_induction_on_paths(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy using backward induction (same as training).
+
+        This is what should be used for create_video to replicate pricing behavior.
+        Uses backward induction (not forward simulation) with learned networks.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_times: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+            price: float - Average discounted payoff
+        """
+        if not self._learned_networks:
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+        nb_stocks = stock_paths.shape[1]
+        nb_dates_from_shape = stock_paths.shape[2]
+
+        # Compute all payoffs upfront
+        payoffs = self.payoff(stock_paths)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Track exercise dates (initialize to maturity = nb_dates)
+        exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
+
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
+
+        # Backward induction from T-1 to 1 (same as in price())
+        for date in range(nb_dates - 1, 0, -1):
+            # Skip if no network learned for this time step
+            if date not in self._learned_networks:
+                continue
+
+            # Current immediate exercise value
+            immediate_exercise = payoffs[:, date]
+
+            # Prepare state (match DOS's training structure)
+            if self.use_path:
+                # Use full path history up to current time
+                current_state = stock_paths[:, :, :date+1]
+
+                if self.use_var and var_paths is not None:
+                    current_state = np.concatenate([current_state, var_paths[:, :, :date+1]], axis=1)
+
+                # Add zeros to get fixed shape (nb_stocks, nb_dates+1)
+                padding_shape = (current_state.shape[0], current_state.shape[1], nb_dates_from_shape - date)
+                padding = np.zeros(padding_shape)
+                current_state = np.concatenate([current_state, padding], axis=-1)
+
+                # Flatten for network input
+                current_state = current_state.reshape((current_state.shape[0], -1))
+            else:
+                # Use only current state
+                current_state = stock_paths[:, :, date]
+
+                if self.use_payoff_as_input:
+                    current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
+
+                if self.use_var and var_paths is not None:
+                    current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            # Get learned network for this time step
+            self.neural_network = self._learned_networks[date]
+
+            # Predict stopping decision using learned network
+            stopping_rule = self._evaluate_network(current_state)
+
+            # Discount future values
+            discounted_values = values * disc_factor
+
+            # Clip to non-negative (American option value can't be negative)
+            discounted_values = np.maximum(0, discounted_values)
+
+            # Exercise decision: exercise if stopping_rule > 0.5, else continue
+            exercise_now = stopping_rule > 0.5
+
+            # Update values
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Track exercise dates - only update if exercising earlier
+            exercise_dates[exercise_now] = date
+
+        # Extract payoff values at exercise time
+        payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
+
+        # Compute price (average discounted payoff)
+        price = np.mean(values)
+
+        return exercise_dates, payoff_values, price
