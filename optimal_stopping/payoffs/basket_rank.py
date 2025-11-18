@@ -60,13 +60,16 @@ class WorstOfKPut(Payoff):
 
 
 class RankWeightedBasketCall(Payoff):
-    """Rank-Weighted Basket Call: max(0, sum(w_i * S_(i)) - K)
+    """Rank-Weighted Basket Call: max(0, (1/k) * sum(w_i * S_(i)) - K) for i=1 to k
 
     Ranks stocks by absolute prices S_i in descending order,
-    then applies weights to the ranked prices.
+    then applies user-specified weights to only the top k performers.
 
-    Weights: w_i = (d+1-i) / sum(1..d) where S_(1) >= S_(2) >= ... >= S_(d)
-    Custom weights can be provided via self.params['weights'].
+    Uses parameters k and weights from self.params:
+    - k: number of top performers to include (default: 2)
+    - weights: user-specified weights that apply to top k assets (default: equal weights summing to 1)
+
+    Formula: (1/k) * sum_{i=1}^k (w_i * S_(i)) where S_(1) >= S_(2) >= ... >= S_(d)
     """
     abbreviation = "Rank-BskCall"
     is_path_dependent = False
@@ -74,32 +77,45 @@ class RankWeightedBasketCall(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
         nb_paths, nb_stocks = X.shape
+
+        # Get k and weights from params
+        k = self.params.get('k', 2)
         weights = self.params.get('weights', None)
 
-        # Sort prices in descending order (highest to lowest)
-        sorted_indices = np.argsort(X, axis=1)[:, ::-1]  # Descending indices
-
-        # Get sorted prices for each path
-        sorted_prices = np.take_along_axis(X, sorted_indices, axis=1)
-
-        # Apply weights (highest price gets highest weight)
+        # Default weights: equal weights that sum to 1
         if weights is None:
-            # Default weights: w_i = (d+1-i) / sum(1..d)
-            weights = np.arange(nb_stocks, 0, -1) / np.sum(np.arange(1, nb_stocks + 1))
-
+            weights = np.ones(k) / k
         weights = np.array(weights)
-        weighted_sum = np.sum(sorted_prices * weights, axis=1)
 
-        return np.maximum(0, weighted_sum - self.strike)
+        # Normalize weights to sum to 1 if they don't already
+        weight_sum = np.sum(weights)
+        if not np.isclose(weight_sum, 1.0):
+            weights = weights / weight_sum
+
+        # Sort prices in descending order (highest to lowest)
+        sorted_prices = np.sort(X, axis=1)[:, ::-1]  # Descending
+
+        # Take top k performers
+        top_k_prices = sorted_prices[:, :k]
+
+        # Apply weights and compute weighted sum
+        weighted_sum = np.sum(top_k_prices * weights, axis=1)
+
+        # Multiply by 1/k and subtract strike
+        return np.maximum(0, (1.0 / k) * weighted_sum - self.strike)
 
 
 class RankWeightedBasketPut(Payoff):
-    """Rank-Weighted Basket Put: max(0, K - sum(w_i * S_(i)))
+    """Rank-Weighted Basket Put: max(0, K - (1/k) * sum(w_i * S_(i))) for i=1 to k
 
     Ranks stocks by absolute prices S_i in descending order,
-    then applies weights to the ranked prices.
+    then applies user-specified weights to only the top k performers.
 
-    Same weighting scheme as RankWeightedBasketCall.
+    Uses parameters k and weights from self.params:
+    - k: number of top performers to include (default: 2)
+    - weights: user-specified weights that apply to top k assets (default: equal weights summing to 1)
+
+    Formula: K - (1/k) * sum_{i=1}^k (w_i * S_(i)) where S_(1) >= S_(2) >= ... >= S_(d)
     """
     abbreviation = "Rank-BskPut"
     is_path_dependent = False
@@ -107,17 +123,29 @@ class RankWeightedBasketPut(Payoff):
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
         nb_paths, nb_stocks = X.shape
+
+        # Get k and weights from params
+        k = self.params.get('k', 2)
         weights = self.params.get('weights', None)
 
-        # Sort prices in descending order
-        sorted_indices = np.argsort(X, axis=1)[:, ::-1]
-        sorted_prices = np.take_along_axis(X, sorted_indices, axis=1)
-
-        # Apply weights
+        # Default weights: equal weights that sum to 1
         if weights is None:
-            weights = np.arange(nb_stocks, 0, -1) / np.sum(np.arange(1, nb_stocks + 1))
-
+            weights = np.ones(k) / k
         weights = np.array(weights)
-        weighted_sum = np.sum(sorted_prices * weights, axis=1)
 
-        return np.maximum(0, self.strike - weighted_sum)
+        # Normalize weights to sum to 1 if they don't already
+        weight_sum = np.sum(weights)
+        if not np.isclose(weight_sum, 1.0):
+            weights = weights / weight_sum
+
+        # Sort prices in descending order (highest to lowest)
+        sorted_prices = np.sort(X, axis=1)[:, ::-1]  # Descending
+
+        # Take top k performers
+        top_k_prices = sorted_prices[:, :k]
+
+        # Apply weights and compute weighted sum
+        weighted_sum = np.sum(top_k_prices * weights, axis=1)
+
+        # Multiply by 1/k
+        return np.maximum(0, self.strike - (1.0 / k) * weighted_sum)

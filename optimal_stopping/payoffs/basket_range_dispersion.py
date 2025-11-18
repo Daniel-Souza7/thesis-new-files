@@ -38,24 +38,32 @@ class RangePut(Payoff):
 
 
 class DispersionCall(Payoff):
-    """Dispersion Call: max(0, sum(|S_i - mean(S)|) - K)"""
+    """Dispersion Call: max(0, σ(t) - K) where σ is std dev of prices"""
     abbreviation = "Disp-BskCall"
     is_path_dependent = False
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
-        mean_price = np.mean(X, axis=1, keepdims=True)
-        dispersion = np.sum(np.abs(X - mean_price), axis=1)
-        return np.maximum(0, dispersion - self.strike)
+        # Compute mean price across stocks for each path
+        mean_price = np.mean(X, axis=1, keepdims=True)  # (nb_paths, 1)
+
+        # Compute standard deviation of prices
+        std_dev = np.sqrt(np.mean((X - mean_price) ** 2, axis=1))  # (nb_paths,)
+
+        return np.maximum(0, std_dev - self.strike)
 
 
 class DispersionPut(Payoff):
-    """Dispersion Put: max(0, K - sum(|S_i - mean(S)|))"""
+    """Dispersion Put: max(0, K - σ(t)) where σ is std dev of prices"""
     abbreviation = "Disp-BskPut"
     is_path_dependent = False
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
-        mean_price = np.mean(X, axis=1, keepdims=True)
-        dispersion = np.sum(np.abs(X - mean_price), axis=1)
-        return np.maximum(0, self.strike - dispersion)
+        # Compute mean price across stocks for each path
+        mean_price = np.mean(X, axis=1, keepdims=True)  # (nb_paths, 1)
+
+        # Compute standard deviation of prices
+        std_dev = np.sqrt(np.mean((X - mean_price) ** 2, axis=1))  # (nb_paths,)
+
+        return np.maximum(0, self.strike - std_dev)

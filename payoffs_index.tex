@@ -74,16 +74,16 @@ AsianFloatingStrikePut & AsianFl-BskPut & $\max\left(0, \frac{1}{t}\sum_{k=1}^t 
 \midrule
 RangeCall & Range-BskCall & $\max\left(0, \max_i S_i(t) - \min_i S_i(t) - K\right)$ \\
 RangePut & Range-BskPut & $\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right)$ \\
-DispersionCall & Disp-BskCall & $\max\left(0, \text{Disp}(t) - K\right)$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
-DispersionPut & Disp-BskPut & $\max\left(0, K - \text{Disp}(t)\right)$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+DispersionCall & Disp-BskCall & $\max\left(0, \sigma(t) - K\right)$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+DispersionPut & Disp-BskPut & $\max\left(0, K - \sigma(t)\right)$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 \midrule
 \multicolumn{3}{c}{\textbf{RANK-BASED BASKET OPTIONS (4)}} \\
 \midrule
 BestOfKCall & BestK-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right)$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 WorstOfKPut & WorstK-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right)$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
-RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
-RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t) - K\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t)\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 \bottomrule
 \end{tabular}
@@ -982,44 +982,44 @@ DoubleStepBarrierRangePut & DStepB-Range-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutDispersionCall & UO-Disp-BskCall & $\begin{cases}
-\max\left(0, \text{Disp}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \sigma(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 UpAndOutDispersionPut & UO-Disp-BskPut & $\begin{cases}
-\max\left(0, K - \text{Disp}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \sigma(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 DownAndOutDispersionCall & DO-Disp-BskCall & $\begin{cases}
-\max\left(0, \text{Disp}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \sigma(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 DownAndOutDispersionPut & DO-Disp-BskPut & $\begin{cases}
-\max\left(0, K - \text{Disp}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \sigma(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 UpAndInDispersionCall & UI-Disp-BskCall & $\begin{cases}
-\max\left(0, \text{Disp}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \sigma(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 UpAndInDispersionPut & UI-Disp-BskPut & $\begin{cases}
-\max\left(0, K - \text{Disp}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \sigma(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 DownAndInDispersionCall & DI-Disp-BskCall & $\begin{cases}
-\max\left(0, \text{Disp}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \sigma(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 
 DownAndInDispersionPut & DI-Disp-BskPut & $\begin{cases}
-\max\left(0, K - \text{Disp}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \sigma(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $\text{Disp}(t) = \sum_{i=1}^d |S_i(t) - \overline{S}(t)|$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{DOUBLE BARRIER DISPERSION BASKET OPTIONS (8)}} \\
@@ -1256,9 +1256,9 @@ DoubleStepBarrierWorstOfKPut & DStepB-WorstK-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutRankWeightedBasketCall & UO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpAndOutRankWeightedBasketPut & UO-Rank-BskPut & $\begin{cases}
 \max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
