@@ -120,10 +120,16 @@ def extract_single_value_indexes(df):
     """Returns (df - single value indexes, description of removed params)."""
     global_params = []
     for index_name in df.index.names:
+        # Skip None index names (unnamed indices)
+        if index_name is None:
+            continue
+
         values = df.index.get_level_values(index_name)
         if len(values.unique()) == 1:
             global_params.append(f"{index_name} = {values[0]}")
             df = df.reset_index(index_name)
-            df = df.drop(columns=index_name)
+            # Only drop if the column exists (reset_index creates it)
+            if index_name in df.columns:
+                df = df.drop(columns=index_name)
     global_params_caption = ", ".join(global_params)
     return df, global_params_caption
