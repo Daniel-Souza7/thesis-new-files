@@ -149,6 +149,92 @@ class SRFQI:
         normalized_times = self._exercise_dates[self.split:] / nb_dates
         return float(np.mean(normalized_times))
 
+    def backward_induction_on_paths(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy using backward induction for path-dependent payoffs.
+
+        This is what should be used for create_video to replicate pricing behavior.
+        Uses backward induction (not forward simulation) with learned weights.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_dates: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+            price: float - Average discounted payoff
+        """
+        if not hasattr(self, 'weights'):
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+
+        # Store original for path-dependent payoff evaluation
+        stock_paths_original = stock_paths.copy()
+
+        # Compute all payoffs (path-dependent: need full history at each step)
+        payoffs = np.zeros((nb_paths, nb_dates + 1))
+        for date in range(nb_dates + 1):
+            path_history = stock_paths_original[:, :, :date + 1]  # Full history up to date
+            payoffs[:, date] = self.payoff.eval(path_history)
+
+        # Prepare stock paths for basis evaluation
+        if self.use_payoff_as_input:
+            stock_paths = np.concatenate(
+                [stock_paths, np.expand_dims(payoffs, axis=1)], axis=1
+            )
+
+        if self.use_var and var_paths is not None:
+            stock_paths = np.concatenate([stock_paths, var_paths], axis=1)
+
+        # Evaluate basis functions for all paths and dates
+        eval_bases = self.evaluate_bases_all(stock_paths)
+
+        # Compute continuation values using learned weights
+        continuation_values = np.dot(eval_bases, self.weights)
+
+        # Clip to non-negative (American option value can't be negative)
+        continuation_values = np.maximum(0, continuation_values)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Track exercise dates (initialize to maturity = nb_dates)
+        exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
+
+        deltaT = self.model.maturity / nb_dates
+        disc_factor = math.exp(-self.model.rate * deltaT)
+
+        # Backward induction from T-1 to 1
+        for date in range(nb_dates - 1, 0, -1):
+            # Current immediate exercise value
+            immediate_exercise = payoffs[:, date]
+
+            # Continuation value at this time step
+            cont_value = continuation_values[:, date]
+
+            # Discount future values
+            discounted_values = values * disc_factor
+
+            # Exercise decision: exercise if immediate > continuation
+            exercise_now = immediate_exercise > cont_value
+
+            # Update values
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Track exercise dates - only update if exercising earlier
+            exercise_dates[exercise_now] = date
+
+        # Extract payoff values at exercise time
+        payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
+
+        # Compute price (average discounted payoff)
+        price = np.mean(values)
+
+        return exercise_dates, payoff_values, price
+
     def price(self, train_eval_split=2):
         """
         Compute option price for path-dependent options using SRFQI.
@@ -237,6 +323,9 @@ class SRFQI:
 
             # Solve
             weights = np.linalg.solve(matrixU, vectorV)
+
+        # Store learned weights for later use
+        self.weights = weights
 
         # Final evaluation on all paths
         continuation_value = np.dot(eval_bases, weights)
