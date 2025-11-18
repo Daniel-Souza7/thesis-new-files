@@ -75,13 +75,19 @@ def validate_config(config):
         )
 
 
-def run_algorithm_for_video(config, nb_paths_for_video):
+def run_algorithm_for_video(config, nb_paths_to_display):
     """Run the algorithm and return paths, exercise decisions, and payoffs.
 
+    Args:
+        config: Config object
+        nb_paths_to_display: Number of paths to display in video (subset of total)
+
     Returns:
-        stock_paths: (nb_paths, nb_stocks, nb_dates+1) or (nb_paths, nb_dates+1)
-        exercise_times: (nb_paths,) - time step when each path exercised (0 to nb_dates)
-        payoff_values: (nb_paths,) - payoff value at exercise
+        stock_paths_display: (nb_paths_to_display, nb_stocks, nb_dates+1) - paths to display
+        exercise_times_display: (nb_paths_to_display,) - exercise times for displayed paths
+        payoff_values_display: (nb_paths_to_display,) - payoffs for displayed paths
+        exercise_times_all: (nb_paths_total,) - exercise times for ALL paths
+        payoff_values_all: (nb_paths_total,) - payoffs for ALL paths
         algo_name: str
         payoff_name: str
     """
@@ -172,43 +178,45 @@ def run_algorithm_for_video(config, nb_paths_for_video):
             print("Falling back to greedy strategy...")
             use_learned_policy = False
 
-    # Create stock model for VISUALIZATION (more paths for video)
+    # Create stock model for VISUALIZATION (use config nb_paths for accurate statistics)
+    nb_paths_total = config.nb_paths[0] if isinstance(config.nb_paths, (list, tuple)) else config.nb_paths
     video_model = BlackScholes(
         drift=drift,
         volatility=volatility,
         nb_stocks=nb_stocks,
-        nb_paths=nb_paths_for_video,
+        nb_paths=nb_paths_total,
         nb_dates=nb_dates,
         spot=spot,
         dividend=0,
         maturity=maturity
     )
 
-    # Generate paths for visualization
-    stock_paths, _ = video_model.generate_paths()
+    # Generate ALL paths for visualization
+    stock_paths_all, _ = video_model.generate_paths()
+    print(f"Generated {nb_paths_total} paths for accurate statistics...")
 
     # Get exercise decisions using learned policy or greedy fallback
     if use_learned_policy and hasattr(algo, 'backward_induction_on_paths'):
-        print(f"Applying learned {algo_name} policy via backward induction to {nb_paths_for_video} visualization paths...")
-        exercise_times, payoff_values, video_price = algo.backward_induction_on_paths(stock_paths)
+        print(f"Applying learned {algo_name} policy via backward induction to all {nb_paths_total} paths...")
+        exercise_times_all, payoff_values_all, video_price = algo.backward_induction_on_paths(stock_paths_all)
         print(f"  Price from backward induction on video paths: {video_price:.4f}")
     else:
         # Fallback: greedy strategy
-        print(f"Computing exercise decisions using greedy strategy...")
-        exercise_times = np.zeros(nb_paths_for_video, dtype=int)
-        payoff_values = np.zeros(nb_paths_for_video)
+        print(f"Computing exercise decisions using greedy strategy on all {nb_paths_total} paths...")
+        exercise_times_all = np.zeros(nb_paths_total, dtype=int)
+        payoff_values_all = np.zeros(nb_paths_total)
 
-        for path_idx in range(nb_paths_for_video):
+        for path_idx in range(nb_paths_total):
             max_payoff = 0
             best_time = nb_dates
 
             for t in range(nb_dates + 1):
                 if PayoffClass.is_path_dependent:
                     # Pass full history up to time t
-                    X_t = stock_paths[path_idx:path_idx+1, :, :t+1]
+                    X_t = stock_paths_all[path_idx:path_idx+1, :, :t+1]
                 else:
                     # Pass only current timestep
-                    X_t = stock_paths[path_idx:path_idx+1, :, t]
+                    X_t = stock_paths_all[path_idx:path_idx+1, :, t]
 
                 # Use eval() directly, not __call__()
                 payoff_now = payoff.eval(X_t)[0]
@@ -218,20 +226,31 @@ def run_algorithm_for_video(config, nb_paths_for_video):
                     max_payoff = payoff_now
                     best_time = t
 
-            exercise_times[path_idx] = best_time
-            payoff_values[path_idx] = max_payoff
+            exercise_times_all[path_idx] = best_time
+            payoff_values_all[path_idx] = max_payoff
 
-    return stock_paths, exercise_times, payoff_values, algo_name, payoff_name
+    # Take a subset for display in video
+    nb_display = min(nb_paths_to_display, nb_paths_total)
+    print(f"Displaying {nb_display} paths in video (out of {nb_paths_total} total)")
+    stock_paths_display = stock_paths_all[:nb_display]
+    exercise_times_display = exercise_times_all[:nb_display]
+    payoff_values_display = payoff_values_all[:nb_display]
+
+    return (stock_paths_display, exercise_times_display, payoff_values_display,
+            exercise_times_all, payoff_values_all, algo_name, payoff_name)
 
 
-def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, payoff_name, output_path):
+def create_video(config, stock_paths, exercise_times, payoff_values,
+                 exercise_times_all, payoff_values_all, algo_name, payoff_name, output_path):
     """Create animated video of optimal stopping decisions.
 
     Args:
         config: Config object
-        stock_paths: (nb_paths, nb_stocks, nb_dates+1) or (nb_paths, nb_dates+1)
-        exercise_times: (nb_paths,) - exercise time for each path
-        payoff_values: (nb_paths,) - payoff at exercise
+        stock_paths: (nb_paths_display, nb_stocks, nb_dates+1) - paths to display
+        exercise_times: (nb_paths_display,) - exercise times for displayed paths
+        payoff_values: (nb_paths_display,) - payoffs for displayed paths
+        exercise_times_all: (nb_paths_total,) - exercise times for ALL paths
+        payoff_values_all: (nb_paths_total,) - payoffs for ALL paths
         algo_name: str
         payoff_name: str
         output_path: Path to save video
@@ -251,10 +270,11 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     # Colors for different stocks
     colors = plt.cm.tab10(np.linspace(0, 1, nb_stocks))
 
-    # Calculate population statistics (to display on video)
+    # Calculate population statistics for DISPLAYED paths (to display on video)
     normalized_ex_times = exercise_times / nb_dates
     exercised_at_maturity = (exercise_times == nb_dates).sum()
-    pop_stats = {
+    pop_stats_display = {
+        'nb_paths': nb_paths,
         'avg_ex_time': normalized_ex_times.mean(),
         'pct_at_maturity': 100 * exercised_at_maturity / nb_paths,
         'avg_payoff': payoff_values.mean(),
@@ -262,14 +282,28 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
         'median_payoff': np.median(payoff_values)
     }
 
-    # Create figure with main plot, stats panel, and population stats panel
-    fig = plt.figure(figsize=(14, 9))
-    gs = fig.add_gridspec(3, 2, height_ratios=[3, 0.8, 0.8], width_ratios=[3, 1])
+    # Calculate population statistics for ALL paths
+    nb_paths_total = len(exercise_times_all)
+    normalized_ex_times_all = exercise_times_all / nb_dates
+    exercised_at_maturity_all = (exercise_times_all == nb_dates).sum()
+    pop_stats_all = {
+        'nb_paths': nb_paths_total,
+        'avg_ex_time': normalized_ex_times_all.mean(),
+        'pct_at_maturity': 100 * exercised_at_maturity_all / nb_paths_total,
+        'avg_payoff': payoff_values_all.mean(),
+        'std_payoff': payoff_values_all.std(),
+        'median_payoff': np.median(payoff_values_all)
+    }
+
+    # Create figure with main plot, stats panel, and TWO population stats panels
+    fig = plt.figure(figsize=(14, 10))
+    gs = fig.add_gridspec(4, 2, height_ratios=[3, 0.8, 0.6, 0.6], width_ratios=[3, 1])
 
     ax_main = fig.add_subplot(gs[0, :])
     ax_stats = fig.add_subplot(gs[1, 0])
     ax_payoff = fig.add_subplot(gs[1, 1])
-    ax_pop_stats = fig.add_subplot(gs[2, :])
+    ax_pop_stats_display = fig.add_subplot(gs[2, :])
+    ax_pop_stats_all = fig.add_subplot(gs[3, :])
 
     # Title
     strike = config.strikes[0] if isinstance(config.strikes, (list, tuple)) else config.strikes
@@ -326,19 +360,37 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     ax_payoff.grid(True, alpha=0.3)
     payoff_line, = ax_payoff.plot([], [], 'b-', linewidth=2)
 
-    # Population statistics text (overall stats for all paths)
-    pop_stats_text = ax_pop_stats.text(0.5, 0.5, '', transform=ax_pop_stats.transAxes,
-                                        fontsize=12, verticalalignment='center',
-                                        horizontalalignment='center',
-                                        fontfamily='monospace',
-                                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
-    pop_stats_str = (f"POPULATION STATISTICS (n={nb_paths} paths) | "
-                    f"Avg Exercise Time: {pop_stats['avg_ex_time']:.4f} | "
-                    f"@ Maturity: {pop_stats['pct_at_maturity']:.1f}% | "
-                    f"Avg Payoff: {pop_stats['avg_payoff']:.2f} ± {pop_stats['std_payoff']:.2f} | "
-                    f"Median: {pop_stats['median_payoff']:.2f}")
-    pop_stats_text.set_text(pop_stats_str)
-    ax_pop_stats.axis('off')
+    # Population statistics text for DISPLAYED paths
+    pop_stats_text_display = ax_pop_stats_display.text(
+        0.5, 0.5, '', transform=ax_pop_stats_display.transAxes,
+        fontsize=11, verticalalignment='center',
+        horizontalalignment='center',
+        fontfamily='monospace',
+        bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+    pop_stats_str_display = (
+        f"DISPLAYED PATHS (n={pop_stats_display['nb_paths']:,}) | "
+        f"Avg Ex Time: {pop_stats_display['avg_ex_time']:.4f} | "
+        f"@ Maturity: {pop_stats_display['pct_at_maturity']:.1f}% | "
+        f"Avg Payoff: {pop_stats_display['avg_payoff']:.2f} ± {pop_stats_display['std_payoff']:.2f} | "
+        f"Median: {pop_stats_display['median_payoff']:.2f}")
+    pop_stats_text_display.set_text(pop_stats_str_display)
+    ax_pop_stats_display.axis('off')
+
+    # Population statistics text for ALL paths
+    pop_stats_text_all = ax_pop_stats_all.text(
+        0.5, 0.5, '', transform=ax_pop_stats_all.transAxes,
+        fontsize=11, verticalalignment='center',
+        horizontalalignment='center',
+        fontfamily='monospace',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    pop_stats_str_all = (
+        f"ALL PATHS (n={pop_stats_all['nb_paths']:,}) | "
+        f"Avg Ex Time: {pop_stats_all['avg_ex_time']:.4f} | "
+        f"@ Maturity: {pop_stats_all['pct_at_maturity']:.1f}% | "
+        f"Avg Payoff: {pop_stats_all['avg_payoff']:.2f} ± {pop_stats_all['std_payoff']:.2f} | "
+        f"Median: {pop_stats_all['median_payoff']:.2f}")
+    pop_stats_text_all.set_text(pop_stats_str_all)
+    ax_pop_stats_all.axis('off')
 
     # Track cumulative statistics
     payoff_evolution = []
@@ -356,7 +408,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
         # pop_stats_text stays constant (already set above)
         return [l for path_lines in lines for l in path_lines] + \
                [m for markers in exercise_markers for m in markers] + \
-               [stats_text, payoff_line, pop_stats_text]
+               [stats_text, payoff_line, pop_stats_text_display, pop_stats_text_all]
 
     def animate(frame):
         """Update animation at frame (with smooth interpolation)."""
@@ -441,7 +493,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
 
         return [l for path_lines in lines for l in path_lines] + \
                [m for markers in exercise_markers for m in markers] + \
-               [stats_text, payoff_line, pop_stats_text]
+               [stats_text, payoff_line, pop_stats_text_display, pop_stats_text_all]
 
     # Create animation with smooth interpolation
     frames_per_step = 10
@@ -509,12 +561,14 @@ def main():
 
     # Determine number of paths
     nb_stocks = config.nb_stocks if isinstance(config.nb_stocks, int) else config.nb_stocks[0]
+    nb_paths_total = config.nb_paths[0] if isinstance(config.nb_paths, (list, tuple)) else config.nb_paths
+
     if args.nb_paths_to_plot is None:
         nb_paths_to_plot = max(200, 10 * nb_stocks)
     else:
         nb_paths_to_plot = args.nb_paths_to_plot
 
-    print(f"Will plot {nb_paths_to_plot} paths for {nb_stocks} stock(s)")
+    print(f"Will run backward induction on {nb_paths_total:,} paths and display {nb_paths_to_plot} in video")
 
     # Send start notification
     if TELEGRAM_ENABLED and args.send_telegram:
@@ -523,14 +577,17 @@ def main():
                 token=args.telegram_token,
                 text=f'🎬 Starting video creation...\n\n'
                      f'Config: {args.configs}\n'
-                     f'Paths: {nb_paths_to_plot}, Stocks: {nb_stocks}',
+                     f'Total paths: {nb_paths_total:,}\n'
+                     f'Displayed: {nb_paths_to_plot}\n'
+                     f'Stocks: {nb_stocks}',
                 chat_id=args.telegram_chat_id
             )
         except Exception as e:
             print(f"⚠️  Telegram notification failed: {e}")
 
     # Run algorithm
-    stock_paths, exercise_times, payoff_values, algo_name, payoff_name = \
+    (stock_paths, exercise_times, payoff_values,
+     exercise_times_all, payoff_values_all, algo_name, payoff_name) = \
         run_algorithm_for_video(config, nb_paths_to_plot)
 
     # Create output directory
@@ -544,6 +601,7 @@ def main():
     # Create video
     create_video(
         config, stock_paths, exercise_times, payoff_values,
+        exercise_times_all, payoff_values_all,
         algo_name, payoff_name, output_path
     )
 
@@ -553,21 +611,34 @@ def main():
     print(f"\n✓ Done! Video saved to: {output_path}")
     print(f"  Algo: {algo_name}")
     print(f"  Payoff: {payoff_name}")
-    print(f"  Paths: {nb_paths_to_plot}")
 
-    # Population statistics
+    # Population statistics for DISPLAYED paths
     normalized_ex_times = exercise_times / nb_dates
     exercised_at_maturity = (exercise_times == nb_dates).sum()
-    exercised_early = (exercise_times < nb_dates).sum()
+    nb_displayed = len(exercise_times)
 
-    print(f"\n{'='*60}")
-    print(f"POPULATION STATISTICS (n={nb_paths_to_plot} paths)")
-    print(f"{'='*60}")
+    # Population statistics for ALL paths
+    normalized_ex_times_all = exercise_times_all / nb_dates
+    exercised_at_maturity_all = (exercise_times_all == nb_dates).sum()
+    nb_total = len(exercise_times_all)
+
+    print(f"\n{'='*70}")
+    print(f"DISPLAYED PATHS STATISTICS (n={nb_displayed:,} paths)")
+    print(f"{'='*70}")
     print(f"  Avg Exercise Time:     {normalized_ex_times.mean():.4f} (normalized 0-1)")
-    print(f"  Exercise @ Maturity:   {exercised_at_maturity} ({100*exercised_at_maturity/nb_paths_to_plot:.1f}%)")
+    print(f"  Exercise @ Maturity:   {exercised_at_maturity} ({100*exercised_at_maturity/nb_displayed:.1f}%)")
     print(f"  Avg Payoff:            {payoff_values.mean():.4f} ± {payoff_values.std():.4f}")
     print(f"  Median Payoff:         {np.median(payoff_values):.4f}")
-    print(f"{'='*60}\n")
+    print(f"{'='*70}")
+
+    print(f"\n{'='*70}")
+    print(f"ALL PATHS STATISTICS (n={nb_total:,} paths)")
+    print(f"{'='*70}")
+    print(f"  Avg Exercise Time:     {normalized_ex_times_all.mean():.4f} (normalized 0-1)")
+    print(f"  Exercise @ Maturity:   {exercised_at_maturity_all} ({100*exercised_at_maturity_all/nb_total:.1f}%)")
+    print(f"  Avg Payoff:            {payoff_values_all.mean():.4f} ± {payoff_values_all.std():.4f}")
+    print(f"  Median Payoff:         {np.median(payoff_values_all):.4f}")
+    print(f"{'='*70}\n")
 
     # Send completion notification with video
     if TELEGRAM_ENABLED and args.send_telegram:
@@ -578,10 +649,12 @@ def main():
                      f'Config: {args.configs}\n'
                      f'Algo: {algo_name}\n'
                      f'Payoff: {payoff_name}\n'
-                     f'Paths: {nb_paths_to_plot}\n'
-                     f'Avg exercise: {normalized_ex_times.mean():.4f}\n'
-                     f'@ Maturity: {100*exercised_at_maturity/nb_paths_to_plot:.1f}%\n'
-                     f'Avg payoff: {payoff_values.mean():.2f}',
+                     f'Displayed: {nb_displayed:,} paths\n'
+                     f'Total: {nb_total:,} paths\n\n'
+                     f'ALL PATHS STATS:\n'
+                     f'Avg exercise: {normalized_ex_times_all.mean():.4f}\n'
+                     f'@ Maturity: {100*exercised_at_maturity_all/nb_total:.1f}%\n'
+                     f'Avg payoff: {payoff_values_all.mean():.2f}',
                 files=[str(output_path)],
                 chat_id=args.telegram_chat_id
             )
