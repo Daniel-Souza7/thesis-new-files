@@ -110,7 +110,12 @@ def debug_exercise_times():
 
     # Re-generate SAME paths (same seed)
     np.random.seed(seed)
-    stock_paths = model.generate_paths()
+    path_result = model.generate_paths()
+    if isinstance(path_result, tuple):
+        stock_paths, var_paths = path_result
+    else:
+        stock_paths = path_result
+        var_paths = None
 
     # Apply learned policy
     ex_times_pred, payoffs_pred = lsm.predict(stock_paths)
@@ -140,7 +145,11 @@ def debug_exercise_times():
 
     # Generate NEW paths (different seed)
     np.random.seed(seed + 1000)
-    stock_paths_new = model.generate_paths()
+    path_result = model.generate_paths()
+    if isinstance(path_result, tuple):
+        stock_paths_new, _ = path_result
+    else:
+        stock_paths_new = path_result
 
     # Apply learned policy
     ex_times_new, payoffs_new = lsm.predict(stock_paths_new)

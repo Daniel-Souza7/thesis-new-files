@@ -188,9 +188,10 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     stock_paths, _ = video_model.generate_paths()
 
     # Get exercise decisions using learned policy or greedy fallback
-    if use_learned_policy and hasattr(algo, 'predict'):
-        print(f"Applying learned {algo_name} policy to {nb_paths_for_video} visualization paths...")
-        exercise_times, payoff_values = algo.predict(stock_paths)
+    if use_learned_policy and hasattr(algo, 'backward_induction_on_paths'):
+        print(f"Applying learned {algo_name} policy via backward induction to {nb_paths_for_video} visualization paths...")
+        exercise_times, payoff_values, video_price = algo.backward_induction_on_paths(stock_paths)
+        print(f"  Price from backward induction on video paths: {video_price:.4f}")
     else:
         # Fallback: greedy strategy
         print(f"Computing exercise decisions using greedy strategy...")

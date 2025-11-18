@@ -263,6 +263,10 @@ class LeastSquaresPricer:
 
             continuation_values = np.dot(basis_matrix, coefficients)
 
+            # Clip continuation values to be non-negative (can't be negative for American options)
+            # This prevents spurious early exercise when polynomial regression produces negative values
+            continuation_values = np.maximum(0, continuation_values)
+
             # Exercise decision: exercise if immediate > continuation
             exercise_now = immediate_exercise > continuation_values
 
@@ -276,6 +280,92 @@ class LeastSquaresPricer:
                 exercised[exercise_indices] = True
 
         return exercise_times, payoff_values
+
+    def backward_induction_on_paths(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy using backward induction (same as training).
+
+        This is what should be used for create_video to replicate pricing behavior.
+        Uses backward induction (not forward simulation) with learned coefficients.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_times: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+            price: float - Average discounted payoff
+        """
+        if not self._learned_coefficients:
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+
+        # Compute all payoffs upfront
+        payoffs = self.payoff(stock_paths)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Track exercise dates (initialize to maturity = nb_dates)
+        exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
+
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
+
+        # Backward induction from T-1 to 1 (same as in price())
+        for date in range(nb_dates - 1, 0, -1):
+            # Skip if no coefficients learned for this time step
+            if date not in self._learned_coefficients:
+                continue
+
+            # Current immediate exercise value
+            immediate_exercise = payoffs[:, date]
+
+            # Prepare state
+            current_state = stock_paths[:, :, date]
+
+            if self.use_payoff_as_input:
+                current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
+
+            if self.use_var and var_paths is not None:
+                current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            # Get learned coefficients for this time step
+            coefficients = self._learned_coefficients[date]
+
+            # Evaluate basis functions for all paths
+            basis_matrix = np.zeros((nb_paths, self.nb_base_fcts))
+            for i in range(nb_paths):
+                for j in range(self.nb_base_fcts):
+                    basis_matrix[i, j] = self.basis.base_fct(j, current_state[i])
+
+            # Compute continuation values
+            continuation_values = np.dot(basis_matrix, coefficients)
+
+            # Clip to non-negative (American option value can't be negative)
+            continuation_values = np.maximum(0, continuation_values)
+
+            # Discount future values
+            discounted_values = values * disc_factor
+
+            # Exercise decision: exercise if immediate > continuation
+            exercise_now = immediate_exercise > continuation_values
+
+            # Update values
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Track exercise dates - only update if exercising earlier
+            exercise_dates[exercise_now] = date
+
+        # Extract payoff values at exercise time
+        payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
+
+        # Compute price (average discounted payoff)
+        price = np.mean(values)
+
+        return exercise_dates, payoff_values, price
 
 
 class LeastSquarePricerDeg1(LeastSquaresPricer):
