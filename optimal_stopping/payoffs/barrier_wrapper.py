@@ -66,7 +66,12 @@ class BarrierPayoff(Payoff):
         self.base_payoff.initial_prices = X[:, :, 0]
 
         # Evaluate base payoff at maturity
-        base_value = self.base_payoff.eval(X[:, :, -1])
+        if self.base_payoff.is_path_dependent:
+            # Path-dependent payoffs need the full path history
+            base_value = self.base_payoff.eval(X)
+        else:
+            # Standard payoffs only need the final price
+            base_value = self.base_payoff.eval(X[:, :, -1])
 
         # Check barrier conditions
         barrier_active = self._check_barrier(X)
@@ -160,9 +165,10 @@ class BarrierPayoff(Payoff):
         # Compute time-varying barrier
         if self.step_param1 is None or self.step_param2 is None:
             # Default: grow at risk-free rate
-            # B(t) = B(0) * exp(rate * maturity * t / nb_dates) for t = 0, 1, ..., nb_dates-1
+            # B(t) = B(0) * exp(rate * maturity * t / (nb_dates-1)) for t = 0, 1, ..., nb_dates-1
             time_steps = np.arange(nb_dates)  # Shape: (nb_dates,)
-            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)  # (nb_dates,)
+            # Use (nb_dates - 1) to ensure last step reaches maturity correctly
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / (nb_dates - 1))  # (nb_dates,)
             # Broadcast to (nb_paths, nb_dates)
             time_varying_barrier = self.barrier * growth_factor[np.newaxis, :]
         else:
@@ -201,7 +207,8 @@ class BarrierPayoff(Payoff):
         if self.step_param1 is None or self.step_param2 is None:
             # Default: lower barrier grows at risk-free rate
             time_steps = np.arange(nb_dates)
-            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)
+            # Use (nb_dates - 1) to ensure last step reaches maturity correctly
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / (nb_dates - 1))
             barrier_lower = self.barrier_down * growth_factor[np.newaxis, :]  # (nb_paths, nb_dates)
         else:
             # User-specified: cumulative random walk
@@ -215,7 +222,8 @@ class BarrierPayoff(Payoff):
         if self.step_param3 is None or self.step_param4 is None:
             # Default: upper barrier grows at risk-free rate
             time_steps = np.arange(nb_dates)
-            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)
+            # Use (nb_dates - 1) to ensure last step reaches maturity correctly
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / (nb_dates - 1))
             barrier_upper = self.barrier_up * growth_factor[np.newaxis, :]  # (nb_paths, nb_dates)
         else:
             # User-specified: cumulative random walk

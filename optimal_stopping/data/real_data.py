@@ -111,11 +111,21 @@ class RealDataModel(Model):
                     volatility_override = vol_val
 
         # Base Model class requires drift and volatility for calculations
-        # If None, provide sensible defaults (will use empirical values later)
-        if 'drift' not in kwargs or kwargs.get('drift') is None:
+        # Extract from tuple if needed
+        if isinstance(kwargs.get('drift'), (tuple, list)):
+            drift_first = kwargs['drift'][0] if len(kwargs['drift']) > 0 else None
+            kwargs['drift'] = drift_first if drift_first is not None else 0.05
+        elif 'drift' not in kwargs or kwargs.get('drift') is None:
             kwargs['drift'] = 0.05  # Default 5% annual drift for base class
-        if 'volatility' not in kwargs or kwargs.get('volatility') is None:
+
+        if isinstance(kwargs.get('volatility'), (tuple, list)):
+            vol_first = kwargs['volatility'][0] if len(kwargs['volatility']) > 0 else None
+            kwargs['volatility'] = vol_first if vol_first is not None else 0.2
+        elif 'volatility' not in kwargs or kwargs.get('volatility') is None:
             kwargs['volatility'] = 0.2  # Default 20% annual volatility for base class
+
+        # Add name parameter for base class
+        kwargs['name'] = 'RealData'
 
         # Initialize base class
         super().__init__(**kwargs)

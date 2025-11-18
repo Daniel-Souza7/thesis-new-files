@@ -22,7 +22,16 @@ class BestOfKCall(Payoff):
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
+        nb_paths, nb_stocks = X.shape
         k = self.params.get('k', 2)
+
+        # Validate k
+        if not isinstance(k, (int, np.integer)):
+            raise ValueError(f"k must be an integer, got {type(k).__name__}")
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
+        if k > nb_stocks:
+            raise ValueError(f"k ({k}) cannot exceed number of stocks ({nb_stocks})")
 
         # Sort prices in descending order and take top k
         sorted_prices = np.sort(X, axis=1)[:, ::-1]  # Descending
@@ -47,7 +56,16 @@ class WorstOfKPut(Payoff):
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
+        nb_paths, nb_stocks = X.shape
         k = self.params.get('k', 2)
+
+        # Validate k
+        if not isinstance(k, (int, np.integer)):
+            raise ValueError(f"k must be an integer, got {type(k).__name__}")
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
+        if k > nb_stocks:
+            raise ValueError(f"k ({k}) cannot exceed number of stocks ({nb_stocks})")
 
         # Sort prices in ascending order and take bottom k
         sorted_prices = np.sort(X, axis=1)  # Ascending
@@ -82,10 +100,24 @@ class RankWeightedBasketCall(Payoff):
         k = self.params.get('k', 2)
         weights = self.params.get('weights', None)
 
+        # Validate k
+        if not isinstance(k, (int, np.integer)):
+            raise ValueError(f"k must be an integer, got {type(k).__name__}")
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
+        if k > nb_stocks:
+            raise ValueError(f"k ({k}) cannot exceed number of stocks ({nb_stocks})")
+
         # Default weights: equal weights that sum to 1
         if weights is None:
             weights = np.ones(k) / k
         weights = np.array(weights)
+
+        # Validate weights
+        if len(weights) != k:
+            raise ValueError(f"Length of weights ({len(weights)}) must equal k ({k})")
+        if np.any(weights < 0):
+            raise ValueError(f"All weights must be non-negative, got min={np.min(weights)}")
 
         # Normalize weights to sum to 1 if they don't already
         weight_sum = np.sum(weights)
@@ -128,10 +160,24 @@ class RankWeightedBasketPut(Payoff):
         k = self.params.get('k', 2)
         weights = self.params.get('weights', None)
 
+        # Validate k
+        if not isinstance(k, (int, np.integer)):
+            raise ValueError(f"k must be an integer, got {type(k).__name__}")
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
+        if k > nb_stocks:
+            raise ValueError(f"k ({k}) cannot exceed number of stocks ({nb_stocks})")
+
         # Default weights: equal weights that sum to 1
         if weights is None:
             weights = np.ones(k) / k
         weights = np.array(weights)
+
+        # Validate weights
+        if len(weights) != k:
+            raise ValueError(f"Length of weights ({len(weights)}) must equal k ({k})")
+        if np.any(weights < 0):
+            raise ValueError(f"All weights must be non-negative, got min={np.min(weights)}")
 
         # Normalize weights to sum to 1 if they don't already
         weight_sum = np.sum(weights)

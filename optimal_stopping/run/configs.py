@@ -61,8 +61,8 @@ class _DefaultConfig:
   train_ITM_only: Iterable[bool] = (True,)
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
-  barriers: Iterable[float] = (1,)  # Barrier level (None = use default)
-  barriers_up: Iterable[float] = (1,)  # Upper barrier level for double barriers
+  barriers: Iterable[float] = (100000,)  # Barrier level (100000 = standard payoff, lower values activate barriers)
+  barriers_up: Iterable[float] = (100000,)  # Upper barrier level for double barriers
   barriers_down: Iterable[float] = (1,)  # Lower barrier level for double barriers
   k: Iterable[int] = (2,)  # Number of assets for best-of-k/worst-of-k options
   weights: Iterable[tuple] = (None,)  # Custom weights for rank-weighted options (None = use formula)

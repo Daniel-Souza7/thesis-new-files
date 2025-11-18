@@ -176,6 +176,16 @@ class FractionalBlackScholes(Model):
         self.hurst = hurst
         self.fBM = FBM(n=nb_dates, hurst=self.hurst, length=maturity, method='cholesky')
 
+    def drift_fct(self, x, t):
+        """Drift function for fractional Black-Scholes."""
+        del t  # Not used
+        return self.drift * x
+
+    def diffusion_fct(self, x, t, v=0):
+        """Diffusion function for fractional Black-Scholes."""
+        del t  # Not used
+        return self.volatility * x
+
     def generate_one_path(self):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
         path = np.empty((self.nb_stocks, self.nb_dates + 1))
@@ -591,6 +601,14 @@ except ImportError:
     _HAS_REAL_DATA = False
     RealDataModel = None
 
+# Import UserDataModel (always available - uses pandas only)
+try:
+    from optimal_stopping.data.user_data_model import UserDataModel
+    _HAS_USER_DATA = True
+except ImportError:
+    _HAS_USER_DATA = False
+    UserDataModel = None
+
 STOCK_MODELS = {
     "BlackScholes": BlackScholes,
     'FractionalBlackScholes': FractionalBlackScholes,
@@ -605,6 +623,10 @@ STOCK_MODELS = {
 # Add RealData if available
 if _HAS_REAL_DATA:
     STOCK_MODELS["RealData"] = RealDataModel
+
+# Add UserData if available
+if _HAS_USER_DATA:
+    STOCK_MODELS["UserData"] = UserDataModel
 
 
 # ==============================================================================
