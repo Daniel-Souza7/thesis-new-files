@@ -70,10 +70,10 @@ AsianFloatingStrikeCall & AsianFl-BskCall & $\max\left(0, \overline{S}(t) - \fra
 AsianFloatingStrikePut & AsianFl-BskPut & $\max\left(0, \frac{1}{t}\sum_{k=1}^t \overline{S}(\tau_k) - \overline{S}(t)\right)$ where $\overline{S}(\tau_k) = \frac{1}{d}\sum_{i=1}^d S_i(\tau_k)$ \\
 \midrule
 
-\multicolumn{3}{c}{\textbf{RANGE \& DISPERSION BASKET OPTIONS (4)}} \\
+\multicolumn{3}{c}{\textbf{MAXDISPERSION \& DISPERSION BASKET OPTIONS (4)}} \\
 \midrule
-RangeCall & Range-BskCall & $\max\left(0, \max_i S_i(t) - \min_i S_i(t) - K\right)$ \\
-RangePut & Range-BskPut & $\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right)$ \\
+MaxDispersionCall & MaxDisp-BskCall & $\max\left(0, \max_i S_i(t) - \min_i S_i(t) - K\right)$ \\
+MaxDispersionPut & MaxDisp-BskPut & $\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right)$ \\
 DispersionCall & Disp-BskCall & $\max\left(0, \sigma(t) - K\right)$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 DispersionPut & Disp-BskPut & $\max\left(0, K - \sigma(t)\right)$ where $\sigma(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(S_i(t) - \overline{S}(t)\right)^2}$ and $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 \midrule
@@ -831,9 +831,9 @@ DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-BskPut & $\begin{cases}
 
 \clearpage
 
-\section{Barriers on Range \& Dispersion Basket Options}
+\section{Barriers on MaxDispersion \& Dispersion Basket Options}
 
-\subsection{Range-BskCall and Range-BskPut}
+\subsection{MaxDisp-BskCall and MaxDisp-BskPut}
 \begin{table}[!htbp]
 \centering
 \tiny
@@ -842,89 +842,89 @@ DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-BskPut & $\begin{cases}
 \toprule
 \textbf{Payoff Name} & \textbf{Abbreviation} & \textbf{Formula} \\
 \midrule
-\multicolumn{3}{c}{\textbf{SINGLE BARRIER RANGE BASKET OPTIONS (8)}} \\
+\multicolumn{3}{c}{\textbf{SINGLE BARRIER MAXDISPERSION BASKET OPTIONS (8)}} \\
 \midrule
 
-UpAndOutRangeCall & UO-Range-BskCall & $\begin{cases}
+UpAndOutMaxDispersionCall & UO-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpAndOutRangePut & UO-Range-BskPut & $\begin{cases}
+UpAndOutMaxDispersionPut & UO-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DownAndOutRangeCall & DO-Range-BskCall & $\begin{cases}
+DownAndOutMaxDispersionCall & DO-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DownAndOutRangePut & DO-Range-BskPut & $\begin{cases}
+DownAndOutMaxDispersionPut & DO-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpAndInRangeCall & UI-Range-BskCall & $\begin{cases}
+UpAndInMaxDispersionCall & UI-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpAndInRangePut & UI-Range-BskPut & $\begin{cases}
+UpAndInMaxDispersionPut & UI-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DownAndInRangeCall & DI-Range-BskCall & $\begin{cases}
+DownAndInMaxDispersionCall & DI-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DownAndInRangePut & DI-Range-BskPut & $\begin{cases}
+DownAndInMaxDispersionPut & DI-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 \midrule
 
-\multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANGE BASKET OPTIONS (8)}} \\
+\multicolumn{3}{c}{\textbf{DOUBLE BARRIER MAXDISPERSION BASKET OPTIONS (8)}} \\
 \midrule
 
-DoubleKnockOutRangeCall & UODO-Range-BskCall & $\begin{cases}
+DoubleKnockOutMaxDispersionCall & UODO-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DoubleKnockOutRangePut & UODO-Range-BskPut & $\begin{cases}
+DoubleKnockOutMaxDispersionPut & UODO-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DoubleKnockInRangeCall & UIDI-Range-BskCall & $\begin{cases}
+DoubleKnockInMaxDispersionCall & UIDI-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DoubleKnockInRangePut & UIDI-Range-BskPut & $\begin{cases}
+DoubleKnockInMaxDispersionPut & UIDI-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpInDownOutRangeCall & UIDO-Range-BskCall & $\begin{cases}
+UpInDownOutMaxDispersionCall & UIDO-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpInDownOutRangePut & UIDO-Range-BskPut & $\begin{cases}
+UpInDownOutMaxDispersionPut & UIDO-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpOutDownInRangeCall & UODI-Range-BskCall & $\begin{cases}
+UpOutDownInMaxDispersionCall & UODI-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-UpOutDownInRangePut & UODI-Range-BskPut & $\begin{cases}
+UpOutDownInMaxDispersionPut & UODI-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
@@ -933,32 +933,32 @@ UpOutDownInRangePut & UODI-Range-BskPut & $\begin{cases}
 \multicolumn{3}{c}{\textbf{CUSTOM RANGE BASKET BARRIER OPTIONS (6)}} \\
 \midrule
 
-PartialTimeBarrierRangeCall & PTB-Range-BskCall & $\begin{cases}
+PartialTimeBarrierMaxDispersionCall & PTB-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-PartialTimeBarrierRangePut & PTB-Range-BskPut & $\begin{cases}
+PartialTimeBarrierMaxDispersionPut & PTB-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-StepBarrierRangeCall & StepB-Range-BskCall & $\begin{cases}
+StepBarrierMaxDispersionCall & StepB-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-StepBarrierRangePut & StepB-Range-BskPut & $\begin{cases}
+StepBarrierMaxDispersionPut & StepB-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DoubleStepBarrierRangeCall & DStepB-Range-BskCall & $\begin{cases}
+DoubleStepBarrierMaxDispersionCall & DStepB-MaxDisp-BskCall & $\begin{cases}
 \max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
-DoubleStepBarrierRangePut & DStepB-Range-BskPut & $\begin{cases}
+DoubleStepBarrierMaxDispersionPut & DStepB-MaxDisp-BskPut & $\begin{cases}
 \max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\

@@ -36,22 +36,22 @@ def update_max_min_barriers(content):
     return content, count
 
 def update_range_basket_barriers(content):
-    """Update RangeBasket barrier variants."""
+    """Update MaxDispersion basket barrier variants."""
     count = 0
 
-    # Pattern for RangeCall: max(0, [max_i S_i(t) - min_i S_i(t)] - K)
+    # Pattern for MaxDispersionCall: max(0, [max_i S_i(t) - min_i S_i(t)] - K)
     pattern1 = r'(\\left\[)\\max_i S_i\(t\)\s*-\s*\\min_i S_i\(t\)(\\right\]\s*-\s*K)'
     replacement1 = r'\1\\max_i \\frac{S_i(t)}{S_i(0)} - \\min_i \\frac{S_i(t)}{S_i(0)}\2'
     content, n1 = re.subn(pattern1, replacement1, content)
     count += n1
 
-    # Pattern for RangePut: max(0, K - [max_i S_i(t) - min_i S_i(t)])
+    # Pattern for MaxDispersionPut: max(0, K - [max_i S_i(t) - min_i S_i(t)])
     pattern2 = r'(K\s*-\s*\\left\[)\\max_i S_i\(t\)\s*-\s*\\min_i S_i\(t\)(\\right\])'
     replacement2 = r'\1\\max_i \\frac{S_i(t)}{S_i(0)} - \\min_i \\frac{S_i(t)}{S_i(0)}\2'
     content, n2 = re.subn(pattern2, replacement2, content)
     count += n2
 
-    print(f"  RangeCall: {n1}, RangePut: {n2}")
+    print(f"  MaxDispersionCall: {n1}, MaxDispersionPut: {n2}")
     return content, count
 
 def update_dispersion_barriers(content):
@@ -150,7 +150,7 @@ def main():
     content, count = update_max_min_barriers(content)
     total_count += count
 
-    print("Updating RangeBasket barriers...")
+    print("Updating MaxDispersion basket barriers...")
     content, count = update_range_basket_barriers(content)
     total_count += count
 

@@ -1384,7 +1384,7 @@ quick_test_advanced = _DefaultConfig(
         # Lookback
         'LookbackFixedCall', 'LookbackFloatPut',
         # Range (path-dependent)
-        'RangeCall', 'RangeCall_Single',
+        'MaxDispersionCall', 'RangeCall_Single',
     ],
     nb_stocks=[3],
     nb_paths=[2000],
@@ -1496,7 +1496,7 @@ validation_large_basket = _DefaultConfig(
         # Rank
         'BestOfKCall', 'WorstOfKPut',
         # Range/Dispersion
-        'RangeCall', 'DispersionCall',
+        'MaxDispersionCall', 'DispersionCall',
         # Barriers
         'UO_BasketCall', 'DO_BasketPut', 'UODO_BasketCall',
     ],

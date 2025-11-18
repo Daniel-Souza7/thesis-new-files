@@ -1,7 +1,7 @@
 """
-Range & Dispersion basket option payoffs (d > 1).
+MaxDispersion & Dispersion basket option payoffs (d > 1).
 
-Range options are PATH-DEPENDENT (need max/min over time).
+MaxDispersion options are PATH-DEPENDENT (need max/min over time).
 Dispersion options are NOT path-dependent (based on current prices only).
 """
 
@@ -9,9 +9,9 @@ import numpy as np
 from .payoff import Payoff
 
 
-class RangeCall(Payoff):
-    """Range Call: max(0, [max_i(S_i) - min_i(S_i)] - K)"""
-    abbreviation = "Range-BskCall"
+class MaxDispersionCall(Payoff):
+    """MaxDispersion Call: max(0, [max_i(S_i) - min_i(S_i)] - K)"""
+    abbreviation = "MaxDisp-BskCall"
     is_path_dependent = True
 
     def eval(self, X):
@@ -23,9 +23,9 @@ class RangeCall(Payoff):
         return np.maximum(0, range_value - self.strike)
 
 
-class RangePut(Payoff):
-    """Range Put: max(0, K - [max_i(S_i) - min_i(S_i)])"""
-    abbreviation = "Range-BskPut"
+class MaxDispersionPut(Payoff):
+    """MaxDispersion Put: max(0, K - [max_i(S_i) - min_i(S_i)])"""
+    abbreviation = "MaxDisp-BskPut"
     is_path_dependent = True
 
     def eval(self, X):

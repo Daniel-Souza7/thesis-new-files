@@ -29,7 +29,7 @@ from .basket_asian import (
 
 # Import basket range & dispersion payoffs (4)
 from .basket_range_dispersion import (
-    RangeCall, RangePut,
+    MaxDispersionCall, MaxDispersionPut,
     DispersionCall, DispersionPut
 )
 
@@ -73,7 +73,7 @@ _BASE_PAYOFFS = [
     AsianFloatingStrikeCall, AsianFloatingStrikePut,
 
     # Basket Range & Dispersion (4)
-    RangeCall, RangePut,
+    MaxDispersionCall, MaxDispersionPut,
     DispersionCall, DispersionPut,
 
     # Basket Rank (4)
@@ -124,7 +124,7 @@ __all__ = [
     'AsianFloatingStrikeCall', 'AsianFloatingStrikePut',
 
     # Basket Range & Dispersion
-    'RangeCall', 'RangePut',
+    'MaxDispersionCall', 'MaxDispersionPut',
     'DispersionCall', 'DispersionPut',
 
     # Basket Rank
@@ -162,9 +162,9 @@ def print_payoff_summary():
     print(f"   Total payoffs:   {len(payoffs)}")
 
     # Count by category
-    basket_simple = [p for p in base_payoffs if any(x in p for x in ['Basket', 'Geometric', 'Max', 'Min']) and 'Asian' not in p and 'Range' not in p and 'Rank' not in p]
+    basket_simple = [p for p in base_payoffs if any(x in p for x in ['Basket', 'Geometric', 'Max', 'Min']) and 'Asian' not in p and 'MaxDisp' not in p and 'Rank' not in p]
     basket_asian = [p for p in base_payoffs if 'Asian' in p and ('Bsk' in p or 'Basket' in p or 'Fixed' in p or 'Floating' in p)]
-    basket_other = [p for p in base_payoffs if any(x in p for x in ['Range', 'Disp', 'Best', 'Worst', 'Rank'])]
+    basket_other = [p for p in base_payoffs if any(x in p for x in ['MaxDisp', 'Disp', 'Best', 'Worst', 'Rank'])]
 
     single_simple = [p for p in base_payoffs if p in ['Call', 'Put']]
     single_lookback = [p for p in base_payoffs if 'Lookback' in p or 'LB' in p]
