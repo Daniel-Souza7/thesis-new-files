@@ -47,6 +47,9 @@ class LeastSquaresPricer:
         self.basis = basis_functions.BasisFunctions(state_size)
         self.nb_base_fcts = self.basis.nb_base_fcts
 
+        # Storage for learned policy (coefficients at each time step)
+        self._learned_coefficients = {}  # {time_step: coefficients}
+
     def price(self, train_eval_split=2):
         """
         Compute option price using LSM backward induction.
@@ -89,6 +92,9 @@ class LeastSquaresPricer:
         # Track exercise dates (initialize to maturity)
         self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
 
+        # Clear previous learned policy and prepare to store new one
+        self._learned_coefficients = {}
+
         # Backward induction from T-1 to 1
         for date in range(self.model.nb_dates - 1, 0, -1):
             # Current immediate exercise value
@@ -107,9 +113,12 @@ class LeastSquaresPricer:
             discounted_values = values * disc_factor
 
             # Learn continuation value using least squares regression
-            continuation_values = self._learn_continuation(
+            continuation_values, coefficients = self._learn_continuation(
                 current_state, discounted_values, immediate_exercise
             )
+
+            # Store learned coefficients for this time step
+            self._learned_coefficients[date] = coefficients
 
             # Update values: max(exercise now, continue)
             exercise_now = immediate_exercise > continuation_values
@@ -134,6 +143,7 @@ class LeastSquaresPricer:
 
         Returns:
             continuation_values: (nb_paths,) - Estimated continuation values
+            coefficients: (nb_base_fcts,) - Learned regression coefficients
         """
         # Determine which paths are ITM
         if self.train_ITM_only:
@@ -147,6 +157,7 @@ class LeastSquaresPricer:
         # This prevents noisy extrapolation for OTM paths
         nb_paths = current_state.shape[0]
         continuation_values = np.zeros(nb_paths)
+        coefficients = np.zeros(self.nb_base_fcts)  # Default to zero coefficients
 
         # Only compute continuation values for ITM paths
         if itm_mask.sum() > 0:
@@ -176,7 +187,7 @@ class LeastSquaresPricer:
                 # Predict continuation values for all ITM paths
                 continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
 
-        return continuation_values
+        return continuation_values, coefficients
 
     def get_exercise_time(self):
         """Return average exercise time normalized to [0, 1] (evaluation set only)."""
@@ -187,6 +198,84 @@ class LeastSquaresPricer:
         # Only use evaluation set paths (self.split:), not training paths
         normalized_times = self._exercise_dates[self.split:] / nb_dates
         return float(np.mean(normalized_times))
+
+    def predict(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy to new stock paths.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_times: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+        """
+        if not self._learned_coefficients:
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+
+        # Compute all payoffs upfront
+        payoffs = self.payoff(stock_paths)
+
+        # Initialize tracking
+        exercise_times = np.full(nb_paths, nb_dates - 1, dtype=int)  # Default to maturity
+        payoff_values = payoffs[:, -1].copy()  # Default to terminal payoff
+        exercised = np.zeros(nb_paths, dtype=bool)  # Track which paths already exercised
+
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
+
+        # Forward simulation: check exercise decision at each time step
+        for date in range(1, nb_dates):  # Start from 1, not 0
+            # Skip if no coefficients learned for this time step
+            if date not in self._learned_coefficients:
+                continue
+
+            # Only process paths that haven't exercised yet
+            active_mask = ~exercised
+
+            if active_mask.sum() == 0:
+                break  # All paths exercised
+
+            # Get immediate exercise value
+            immediate_exercise = payoffs[active_mask, date]
+
+            # Prepare state for continuation value prediction
+            current_state = stock_paths[active_mask, :, date]
+
+            if self.use_payoff_as_input:
+                current_state = np.concatenate([current_state, payoffs[active_mask, date:date+1]], axis=1)
+
+            if self.use_var and var_paths is not None:
+                current_state = np.concatenate([current_state, var_paths[active_mask, :, date]], axis=1)
+
+            # Predict continuation value using learned coefficients
+            coefficients = self._learned_coefficients[date]
+            nb_active = active_mask.sum()
+
+            # Evaluate basis functions
+            basis_matrix = np.zeros((nb_active, self.nb_base_fcts))
+            for i in range(nb_active):
+                for j in range(self.nb_base_fcts):
+                    basis_matrix[i, j] = self.basis.base_fct(j, current_state[i])
+
+            continuation_values = np.dot(basis_matrix, coefficients)
+
+            # Exercise decision: exercise if immediate > continuation
+            exercise_now = immediate_exercise > continuation_values
+
+            if exercise_now.sum() > 0:
+                # Update exercise info for paths that choose to exercise
+                active_indices = np.where(active_mask)[0]
+                exercise_indices = active_indices[exercise_now]
+
+                exercise_times[exercise_indices] = date
+                payoff_values[exercise_indices] = immediate_exercise[exercise_now]
+                exercised[exercise_indices] = True
+
+        return exercise_times, payoff_values
 
 
 class LeastSquarePricerDeg1(LeastSquaresPricer):

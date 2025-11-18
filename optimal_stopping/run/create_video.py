@@ -109,22 +109,6 @@ def run_algorithm_for_video(config, nb_paths_for_video):
     use_payoff_as_input = config.use_payoff_as_input[0] if isinstance(config.use_payoff_as_input, (list, tuple)) else config.use_payoff_as_input
     train_ITM_only = config.train_ITM_only[0] if isinstance(config.train_ITM_only, (list, tuple)) else config.train_ITM_only
 
-    # Create stock model (using stock_model.py API)
-    maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
-    stock_model_obj = BlackScholes(
-        drift=drift,
-        volatility=volatility,
-        nb_stocks=nb_stocks,
-        nb_paths=nb_paths_for_video,
-        nb_dates=nb_dates,
-        spot=spot,
-        dividend=0,
-        maturity=maturity
-    )
-
-    # Generate paths
-    stock_paths, _ = stock_model_obj.generate_paths()
-
     # Create payoff with barrier parameters if needed
     payoff_params = {}
     if 'barrier' in payoff_name.lower():
@@ -148,38 +132,93 @@ def run_algorithm_for_video(config, nb_paths_for_video):
         **payoff_params
     )
 
-    print(f"Computing exercise decisions for {payoff_name} using greedy strategy...")
-    # Note: RL algorithms (RLSM/RFQI) don't expose a fit/predict interface suitable for
-    # path-by-path exercise decisions. For visualization purposes, we use a greedy strategy:
-    # exercise at the time that maximizes payoff. This still provides useful insights
-    # into optimal stopping behavior.
+    # Create stock model for TRAINING (smaller number of paths)
+    maturity = config.maturities[0] if isinstance(config.maturities, (list, tuple)) else config.maturities
+    nb_training_paths = config.nb_paths[0] if isinstance(config.nb_paths, (list, tuple)) else config.nb_paths
 
-    exercise_times = np.zeros(nb_paths_for_video, dtype=int)
-    payoff_values = np.zeros(nb_paths_for_video)
+    train_model = BlackScholes(
+        drift=drift,
+        volatility=volatility,
+        nb_stocks=nb_stocks,
+        nb_paths=nb_training_paths,
+        nb_dates=nb_dates,
+        spot=spot,
+        dividend=0,
+        maturity=maturity
+    )
 
-    # Greedy strategy: exercise when payoff is maximized
-    for path_idx in range(nb_paths_for_video):
-        max_payoff = 0
-        best_time = nb_dates
+    # Create and train the algorithm
+    print(f"Training {algo_name} on {nb_training_paths} paths...")
+    if algo_name == "EOP":
+        # EOP doesn't learn a policy, use greedy fallback
+        print(f"EOP has no learned policy, using greedy strategy for {payoff_name}...")
+        use_learned_policy = False
+    else:
+        try:
+            algo = Algo(
+                train_model, payoff,
+                hidden_size=hidden_size,
+                nb_epochs=nb_epochs,
+                factors=factors,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+            # Train the algorithm
+            price, _ = algo.price()
+            print(f"Trained! Price: {price:.4f}")
+            use_learned_policy = True
+        except Exception as e:
+            print(f"Warning: Failed to train {algo_name}: {e}")
+            print("Falling back to greedy strategy...")
+            use_learned_policy = False
 
-        for t in range(nb_dates + 1):
-            if PayoffClass.is_path_dependent:
-                # Pass full history up to time t
-                X_t = stock_paths[path_idx:path_idx+1, :, :t+1]
-            else:
-                # Pass only current timestep
-                X_t = stock_paths[path_idx:path_idx+1, :, t]
+    # Create stock model for VISUALIZATION (more paths for video)
+    video_model = BlackScholes(
+        drift=drift,
+        volatility=volatility,
+        nb_stocks=nb_stocks,
+        nb_paths=nb_paths_for_video,
+        nb_dates=nb_dates,
+        spot=spot,
+        dividend=0,
+        maturity=maturity
+    )
 
-            # Use eval() directly, not __call__()
-            payoff_now = payoff.eval(X_t)[0]
+    # Generate paths for visualization
+    stock_paths, _ = video_model.generate_paths()
 
-            # Track maximum payoff
-            if payoff_now > max_payoff:
-                max_payoff = payoff_now
-                best_time = t
+    # Get exercise decisions using learned policy or greedy fallback
+    if use_learned_policy and hasattr(algo, 'predict'):
+        print(f"Applying learned {algo_name} policy to {nb_paths_for_video} visualization paths...")
+        exercise_times, payoff_values = algo.predict(stock_paths)
+    else:
+        # Fallback: greedy strategy
+        print(f"Computing exercise decisions using greedy strategy...")
+        exercise_times = np.zeros(nb_paths_for_video, dtype=int)
+        payoff_values = np.zeros(nb_paths_for_video)
 
-        exercise_times[path_idx] = best_time
-        payoff_values[path_idx] = max_payoff
+        for path_idx in range(nb_paths_for_video):
+            max_payoff = 0
+            best_time = nb_dates
+
+            for t in range(nb_dates + 1):
+                if PayoffClass.is_path_dependent:
+                    # Pass full history up to time t
+                    X_t = stock_paths[path_idx:path_idx+1, :, :t+1]
+                else:
+                    # Pass only current timestep
+                    X_t = stock_paths[path_idx:path_idx+1, :, t]
+
+                # Use eval() directly, not __call__()
+                payoff_now = payoff.eval(X_t)[0]
+
+                # Track maximum payoff
+                if payoff_now > max_payoff:
+                    max_payoff = payoff_now
+                    best_time = t
+
+            exercise_times[path_idx] = best_time
+            payoff_values[path_idx] = max_payoff
 
     return stock_paths, exercise_times, payoff_values, algo_name, payoff_name
 

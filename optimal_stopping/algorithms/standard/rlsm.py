@@ -73,6 +73,9 @@ class RLSM:
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         self._init_reservoir(state_size, hidden_size, factors)
 
+        # Storage for learned policy (coefficients at each time step)
+        self._learned_coefficients = {}  # {time_step: coefficients}
+
     def _init_reservoir(self, state_size, hidden_size, factors):
         """Initialize randomized neural network (reservoir)."""
         self.reservoir = randomized_neural_networks.Reservoir2(
@@ -128,8 +131,11 @@ class RLSM:
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
 
-        # NEW: Track exercise dates (initialize to maturity)
+        # Track exercise dates (initialize to maturity)
         self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
+
+        # Clear previous learned policy and prepare to store new one
+        self._learned_coefficients = {}
 
         # Backward induction from T-1 to 1
         for date in range(self.model.nb_dates - 1, 0, -1):
@@ -146,16 +152,19 @@ class RLSM:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
 
             # Learn continuation value using randomized NN regression
-            continuation_values = self._learn_continuation(
+            continuation_values, coefficients = self._learn_continuation(
                 current_state,
                 values * disc_factor,
                 immediate_exercise
             )
 
+            # Store learned coefficients for this time step
+            self._learned_coefficients[date] = coefficients
+
             # Update values based on optimal exercise decision
             exercise_now = immediate_exercise > continuation_values
 
-            # NEW: Track exercise dates - only update if exercising earlier
+            # Track exercise dates - only update if exercising earlier
             self._exercise_dates[exercise_now] = date
 
             values[exercise_now] = immediate_exercise[exercise_now]
@@ -188,6 +197,7 @@ class RLSM:
 
         Returns:
             continuation_values: (nb_paths,) - Estimated continuation values
+            coefficients: (nb_base_fcts,) - Learned regression coefficients
         """
         # Determine which paths are ITM
         if self.train_ITM_only:
@@ -200,6 +210,7 @@ class RLSM:
         # Initialize continuation values to 0 (prevents noisy extrapolation for OTM paths)
         nb_paths = current_state.shape[0]
         continuation_values = np.zeros(nb_paths)
+        coefficients = np.zeros(self.nb_base_fcts)  # Default to zero coefficients
 
         # Only compute continuation values for ITM paths
         if itm_mask.sum() > 0:
@@ -231,4 +242,75 @@ class RLSM:
                 # Predict continuation values for all ITM paths
                 continuation_values[itm_mask] = np.dot(basis_itm, coefficients)
 
-        return continuation_values
+        return continuation_values, coefficients
+
+    def predict(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy to new stock paths.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_times: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+        """
+        if not self._learned_coefficients:
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+
+        # Initialize tracking
+        exercise_times = np.full(nb_paths, nb_dates - 1, dtype=int)  # Default to maturity
+        payoff_values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])  # Terminal payoff
+        exercised = np.zeros(nb_paths, dtype=bool)  # Track which paths already exercised
+
+        # Forward simulation: check exercise decision at each time step
+        for date in range(1, nb_dates):  # Start from 1, not 0
+            # Skip if no coefficients learned for this time step
+            if date not in self._learned_coefficients:
+                continue
+
+            # Only process paths that haven't exercised yet
+            active_mask = ~exercised
+
+            if active_mask.sum() == 0:
+                break  # All paths exercised
+
+            # Get immediate exercise value
+            immediate_exercise = self.payoff.eval(stock_paths[active_mask, :self.model.nb_stocks, date])
+
+            # Prepare state for continuation value prediction
+            if self.use_payoff_as_input:
+                current_state = stock_paths[active_mask, :, date]
+            else:
+                current_state = stock_paths[active_mask, :self.model.nb_stocks, date]
+
+            if self.use_var and var_paths is not None:
+                current_state = np.concatenate([current_state, var_paths[active_mask, :, date]], axis=1)
+
+            # Predict continuation value using learned coefficients
+            coefficients = self._learned_coefficients[date]
+
+            # Evaluate basis functions using reservoir
+            X_tensor = torch.from_numpy(current_state).type(torch.float32)
+            basis = self.reservoir(X_tensor).detach().numpy()
+            basis = np.concatenate([basis, np.ones((len(basis), 1))], axis=1)
+
+            continuation_values = np.dot(basis, coefficients)
+
+            # Exercise decision: exercise if immediate > continuation
+            exercise_now = immediate_exercise > continuation_values
+
+            if exercise_now.sum() > 0:
+                # Update exercise info for paths that choose to exercise
+                active_indices = np.where(active_mask)[0]
+                exercise_indices = active_indices[exercise_now]
+
+                exercise_times[exercise_indices] = date
+                payoff_values[exercise_indices] = immediate_exercise[exercise_now]
+                exercised[exercise_indices] = True
+
+        return exercise_times, payoff_values
