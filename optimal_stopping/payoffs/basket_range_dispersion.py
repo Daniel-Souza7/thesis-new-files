@@ -19,11 +19,17 @@ class RangeCall(Payoff):
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks, nb_dates+1)"""
-        # Evaluate at final time only
-        X_final = X[:, :, -1]  # (nb_paths, nb_stocks)
-        # Normalize by initial prices
-        normalized_returns = X_final / self.initial_prices
-        # Compute range across stocks
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]
+        else:
+            current_prices = X
+
+        # Normalize and compute range
+        normalized_returns = current_prices / initial_prices
         range_value = np.max(normalized_returns, axis=1) - np.min(normalized_returns, axis=1)
         return np.maximum(0, range_value - self.strike)
 
@@ -38,11 +44,17 @@ class RangePut(Payoff):
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks, nb_dates+1)"""
-        # Evaluate at final time only
-        X_final = X[:, :, -1]  # (nb_paths, nb_stocks)
-        # Normalize by initial prices
-        normalized_returns = X_final / self.initial_prices
-        # Compute range across stocks
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]
+        else:
+            current_prices = X
+
+        # Normalize and compute range
+        normalized_returns = current_prices / initial_prices
         range_value = np.max(normalized_returns, axis=1) - np.min(normalized_returns, axis=1)
         return np.maximum(0, self.strike - range_value)
 
@@ -57,9 +69,18 @@ class DispersionCall(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]
+        else:
+            current_prices = X
+
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices  # (nb_paths, nb_stocks)
+        normalized_returns = current_prices / initial_prices
 
         # Compute mean return across stocks for each path
         mean_return = np.mean(normalized_returns, axis=1, keepdims=True)  # (nb_paths, 1)
@@ -81,9 +102,18 @@ class DispersionPut(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]
+        else:
+            current_prices = X
+
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices
+        normalized_returns = current_prices / initial_prices
 
         # Compute mean return across stocks for each path
         mean_return = np.mean(normalized_returns, axis=1, keepdims=True)

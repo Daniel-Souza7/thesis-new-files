@@ -59,9 +59,18 @@ class MaxCall(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices (handles both standard and path-dependent contexts)
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep for path-dependent
+        else:
+            current_prices = X  # Current timestep for standard
+
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices  # Element-wise division
+        normalized_returns = current_prices / initial_prices
         max_return = np.max(normalized_returns, axis=1)
         return np.maximum(0, max_return - self.strike)
 
@@ -72,8 +81,17 @@ class MinPut(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices (handles both standard and path-dependent contexts)
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep for path-dependent
+        else:
+            current_prices = X  # Current timestep for standard
+
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices
+        normalized_returns = current_prices / initial_prices
         min_return = np.min(normalized_returns, axis=1)
         return np.maximum(0, self.strike - min_return)
