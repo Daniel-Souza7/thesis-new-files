@@ -159,11 +159,10 @@ class MyConfig(_DefaultConfig):
 ```
 
 **Important Parameters:**
-- `alpha`: Quantile level for quantile options (default: 0.95)
 - `k`: Number of assets for best-of-k/worst-of-k (default: 2)
 - `weights`: Custom weights for rank-weighted options (default: None = auto)
 - `barriers`: Barrier level for barrier options
-- `step_param1-4`: Bounds for step barrier random walk
+- `step_param1-4`: Bounds for step barrier random walk (None = use risk-free rate growth)
 - `use_path`: Set to True for storing paths in memory (use HDF5 for large experiments)
 
 ### When Adding New Parameters
@@ -240,7 +239,6 @@ See `VALIDATION_TEST_PLAN.md` for comprehensive test suite:
 ```bash
 # Run all validation configs
 python -m optimal_stopping.run.run_algo optimal_stopping.run.configs:validation_barrier_convergence
-python -m optimal_stopping.run.run_algo optimal_stopping.run.configs:validation_alpha_sensitivity
 python -m optimal_stopping.run.run_algo optimal_stopping.run.configs:validation_k_sensitivity
 python -m optimal_stopping.run.run_algo optimal_stopping.run.configs:validation_step_barriers
 python -m optimal_stopping.run.run_algo optimal_stopping.run.configs:validation_large_basket
