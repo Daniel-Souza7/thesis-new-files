@@ -519,12 +519,27 @@ def main():
         algo_name, payoff_name, output_path
     )
 
+    # Extract nb_dates for normalization
+    nb_dates = config.nb_dates[0] if isinstance(config.nb_dates, (list, tuple)) else config.nb_dates
+
     print(f"\n✓ Done! Video saved to: {output_path}")
     print(f"  Algo: {algo_name}")
     print(f"  Payoff: {payoff_name}")
     print(f"  Paths: {nb_paths_to_plot}")
-    print(f"  Avg exercise time: {exercise_times.mean():.2f}")
-    print(f"  Avg payoff: {payoff_values.mean():.2f}")
+
+    # Population statistics
+    normalized_ex_times = exercise_times / nb_dates
+    exercised_at_maturity = (exercise_times == nb_dates).sum()
+    exercised_early = (exercise_times < nb_dates).sum()
+
+    print(f"\n{'='*60}")
+    print(f"POPULATION STATISTICS (n={nb_paths_to_plot} paths)")
+    print(f"{'='*60}")
+    print(f"  Avg Exercise Time:     {normalized_ex_times.mean():.4f} (normalized 0-1)")
+    print(f"  Exercise @ Maturity:   {exercised_at_maturity} ({100*exercised_at_maturity/nb_paths_to_plot:.1f}%)")
+    print(f"  Avg Payoff:            {payoff_values.mean():.4f} ± {payoff_values.std():.4f}")
+    print(f"  Median Payoff:         {np.median(payoff_values):.4f}")
+    print(f"{'='*60}\n")
 
     # Send completion notification with video
     if TELEGRAM_ENABLED and args.send_telegram:
@@ -536,7 +551,8 @@ def main():
                      f'Algo: {algo_name}\n'
                      f'Payoff: {payoff_name}\n'
                      f'Paths: {nb_paths_to_plot}\n'
-                     f'Avg exercise: {exercise_times.mean():.2f}\n'
+                     f'Avg exercise: {normalized_ex_times.mean():.4f}\n'
+                     f'@ Maturity: {100*exercised_at_maturity/nb_paths_to_plot:.1f}%\n'
                      f'Avg payoff: {payoff_values.mean():.2f}',
                 files=[str(output_path)],
                 chat_id=args.telegram_chat_id
