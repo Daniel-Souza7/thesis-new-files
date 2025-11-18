@@ -1,0 +1,157 @@
+
+================================================================================
+STOCK MODEL BUG TEST SUITE
+================================================================================
+
+================================================================================
+TEST: BlackScholes
+================================================================================
+
+1. Testing BlackScholes with nb_stocks=1...
+   ✓ Paths shape: (10, 1, 11)
+   ✓ First spot value: 100.0
+   ✓ Discount factor (0->5): 0.9950124791926823
+   ✓ Uses rate=0.010000000000000002, not drift=0.05
+
+2. Testing BlackScholes with nb_stocks=5...
+   ✓ Paths shape: (10, 5, 11)
+   ✓ All spots start at [100. 100. 100. 100. 100.]
+
+================================================================================
+TEST: Heston
+================================================================================
+
+1. Testing Heston with nb_stocks=1...
+   ✓ Stock paths shape: (5, 1, 11)
+   ✓ Variance paths shape: (5, 1, 11)
+   ✓ Mean variance: 0.037111
+
+2. Testing Heston with nb_stocks=5...
+   ✓ Stock paths shape: (5, 5, 11)
+   ✓ Variance paths shape: (5, 5, 11)
+
+================================================================================
+TEST: FractionalBlackScholes
+================================================================================
+
+1. Testing FractionalBlackScholes with Hurst=0.3...
+   ✗ ERROR: Subclasses must implement diffusion_fct()
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 95, in test_fractional_blackscholes
+    paths, _ = fbs.generate_paths()
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in generate_paths
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in <listcomp>
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 193, in generate_one_path
+    diffusion = self.diffusion_fct(previous_spots, k * self.dt)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 57, in diffusion_fct
+    raise NotImplementedError("Subclasses must implement diffusion_fct()")
+NotImplementedError: Subclasses must implement diffusion_fct()
+
+1. Testing FractionalBlackScholes with Hurst=0.5...
+   ✗ ERROR: Subclasses must implement diffusion_fct()
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 95, in test_fractional_blackscholes
+    paths, _ = fbs.generate_paths()
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in generate_paths
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in <listcomp>
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 193, in generate_one_path
+    diffusion = self.diffusion_fct(previous_spots, k * self.dt)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 57, in diffusion_fct
+    raise NotImplementedError("Subclasses must implement diffusion_fct()")
+NotImplementedError: Subclasses must implement diffusion_fct()
+
+1. Testing FractionalBlackScholes with Hurst=0.7...
+   ✗ ERROR: Subclasses must implement diffusion_fct()
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 95, in test_fractional_blackscholes
+    paths, _ = fbs.generate_paths()
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in generate_paths
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 72, in <listcomp>
+    return np.array([self.generate_one_path() for i in range(nb_paths)]), \
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 193, in generate_one_path
+    diffusion = self.diffusion_fct(previous_spots, k * self.dt)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/stock_model.py", line 57, in diffusion_fct
+    raise NotImplementedError("Subclasses must implement diffusion_fct()")
+NotImplementedError: Subclasses must implement diffusion_fct()
+
+================================================================================
+TEST: RoughHeston
+================================================================================
+
+1. Testing RoughHeston with nb_stocks=1...
+   ✓ Stock paths shape: (3, 1, 11)
+   ✓ Variance paths shape: (3, 1, 11)
+
+2. Testing RoughHeston with nb_stocks=5...
+   ✓ Stock paths shape: (3, 5, 11)
+   ✓ Variance paths shape: (3, 5, 11)
+
+================================================================================
+TEST: Discount Factor (rate vs drift)
+================================================================================
+
+1. Testing that disc_factor uses rate, not drift...
+   Drift: 0.1
+   Rate (risk-free): 0.02
+   Discount factor (0->10 dates): 0.980199
+   Expected (using rate=0.02): 0.980199
+   ✓ CORRECT: Uses rate
+
+================================================================================
+TEST: RealDataModel
+================================================================================
+
+1. Testing RealDataModel with empirical drift/volatility (drift=None, volatility=None)...
+   ✗ ERROR: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+   Error type: TypeError
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 155, in test_real_data_model
+    rdm = RealDataModel(
+          ^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/real_data.py", line 121, in __init__
+    super().__init__(**kwargs)
+TypeError: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+
+2. Testing RealDataModel with specified drift/volatility...
+   ✗ ERROR: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 170, in test_real_data_model
+    rdm = RealDataModel(
+          ^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/real_data.py", line 121, in __init__
+    super().__init__(**kwargs)
+TypeError: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+
+3. Testing RealDataModel drift=(None,) (tuple, as from config)...
+   ✗ ERROR: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+   Error type: TypeError
+   This is the BUG: drift=(None,) tuple is not properly converted
+Traceback (most recent call last):
+  File "/home/user/thesis-new-files/test_stock_models.py", line 185, in test_real_data_model
+    rdm = RealDataModel(
+          ^^^^^^^^^^^^^^
+  File "/home/user/thesis-new-files/optimal_stopping/data/real_data.py", line 121, in __init__
+    super().__init__(**kwargs)
+TypeError: Model.__init__() missing 2 required positional arguments: 'dividend' and 'name'
+
+================================================================================
+TEST SUITE COMPLETE
+================================================================================
+
