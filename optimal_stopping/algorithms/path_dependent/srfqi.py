@@ -140,12 +140,13 @@ class SRFQI:
         return payoffs
 
     def get_exercise_time(self):
-        """Return average exercise time normalized to [0, 1]."""
+        """Return average exercise time normalized to [0, 1] (evaluation set only)."""
         if not hasattr(self, '_exercise_dates'):
             return None
 
-        nb_dates = self.model.nb_dates  # ✅ CORRECT
-        normalized_times = self._exercise_dates / nb_dates
+        nb_dates = self.model.nb_dates
+        # Only use evaluation set paths (self.split:), not training paths
+        normalized_times = self._exercise_dates[self.split:] / nb_dates
         return float(np.mean(normalized_times))
 
     def price(self, train_eval_split=2):
