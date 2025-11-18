@@ -21,11 +21,20 @@ class BestOfKCall(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
         k = self.params.get('k', 2)
 
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep
+        else:
+            current_prices = X
+
         # Normalize by initial prices to get returns
-        normalized_returns = X / self.initial_prices  # (nb_paths, nb_stocks)
+        normalized_returns = current_prices / initial_prices  # (nb_paths, nb_stocks)
 
         # Sort returns in descending order and take top k
         sorted_returns = np.sort(normalized_returns, axis=1)[:, ::-1]  # Descending
@@ -49,11 +58,20 @@ class WorstOfKPut(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
         k = self.params.get('k', 2)
 
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep
+        else:
+            current_prices = X
+
         # Normalize by initial prices to get returns
-        normalized_returns = X / self.initial_prices
+        normalized_returns = current_prices / initial_prices
 
         # Sort returns in ascending order and take bottom k
         sorted_returns = np.sort(normalized_returns, axis=1)  # Ascending
@@ -78,12 +96,22 @@ class RankWeightedBasketCall(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
-        nb_paths, nb_stocks = X.shape
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep
+            nb_paths, nb_stocks = current_prices.shape
+        else:
+            current_prices = X
+            nb_paths, nb_stocks = X.shape
+
         weights = self.params.get('weights', None)
 
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices
+        normalized_returns = current_prices / initial_prices
 
         # Sort returns in descending order (best to worst)
         sorted_indices = np.argsort(normalized_returns, axis=1)[:, ::-1]  # Descending indices
@@ -114,12 +142,22 @@ class RankWeightedBasketPut(Payoff):
     is_path_dependent = False
 
     def eval(self, X):
-        """X shape: (nb_paths, nb_stocks)"""
-        nb_paths, nb_stocks = X.shape
+        """X shape: (nb_paths, nb_stocks) for standard, (nb_paths, nb_stocks, nb_dates+1) for path-dependent"""
+        # Get initial prices
+        initial_prices = self._get_initial_prices(X)
+
+        # Extract current prices
+        if X.ndim == 3:
+            current_prices = X[:, :, -1]  # Last timestep
+            nb_paths, nb_stocks = current_prices.shape
+        else:
+            current_prices = X
+            nb_paths, nb_stocks = X.shape
+
         weights = self.params.get('weights', None)
 
         # Normalize by initial prices
-        normalized_returns = X / self.initial_prices
+        normalized_returns = current_prices / initial_prices
 
         # Sort returns in descending order
         sorted_indices = np.argsort(normalized_returns, axis=1)[:, ::-1]

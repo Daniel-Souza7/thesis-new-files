@@ -58,6 +58,9 @@ class BarrierPayoff(Payoff):
         """
         nb_paths, nb_stocks, nb_dates = X.shape
 
+        # Propagate initial prices to base payoff for normalization
+        self.base_payoff.initial_prices = X[:, :, 0]
+
         # Evaluate base payoff at maturity
         base_value = self.base_payoff.eval(X[:, :, -1])
 
