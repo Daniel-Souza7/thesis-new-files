@@ -129,7 +129,21 @@ def extract_data_for_excel(config: configs._DefaultConfig):
         if column_name not in df.index.names:
             continue
 
-        values = list(getattr(config, filter_name, []))
+        # Get the value from config
+        value = getattr(config, filter_name, None)
+
+        # Handle non-iterable parameters (like user_data_file which is a single string)
+        if value is None:
+            continue
+        elif isinstance(value, str):
+            values = [value]
+        else:
+            try:
+                values = list(value)
+            except TypeError:
+                # Single non-string value (shouldn't happen, but be safe)
+                values = [value]
+
         if not values:
             continue
 
