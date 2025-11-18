@@ -1918,3 +1918,20 @@ test_custom_spots_vs_uniform = _DefaultConfig(
     strikes=(1.2,),
     train_ITM_only=(True,)
 )
+
+'''
+Test: custom_spots syntax demonstration
+Demonstrates correct tuple syntax for config parameters:
+- custom_spots=((1, 2, 4, 20, 100),) creates ONE experiment with this tuple as initial prices
+- algos=('RLSM',) is a tuple (note the comma) - algos=('RLSM') is just a string!
+'''
+test_custom_spots = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(10000,),
+    nb_stocks=(5,),
+    algos=('RLSM',),  # Tuple with comma (not 'RLSM' string!)
+    payoffs=('BasketCall', 'MaxCall'),
+    custom_spots=((1, 2, 4, 20, 100),),  # ONE experiment with these 5 prices (double parentheses!)
+    strikes=(100,),
+    train_ITM_only=(True,)
+)
