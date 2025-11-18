@@ -593,13 +593,8 @@ class RealDataModel(Model):
         # Initialize paths array
         paths = np.zeros((nb_paths, self.nb_stocks, self.nb_dates + 1))
 
-        # Handle both scalar spot and array of custom_spots
-        if isinstance(self.spot, np.ndarray):
-            # custom_spots: each stock has its own initial price
-            paths[:, :, 0] = self.spot[np.newaxis, :]  # Broadcast across paths
-        else:
-            # Single spot: all stocks start at same price
-            paths[:, :, 0] = self.spot
+        # All stocks start at same spot value
+        paths[:, :, 0] = self.spot
 
         for path_idx in range(nb_paths):
             # Generate bootstrap indices for this path
