@@ -119,13 +119,12 @@ debug_early_exercise = _DefaultConfig(
     nb_stocks=(1,),
     algos=('RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'),
     payoffs=('Call',),
-    train_ITM_only=(False,),  # Train on ALL paths, not just ITM
-    hidden_size=(50, 100)  # More basis functions for better approximation
+    train_ITM_only=(True, False),  # Train on ALL paths, not just ITM
+    hidden_size=(20, 100)  # More basis functions for better approximation
 )
 
 video_testing2 = _DefaultConfig(
-    nb_runs=5,
-    nb_paths=(100000,),
+    nb_paths=(40000,),
     nb_stocks=(1,),
     algos=('LSM',),
     payoffs=('Call',),
