@@ -1799,3 +1799,264 @@ test_real_data_all_algos = _DefaultConfig(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+# ==============================================================================
+# BUG FIX VALIDATION TESTS
+# ==============================================================================
+# These configs test all 9 bug fixes from comprehensive debugging session
+
+# Test Bug 1 Fix: Barrier-wrapped path-dependent payoffs (220 payoffs)
+# Tests that barrier wrapper correctly handles 3D arrays for path-dependent payoffs
+test_bug1_barrier_path_dependent = _DefaultConfig(
+    algos=['SRLSM', 'SRFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5, 10],
+    nb_paths=[5000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        # Path-dependent base payoffs
+        'MaxDispersionCall', 'MaxDispersionPut',
+        'DispersionCall', 'DispersionPut',
+        'AsianFixedStrikeCall', 'AsianFixedStrikePut',
+        'LookbackFixedCall', 'LookbackFixedPut',
+        # Barrier-wrapped path-dependent (Bug 1 targets)
+        'UO_MaxDispersionCall', 'DO_MaxDispersionPut',
+        'UI_DispersionCall', 'DI_DispersionPut',
+        'UODO_AsianFixedStrikeCall', 'UIDI_LookbackFixedCall',
+        'StepB_MaxDispersionCall', 'DStepB_DispersionPut',
+    ],
+    spots=[100],
+    strikes=[100],
+    barriers=[120],  # Up/out barrier
+    barriers_down=[80],  # Down barrier for double barriers
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 2/5 Fix: Default barriers and write_excel compatibility
+# Tests that barriers=(100000,) allows standard payoffs to work
+test_bug2_default_barriers = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5],
+    nb_paths=[5000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        # Standard payoffs (should have barrier=100000 in results)
+        'BasketCall', 'BasketPut',
+        'MaxCall', 'MinPut',
+        'GeometricCall', 'GeometricPut',
+    ],
+    spots=[100],
+    strikes=[100],
+    # Use default barriers (should be 100000)
+    # barriers=(100000,) is the default now
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 3 Fix: FractionalBlackScholes drift_fct and diffusion_fct
+# Tests that FractionalBlackScholes can generate paths without NotImplementedError
+test_bug3_fractional_bs = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRLSM', 'SRFQI'],
+    stock_models=['FractionalBlackScholes'],
+    nb_stocks=[3, 5],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        # Standard payoffs
+        'BasketCall', 'BasketPut',
+        'MaxCall', 'MinPut',
+        # Path-dependent payoffs
+        'AsianFixedStrikeCall', 'LookbackFixedCall',
+    ],
+    spots=[100],
+    strikes=[100],
+    hurst=[0.6, 0.7, 0.8],  # Fractional Brownian motion parameter
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 4 Fix: RealDataModel initialization with tuple parameters
+# Tests that drift=(None,) and volatilities=(None,) work correctly
+test_bug4_real_data_init = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['RealData'],
+    nb_stocks=[3, 5],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=['BasketCall', 'MaxCall', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    maturities=[0.5],
+    # Test both empirical (None) and override values
+    drift=(None,),  # Use empirical from data
+    volatilities=(None,),  # Use empirical from data
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 6 Fix: create_video parameters (risk_free_rate, dividend)
+# Config suitable for create_video.py testing
+test_bug6_create_video = _DefaultConfig(
+    algos=['RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[1000],
+    nb_dates=[10],
+    nb_runs=1,
+    payoffs=['BasketPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    drift=[0.08],
+    risk_free_rate=[0.04],  # Should be passed to model
+    dividends=[0.02],  # Should be passed to model
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 7 Fix: K parameter validation
+# Tests that invalid k values raise proper errors
+test_bug7_k_validation = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[10],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        'BestOfKCall', 'WorstOfKPut',
+        'RankWeightedBasketCall', 'RankWeightedBasketPut',
+    ],
+    spots=[100],
+    strikes=[100],
+    k=[2, 5, 8],  # Valid k values (< nb_stocks=10)
+    # NOTE: To test invalid k, manually try k=[11] or k=[-1] - should raise errors
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 8 Fix: Weights parameter validation
+# Tests that weights are validated against k
+test_bug8_weights_validation = _DefaultConfig(
+    algos=['RLSM', 'RFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[10],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        'RankWeightedBasketCall',
+        'RankWeightedBasketPut',
+    ],
+    spots=[100],
+    strikes=[100],
+    k=[3, 5],
+    # Weights will be auto-generated (1/k for each)
+    # To test custom weights, manually set weights parameter
+    volatilities=[0.2],
+    drift=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test Bug 9 Fix: Step barrier formula (time discretization)
+# Tests that barriers grow correctly with risk-free rate
+test_bug9_step_barriers = _DefaultConfig(
+    algos=['SRLSM', 'SRFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5],
+    nb_paths=[5000],
+    nb_dates=[10, 20, 50],  # Test different discretizations
+    nb_runs=3,
+    payoffs=[
+        'StepB_BasketCall', 'StepB_BasketPut',
+        'DStepB_BasketCall', 'DStepB_BasketPut',
+        'StepB_MaxCall', 'DStepB_MinPut',
+    ],
+    spots=[100],
+    strikes=[100],
+    barriers=[110],  # Initial upper barrier
+    barriers_down=[90],  # Initial lower barrier for double step
+    # step_param1-4 = None means use risk-free rate growth (Bug 9 fix)
+    volatilities=[0.2],
+    drift=[0.05],
+    risk_free_rate=[0.04],  # Should be used for barrier growth
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Test UserData Model: New feature for user-provided CSV data
+test_user_data_model = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRLSM', 'SRFQI'],
+    stock_models=['UserData'],
+    nb_stocks=[3],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        # Standard payoffs
+        'BasketCall', 'BasketPut',
+        'MaxCall', 'MinPut',
+        # Path-dependent payoffs
+        'AsianFixedStrikeCall', 'LookbackFixedCall',
+        # Barrier payoffs
+        'UI_BasketCall', 'DO_MaxCall',
+    ],
+    spots=[100],
+    strikes=[100],
+    maturities=[0.5],
+    user_data_file='example_data.csv',  # Must exist in user_data/ folder
+    drift=(None,),  # Use empirical from CSV
+    volatilities=(None,),  # Use empirical from CSV
+    barriers=[120, 80],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
+# Comprehensive Bug Fix Test: All fixes in one config
+test_all_bug_fixes = _DefaultConfig(
+    algos=['RLSM', 'RFQI', 'SRLSM', 'SRFQI'],
+    stock_models=['BlackScholes', 'FractionalBlackScholes', 'RealData'],
+    nb_stocks=[5, 10],
+    nb_paths=[3000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=[
+        # Standard payoffs (Bug 2: barriers)
+        'BasketCall', 'BasketPut',
+        # Rank payoffs (Bug 7, 8: k and weights)
+        'BestOfKCall', 'RankWeightedBasketCall',
+        # Path-dependent base
+        'MaxDispersionCall', 'AsianFixedStrikeCall',
+        # Barrier-wrapped path-dependent (Bug 1)
+        'UO_MaxDispersionCall', 'DI_AsianFixedStrikeCall',
+        # Step barriers (Bug 9)
+        'StepB_BasketCall', 'DStepB_MaxCall',
+    ],
+    spots=[100],
+    strikes=[100],
+    k=[3, 7],
+    barriers=[120],
+    barriers_down=[80],
+    hurst=[0.7],  # For FractionalBlackScholes (Bug 3)
+    volatilities=[0.2],
+    drift=[0.05],
+    risk_free_rate=[0.04],
+    # For RealData (Bug 4): drift and volatilities will be overridden
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
