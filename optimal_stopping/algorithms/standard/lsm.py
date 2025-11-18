@@ -135,15 +135,12 @@ class LeastSquaresPricer:
         Returns:
             continuation_values: (nb_paths,) - Estimated continuation values
         """
-        # Determine which paths to use for training
+        # Determine which paths are ITM
         if self.train_ITM_only:
-            # Only train on in-the-money paths
-            train_mask = (immediate_exercise[:self.split] > 0)
-            # Also identify ITM paths for all paths (training + evaluation)
+            # Only use in-the-money paths
             itm_mask = (immediate_exercise > 0)
         else:
-            # Train on all paths
-            train_mask = np.ones(self.split, dtype=bool)
+            # Use all paths
             itm_mask = np.ones(len(immediate_exercise), dtype=bool)
 
         # Initialize continuation values to 0 (like old LSM code)
@@ -151,36 +148,33 @@ class LeastSquaresPricer:
         nb_paths = current_state.shape[0]
         continuation_values = np.zeros(nb_paths)
 
-        # Only compute continuation values for ITM paths when train_ITM_only=True
+        # Only compute continuation values for ITM paths
         if itm_mask.sum() > 0:
-            # Evaluate basis functions only for ITM paths (or all if train_ITM_only=False)
+            # Get indices of ITM paths
             itm_indices = np.where(itm_mask)[0]
-            basis_matrix = np.zeros((itm_mask.sum(), self.nb_base_fcts))
 
+            # Evaluate basis functions only for ITM paths
+            basis_matrix = np.zeros((len(itm_indices), self.nb_base_fcts))
             for idx, i in enumerate(itm_indices):
                 for j in range(self.nb_base_fcts):
                     basis_matrix[idx, j] = self.basis.base_fct(j, current_state[i])
 
-            # Least squares regression on training set
-            if train_mask.sum() > 0:
-                # Get basis for training ITM paths
-                train_itm_mask = train_mask & itm_mask[:self.split]
-                if train_itm_mask.sum() > 0:
-                    train_itm_indices = np.where(train_itm_mask)[0]
-                    basis_train = np.zeros((train_itm_mask.sum(), self.nb_base_fcts))
+            # Determine which ITM paths are in the training set
+            train_itm_mask = itm_indices < self.split  # Boolean mask within itm_indices
 
-                    for idx, i in enumerate(train_itm_indices):
-                        for j in range(self.nb_base_fcts):
-                            basis_train[idx, j] = self.basis.base_fct(j, current_state[i])
+            if train_itm_mask.sum() > 0:
+                # Get basis and future values for training ITM paths
+                basis_train = basis_matrix[train_itm_mask]
+                train_itm_indices = itm_indices[train_itm_mask]
 
-                    coefficients = np.linalg.lstsq(
-                        basis_train,
-                        future_values[train_itm_mask],
-                        rcond=None
-                    )[0]
+                coefficients = np.linalg.lstsq(
+                    basis_train,
+                    future_values[train_itm_indices],
+                    rcond=None
+                )[0]
 
-                    # Predict continuation values only for ITM paths
-                    continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
+                # Predict continuation values for all ITM paths
+                continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
 
         return continuation_values
 
