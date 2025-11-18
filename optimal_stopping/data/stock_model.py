@@ -34,7 +34,17 @@ class Model:
             self.rate = risk_free_rate
 
         self.volatility = volatility
-        self.spot = spot
+
+        # Handle custom_spots: spot can be a single value or a tuple/list of values
+        if isinstance(spot, (tuple, list)):
+            # custom_spots provided - convert to numpy array
+            self.spot = np.array(spot)
+            if len(self.spot) != nb_stocks:
+                raise ValueError(f"spot length ({len(self.spot)}) must equal nb_stocks ({nb_stocks})")
+        else:
+            # Single spot value - use for all stocks
+            self.spot = spot
+
         self.nb_stocks = nb_stocks
         self.nb_paths = nb_paths
         self.nb_dates = nb_dates
@@ -98,7 +108,13 @@ class BlackScholes(Model):
 
         # Set initial values
         if X0 is None:
-            spot_paths[:, :, 0] = self.spot
+            # Handle both scalar spot and array of custom_spots
+            if isinstance(self.spot, np.ndarray):
+                # custom_spots: each stock has its own initial price
+                spot_paths[:, :, 0] = self.spot[np.newaxis, :]  # Broadcast across paths
+            else:
+                # Single spot: all stocks start at same price
+                spot_paths[:, :, 0] = self.spot
         else:
             spot_paths[:, :, 0] = X0
 
@@ -136,7 +152,14 @@ class BlackScholes(Model):
         nb_dates = nb_dates or self.nb_dates
         total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
         spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1))
-        spot_paths[:, :, 0] = self.spot
+
+        # Handle both scalar spot and array of custom_spots
+        if isinstance(self.spot, np.ndarray):
+            # custom_spots: each stock has its own initial price
+            spot_paths[:, :, 0] = self.spot[np.newaxis, :]  # Broadcast across paths
+        else:
+            # Single spot: all stocks start at same price
+            spot_paths[:, :, 0] = self.spot
         random_numbers = np.random.normal(
             0, 1, (total_nb_paths, self.nb_stocks, nb_dates))
         mult = nb_alternatives * nb_paths
@@ -179,7 +202,14 @@ class FractionalBlackScholes(Model):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
         path = np.empty((self.nb_stocks, self.nb_dates + 1))
         fracBM_noise = np.empty((self.nb_stocks, self.nb_dates))
-        path[:, 0] = self.spot
+
+        # Handle both scalar spot and array of custom_spots
+        if isinstance(self.spot, np.ndarray):
+            # custom_spots: each stock has its own initial price
+            path[:, 0] = self.spot
+        else:
+            # Single spot: all stocks start at same price
+            path[:, 0] = self.spot
 
         # Generate fractional Gaussian noise for all stocks
         for stock in range(self.nb_stocks):
@@ -228,7 +258,11 @@ class FractionalBrownianMotion(Model):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
         path = np.empty((self._nb_stocks, self.nb_dates + 1))
         for stock in range(self._nb_stocks):
-            path[stock, :] = self.fBM.fbm() + self.spot
+            # Handle both scalar spot and array of custom_spots
+            if isinstance(self.spot, np.ndarray):
+                path[stock, :] = self.fBM.fbm() + self.spot[stock]
+            else:
+                path[stock, :] = self.fBM.fbm() + self.spot
         return path
 
     def generate_one_path(self):
@@ -327,7 +361,11 @@ class Heston(Model):
 
         for i in range(self.nb_paths):
             if start_X is None:
-                paths[i, :, 0] = self.spot
+                # Handle both scalar spot and array of custom_spots
+                if isinstance(self.spot, np.ndarray):
+                    paths[i, :, 0] = self.spot
+                else:
+                    paths[i, :, 0] = self.spot
                 var_paths[i, :, 0] = self.mean
 
             for k in range(1, self.nb_dates + 1):
@@ -526,9 +564,15 @@ class RoughHeston(Model):
         """
         spot_paths = np.empty((self.nb_stocks, self.nb_dates + 1))
         for i in range(self.nb_stocks):
+            # Handle both scalar spot and array of custom_spots
+            if isinstance(self.spot, np.ndarray):
+                start_spot = self.spot[i]
+            else:
+                start_spot = self.spot
+
             spot_path, var_path = self._generate_one_path(
                 self.drift, self.speed, self.mean, self.volatility,
-                start_X=self.spot, nb_steps=self.nb_dates * self.nb_steps_mult)
+                start_X=start_spot, nb_steps=self.nb_dates * self.nb_steps_mult)
             spot_paths[i, :] = spot_path[0::self.nb_steps_mult]
 
         return spot_paths
@@ -537,10 +581,19 @@ class RoughHeston(Model):
         """Returns a nparray (nb_paths, nb_stocks, nb_dates+1) with prices."""
         nb_paths = nb_paths or self.nb_paths
 
+        # Handle both scalar spot and array of custom_spots
+        # For RoughHeston, we need to expand custom_spots to all paths
+        if isinstance(self.spot, np.ndarray):
+            # custom_spots: replicate each stock's spot across all paths
+            start_spots = np.tile(self.spot, nb_paths)
+        else:
+            # Single spot: use for all paths and stocks
+            start_spots = self.spot
+
         # Generate all paths simultaneously (treating each path*stock as separate)
         spot_paths, var_paths = self._generate_paths(
             self.drift, self.speed, self.mean, self.volatility,
-            start_X=self.spot, nb_steps=self.nb_dates * self.nb_steps_mult,
+            start_X=start_spots, nb_steps=self.nb_dates * self.nb_steps_mult,
             nb_stocks=self.nb_stocks * nb_paths
         )
 

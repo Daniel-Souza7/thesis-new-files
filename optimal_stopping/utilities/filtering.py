@@ -35,7 +35,8 @@ FILTERS = [
     ("step_param1", "step_param1"),
     ("step_param2", "step_param2"),
     ("step_param3", "step_param3"),
-    ("step_param4", "step_param4")
+    ("step_param4", "step_param4"),
+    ("custom_spots", "custom_spots")
 ]
 
 FLAGS = flags.FLAGS

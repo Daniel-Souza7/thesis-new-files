@@ -64,13 +64,13 @@ class _DefaultConfig:
   barriers: Iterable[float] = (1,)  # Barrier level (None = use default)
   barriers_up: Iterable[float] = (1,)  # Upper barrier level for double barriers
   barriers_down: Iterable[float] = (1,)  # Lower barrier level for double barriers
-  alpha: Iterable[float] = (0.95,)  # Quantile level for quantile options
   k: Iterable[int] = (2,)  # Number of assets for best-of-k/worst-of-k options
   weights: Iterable[tuple] = (None,)  # Custom weights for rank-weighted options (None = use formula)
   step_param1: Iterable[float] = (-1,)  # Lower bound for step barrier random walk
   step_param2: Iterable[float] = (1,)  # Upper bound for step barrier random walk
   step_param3: Iterable[float] = (-1,)  # Lower bound for double step barrier
   step_param4: Iterable[float] = (1,)  # Upper bound for double step barrier
+  custom_spots: Iterable[typing.Optional[typing.Tuple[float, ...]]] = (None,)  # Custom initial spot prices for each stock (None = use spots param)
   representations: Iterable[str] = ('TablePriceDuration',)
 
   # When adding a filter here, also add to filtering.py and read_data.py
@@ -1374,12 +1374,10 @@ quick_test_barriers = _DefaultConfig(
     representations=['TablePriceDuration'],
 )
 
-# Test 3: Advanced payoffs with parameters - Tests quantile, rank, Asian, lookback
+# Test 3: Advanced payoffs with parameters - Tests rank, Asian, lookback
 quick_test_advanced = _DefaultConfig(
     algos=['SRFQI', 'SRLSM'],  # Path-dependent algorithms
     payoffs=[
-        # Quantile (uses alpha parameter)
-        'QuantileBasketCall', 'QuantileCall',
         # Rank-based (uses k parameter)
         'BestOfKCall', 'WorstOfKPut',
         # Asian path-dependent
@@ -1396,7 +1394,6 @@ quick_test_advanced = _DefaultConfig(
     strikes=[100],
     spots=[100],
     barriers=[100000],  # High barrier = no barrier
-    alpha=[0.95],       # Quantile parameter
     k=[2],              # Rank parameter (best-of-2, worst-of-2)
     volatilities=[0.2],
     drift=[0.02],
@@ -1432,30 +1429,7 @@ validation_barrier_convergence = _DefaultConfig(
     representations=['TablePriceDuration'],
 )
 
-# Test 2: Alpha Sensitivity - Quantile options with different α levels
-validation_alpha_sensitivity = _DefaultConfig(
-    algos=['SRFQI', 'SRLSM'],
-    payoffs=[
-        'QuantileBasketCall', 'QuantileBasketPut',
-        'QuantileCall', 'QuantilePut',
-    ],
-    nb_stocks=[10],
-    nb_paths=[5000],
-    nb_dates=[10],
-    nb_runs=5,
-    strikes=[100],
-    spots=[100],
-    barriers=[100000],
-    # Test multiple quantile levels: 0.5 (median), 0.75, 0.95, 0.99 (extreme)
-    # Prices should INCREASE with alpha for calls, DECREASE for puts
-    alpha=[0.5, 0.75, 0.95, 0.99],
-    volatilities=[0.25],
-    drift=[0.03],
-    use_payoff_as_input=[True],
-    representations=['TablePriceDuration'],
-)
-
-# Test 3: K Sensitivity - Rank options with different k values
+# Test 2: K Sensitivity - Rank options with different k values
 validation_k_sensitivity = _DefaultConfig(
     algos=['RFQI', 'RLSM'],
     payoffs=[
@@ -1520,8 +1494,6 @@ validation_large_basket = _DefaultConfig(
         'BasketCall', 'BasketPut', 'GeometricCall', 'MaxCall', 'MinPut',
         # Asian
         'AsianFixedStrikeCall', 'AsianFloatingStrikePut',
-        # Quantile
-        'QuantileBasketCall',
         # Rank
         'BestOfKCall', 'WorstOfKPut',
         # Range/Dispersion
@@ -1538,7 +1510,6 @@ validation_large_basket = _DefaultConfig(
     barriers=[10000, 130],  # High and moderate
     barriers_up=[130],
     barriers_down=[70],
-    alpha=[0.9],
     k=[3, 7],  # Best/worst of 3 and 7 out of 10
     volatilities=[0.2, 0.4],  # Low and high vol
     drift=[0.05],
@@ -1776,8 +1747,6 @@ test_real_data_exotics = _DefaultConfig(
         'AsianFixedStrikeCall', 'LookbackFixedCall',
         # Barriers
         'UI_BasketCall', 'DI_BasketPut',
-        # Quantile
-        'QuantileCall',
     ],
     spots=[100],
     strikes=[100],
@@ -1785,7 +1754,6 @@ test_real_data_exotics = _DefaultConfig(
     drift=(None,),  # Use empirical drift from historical data
     volatilities=(None,),  # Use empirical volatility from historical data
     barriers=[80, 120],  # For barrier options
-    alpha=[0.75],  # For quantile options
     nb_epochs=[30],
     hidden_size=[50],
     use_payoff_as_input=[True],
