@@ -297,7 +297,8 @@ def create_video(config, stock_paths, exercise_times, payoff_values,
 
     # Create figure with main plot, stats panel, and TWO population stats panels
     fig = plt.figure(figsize=(14, 10))
-    gs = fig.add_gridspec(4, 2, height_ratios=[3, 0.8, 0.6, 0.6], width_ratios=[3, 1])
+    gs = fig.add_gridspec(4, 2, height_ratios=[3, 0.8, 0.4, 0.4], width_ratios=[3, 1],
+                          hspace=0.15)  # Minimal vertical spacing between subplots
 
     ax_main = fig.add_subplot(gs[0, :])
     ax_stats = fig.add_subplot(gs[1, 0])
