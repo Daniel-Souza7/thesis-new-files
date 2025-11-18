@@ -136,10 +136,6 @@ def extract_data_for_excel(config: configs._DefaultConfig):
         if filter_name == "factors":
             values = [str(x) for x in values]
 
-        # Special handling for custom_spots: convert tuples to strings to match CSV format
-        if filter_name == "custom_spots":
-            values = [str(x) if x is not None else None for x in values]
-
         rows_before = len(df)
 
         # Special handling for None values (match NaN, None, empty, "None")

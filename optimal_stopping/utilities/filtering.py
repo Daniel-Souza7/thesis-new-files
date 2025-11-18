@@ -34,8 +34,7 @@ FILTERS = [
     ("step_param1", "step_param1"),
     ("step_param2", "step_param2"),
     ("step_param3", "step_param3"),
-    ("step_param4", "step_param4"),
-    ("custom_spots", "custom_spots")
+    ("step_param4", "step_param4")
 ]
 
 FLAGS = flags.FLAGS
@@ -65,10 +64,6 @@ def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = Fals
         values = list(getattr(config, filter_name))
         if filter_name == "factors":
             values = [str(x) for x in values]
-
-        # Special handling for custom_spots: convert tuples to strings to match CSV format
-        if filter_name == "custom_spots":
-            values = [str(x) if x is not None else None for x in values]
 
         # Special handling for None values (match NaN, None, empty, "None")
         if None in values:
