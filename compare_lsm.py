@@ -140,7 +140,7 @@ def compare_lsm_implementations():
     volatility = 0.2
     rate = 0.02  # drift - 0.04
     train_ITM_only = True
-    seed = 42
+    nb_runs = 10  # Number of runs to average over
 
     print("=" * 80)
     print("LSM IMPLEMENTATION COMPARISON - PUT AND CALL OPTIONS")
@@ -156,35 +156,102 @@ def compare_lsm_implementations():
     print(f"  Volatility:     {volatility}")
     print(f"  Rate:           {rate}")
     print(f"  Train ITM only: {train_ITM_only}")
+    print(f"  Number of runs: {nb_runs}")
 
-    # Compare PUT option
-    put_results = compare_single_option(
-        'put', nb_paths, nb_stocks, nb_dates, maturity,
-        spot, strike, drift, volatility, rate, train_ITM_only, seed
-    )
+    # Store results across runs
+    put_results_all = []
+    call_results_all = []
 
-    # Compare CALL option
-    call_results = compare_single_option(
-        'call', nb_paths, nb_stocks, nb_dates, maturity,
-        spot, strike, drift, volatility, rate, train_ITM_only, seed
-    )
+    for run in range(nb_runs):
+        seed = 42 + run  # Different seed for each run
+        print(f"\n{'-' * 80}")
+        print(f"RUN {run + 1}/{nb_runs} (seed={seed})")
+        print(f"{'-' * 80}")
+
+        # Compare PUT option
+        put_results = compare_single_option(
+            'put', nb_paths, nb_stocks, nb_dates, maturity,
+            spot, strike, drift, volatility, rate, train_ITM_only, seed
+        )
+        put_results_all.append(put_results)
+
+        # Compare CALL option
+        call_results = compare_single_option(
+            'call', nb_paths, nb_stocks, nb_dates, maturity,
+            spot, strike, drift, volatility, rate, train_ITM_only, seed
+        )
+        call_results_all.append(call_results)
 
     # ========================================
-    # FINAL SUMMARY
+    # AGGREGATE STATISTICS
     # ========================================
     print("\n" + "=" * 80)
-    print("FINAL SUMMARY")
+    print("AGGREGATE STATISTICS ACROSS ALL RUNS")
     print("=" * 80)
 
+    # PUT statistics
+    put_prices_yours = [r['price_yours'] for r in put_results_all]
+    put_prices_debug = [r['price_debug'] for r in put_results_all]
+    put_ex_times_yours = [r['ex_time_yours'] for r in put_results_all]
+    put_ex_times_debug = [r['ex_time_debug'] for r in put_results_all]
+
+    print(f"\nPUT Option (n={nb_runs} runs):")
+    print(f"  Your LSM Price:      {np.mean(put_prices_yours):.4f} ± {np.std(put_prices_yours):.4f}")
+    print(f"  Debug LSM Price:     {np.mean(put_prices_debug):.4f} ± {np.std(put_prices_debug):.4f}")
+    print(f"  Price Difference:    {np.mean([r['price_diff'] for r in put_results_all]):.4f} ± {np.std([r['price_diff'] for r in put_results_all]):.4f}")
+    print(f"")
+    print(f"  Your LSM ExTime:     {np.mean(put_ex_times_yours):.4f} ± {np.std(put_ex_times_yours):.4f}")
+    print(f"  Debug LSM ExTime:    {np.mean(put_ex_times_debug):.4f} ± {np.std(put_ex_times_debug):.4f}")
+    print(f"  ExTime Difference:   {np.mean([r['ex_time_diff'] for r in put_results_all]):.4f} ± {np.std([r['ex_time_diff'] for r in put_results_all]):.4f}")
+
+    # CALL statistics
+    call_prices_yours = [r['price_yours'] for r in call_results_all]
+    call_prices_debug = [r['price_debug'] for r in call_results_all]
+    call_ex_times_yours = [r['ex_time_yours'] for r in call_results_all]
+    call_ex_times_debug = [r['ex_time_debug'] for r in call_results_all]
+
+    print(f"\nCALL Option (n={nb_runs} runs):")
+    print(f"  Your LSM Price:      {np.mean(call_prices_yours):.4f} ± {np.std(call_prices_yours):.4f}")
+    print(f"  Debug LSM Price:     {np.mean(call_prices_debug):.4f} ± {np.std(call_prices_debug):.4f}")
+    print(f"  Price Difference:    {np.mean([r['price_diff'] for r in call_results_all]):.4f} ± {np.std([r['price_diff'] for r in call_results_all]):.4f}")
+    print(f"")
+    print(f"  Your LSM ExTime:     {np.mean(call_ex_times_yours):.4f} ± {np.std(call_ex_times_yours):.4f}")
+    print(f"  Debug LSM ExTime:    {np.mean(call_ex_times_debug):.4f} ± {np.std(call_ex_times_debug):.4f}")
+    print(f"  ExTime Difference:   {np.mean([r['ex_time_diff'] for r in call_results_all]):.4f} ± {np.std([r['ex_time_diff'] for r in call_results_all]):.4f}")
+
+    # ========================================
+    # FINAL ASSESSMENT
+    # ========================================
+    print("\n" + "=" * 80)
+    print("FINAL ASSESSMENT")
+    print("=" * 80)
+
+    put_price_diff_mean = np.mean([r['price_diff'] for r in put_results_all])
+    put_ex_diff_mean = np.mean([r['ex_time_diff'] for r in put_results_all])
+    call_price_diff_mean = np.mean([r['price_diff'] for r in call_results_all])
+    call_ex_diff_mean = np.mean([r['ex_time_diff'] for r in call_results_all])
+
     print(f"\nPUT Option:")
-    print(f"  Your LSM:      Price={put_results['price_yours']:.4f}, ExTime={put_results['ex_time_yours']:.4f}")
-    print(f"  Debug LSM:     Price={put_results['price_debug']:.4f}, ExTime={put_results['ex_time_debug']:.4f}")
-    print(f"  Differences:   Price={put_results['price_diff']:.4f}, ExTime={put_results['ex_time_diff']:.4f}")
+    if put_price_diff_mean < 0.1:
+        print(f"  ✓ Prices match very well (diff={put_price_diff_mean:.4f})")
+    else:
+        print(f"  ✗ Prices differ significantly (diff={put_price_diff_mean:.4f})")
+
+    if put_ex_diff_mean < 0.05:
+        print(f"  ✓ Exercise times match very well (diff={put_ex_diff_mean:.4f})")
+    else:
+        print(f"  ✗ Exercise times differ significantly (diff={put_ex_diff_mean:.4f})")
 
     print(f"\nCALL Option:")
-    print(f"  Your LSM:      Price={call_results['price_yours']:.4f}, ExTime={call_results['ex_time_yours']:.4f}")
-    print(f"  Debug LSM:     Price={call_results['price_debug']:.4f}, ExTime={call_results['ex_time_debug']:.4f}")
-    print(f"  Differences:   Price={call_results['price_diff']:.4f}, ExTime={call_results['ex_time_diff']:.4f}")
+    if call_price_diff_mean < 0.1:
+        print(f"  ✓ Prices match very well (diff={call_price_diff_mean:.4f})")
+    else:
+        print(f"  ✗ Prices differ significantly (diff={call_price_diff_mean:.4f})")
+
+    if call_ex_diff_mean < 0.05:
+        print(f"  ✓ Exercise times match very well (diff={call_ex_diff_mean:.4f})")
+    else:
+        print(f"  ✗ Exercise times differ significantly (diff={call_ex_diff_mean:.4f})")
 
     print("\n" + "=" * 80)
 
