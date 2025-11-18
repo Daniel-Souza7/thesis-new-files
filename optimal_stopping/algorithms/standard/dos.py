@@ -147,6 +147,9 @@ class DeepOptimalStopping:
             # Discount future values
             discounted_values = values * disc_factor
 
+            # Clip to non-negative (American option value can't be negative)
+            discounted_values = np.maximum(0, discounted_values)
+
             # Train network to maximize expected value
             self._train_network(
                 current_state[:self.split],

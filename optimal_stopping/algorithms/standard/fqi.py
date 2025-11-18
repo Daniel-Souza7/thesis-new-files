@@ -105,6 +105,9 @@ class FQIFast:
             # Predict Q-values for all states at times 1 to T-1
             q_values = self._predict(eval_bases[:self.split, 1:, :])
 
+            # Clip to non-negative (American option value can't be negative)
+            q_values = np.maximum(0, q_values)
+
             # Target: max(payoff_t+1, Q_t+1) discounted
             indicator_stop = np.maximum(payoffs[:self.split, 1:], q_values)
 
@@ -128,10 +131,10 @@ class FQIFast:
             self._fit(matrixU, vectorV)
 
         # Compute final Q-values
-        if self.train_ITM_only:
-            continuation_value = np.maximum(self._predict(eval_bases), 0)
-        else:
-            continuation_value = self._predict(eval_bases)
+        continuation_value = self._predict(eval_bases)
+
+        # Clip to non-negative (American option value can't be negative)
+        continuation_value = np.maximum(0, continuation_value)
 
         # Determine exercise strategy
         exercise = (payoffs > continuation_value).astype(int)

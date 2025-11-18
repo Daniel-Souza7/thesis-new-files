@@ -213,6 +213,9 @@ class SRFQI:
             # Compute continuation values
             continuation_value = np.dot(eval_bases[:self.split, 1:, :], weights)
 
+            # Clip to non-negative (American option value can't be negative)
+            continuation_value = np.maximum(0, continuation_value)
+
             # Optimal stopping: max(immediate payoff, continuation)
             indicator_stop = np.maximum(payoffs[:self.split, 1:], continuation_value)
 
@@ -236,10 +239,10 @@ class SRFQI:
             weights = np.linalg.solve(matrixU, vectorV)
 
         # Final evaluation on all paths
-        if self.train_ITM_only:
-            continuation_value = np.maximum(np.dot(eval_bases, weights), 0)
-        else:
-            continuation_value = np.dot(eval_bases, weights)
+        continuation_value = np.dot(eval_bases, weights)
+
+        # Clip to non-negative (American option value can't be negative)
+        continuation_value = np.maximum(0, continuation_value)
 
         # Determine exercise decisions
         which = (payoffs > continuation_value) * 1

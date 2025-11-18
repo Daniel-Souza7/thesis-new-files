@@ -213,7 +213,12 @@ class NeuralNetworkPricer:
         self.neural_network.train(False)
         X_inputs = torch.from_numpy(X_inputs).double()
         outputs = self.neural_network(X_inputs)
-        return outputs.view(len(X_inputs)).detach().numpy()
+        continuation_values = outputs.view(len(X_inputs)).detach().numpy()
+
+        # Clip to non-negative (American option value can't be negative)
+        continuation_values = np.maximum(0, continuation_values)
+
+        return continuation_values
 
     def get_exercise_time(self):
         """Return average exercise time normalized to [0, 1] (evaluation set only)."""

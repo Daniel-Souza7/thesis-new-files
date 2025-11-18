@@ -217,4 +217,9 @@ class SRLSM:
         )[0]
 
         # Predict continuation values
-        return np.dot(basis, coefficients)
+        continuation_values = np.dot(basis, coefficients)
+
+        # Clip to non-negative (American option value can't be negative)
+        continuation_values = np.maximum(0, continuation_values)
+
+        return continuation_values

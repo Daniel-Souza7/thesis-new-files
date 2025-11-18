@@ -242,6 +242,9 @@ class RLSM:
                 # Predict continuation values for all ITM paths
                 continuation_values[itm_mask] = np.dot(basis_itm, coefficients)
 
+                # Clip to non-negative (American option value can't be negative)
+                continuation_values = np.maximum(0, continuation_values)
+
         return continuation_values, coefficients
 
     def predict(self, stock_paths, var_paths=None):
