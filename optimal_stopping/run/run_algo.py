@@ -306,7 +306,9 @@ def _run_algo(
         step_param1=step_param1,
         step_param2=step_param2,
         step_param3=step_param3,
-        step_param4=step_param4
+        step_param4=step_param4,
+        rate=risk_free_rate,  # For step barrier growth
+        maturity=maturity  # For step barrier growth
     )
 
     # Check if payoff is path-dependent

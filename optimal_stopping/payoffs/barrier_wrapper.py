@@ -36,10 +36,14 @@ class BarrierPayoff(Payoff):
         self.barrier_down = kwargs.get('barrier_down', None)
         self.T1 = kwargs.get('T1', 0)  # Partial time barrier start
         self.T2 = kwargs.get('T2', None)  # Partial time barrier end (None = maturity)
-        self.step_param1 = kwargs.get('step_param1', -1)
-        self.step_param2 = kwargs.get('step_param2', 1)
-        self.step_param3 = kwargs.get('step_param3', -1)
-        self.step_param4 = kwargs.get('step_param4', 1)
+        self.step_param1 = kwargs.get('step_param1', None)  # None means use risk-free rate
+        self.step_param2 = kwargs.get('step_param2', None)
+        self.step_param3 = kwargs.get('step_param3', None)
+        self.step_param4 = kwargs.get('step_param4', None)
+
+        # Model parameters for risk-free rate growth (default growth)
+        self.rate = kwargs.get('rate', 0.05)  # Default 5% risk-free rate
+        self.maturity = kwargs.get('maturity', 1.0)  # Default 1 year
 
         # Validate barrier type
         valid_types = ['UO', 'DO', 'UI', 'DI', 'UODO', 'UIDI', 'UIDO', 'UODI', 'PTB', 'STEPB', 'DSTEPB']
@@ -145,19 +149,30 @@ class BarrierPayoff(Payoff):
             return (min_in_window > self.barrier).astype(float)
 
     def _check_step_barrier(self, X):
-        """Check step barrier (StepB) with cumulative random walk."""
+        """
+        Check step barrier (StepB) with time-varying barrier.
+
+        By default, barrier grows at risk-free rate: B(t) = B(0) * exp(r * t * T / nb_dates)
+        If step_param1 and step_param2 are provided, uses cumulative random walk instead.
+        """
         nb_paths, nb_stocks, nb_dates = X.shape
 
-        # Generate cumulative random walk for barrier
-        # Shape: (nb_paths, nb_dates)
-        random_increments = np.random.uniform(
-            self.step_param1, self.step_param2,
-            size=(nb_paths, nb_dates)
-        )
-        cumulative_walk = np.cumsum(random_increments, axis=1)
-
-        # Broadcast barrier to match X shape: (nb_paths, 1, nb_dates)
-        time_varying_barrier = (self.barrier + cumulative_walk)[:, np.newaxis, :]
+        # Compute time-varying barrier
+        if self.step_param1 is None or self.step_param2 is None:
+            # Default: grow at risk-free rate
+            # B(t) = B(0) * exp(rate * maturity * t / nb_dates) for t = 0, 1, ..., nb_dates-1
+            time_steps = np.arange(nb_dates)  # Shape: (nb_dates,)
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)  # (nb_dates,)
+            # Broadcast to (nb_paths, nb_dates)
+            time_varying_barrier = self.barrier * growth_factor[np.newaxis, :]
+        else:
+            # User-specified: cumulative random walk
+            random_increments = np.random.uniform(
+                self.step_param1, self.step_param2,
+                size=(nb_paths, nb_dates)
+            )
+            cumulative_walk = np.cumsum(random_increments, axis=1)
+            time_varying_barrier = self.barrier + cumulative_walk  # (nb_paths, nb_dates)
 
         # Determine if call or put
         is_call = 'Call' in self.base_payoff.__class__.__name__
@@ -165,34 +180,51 @@ class BarrierPayoff(Payoff):
         if is_call:
             # Call → Check if ALL timesteps have max(S_i) < B(t)
             max_per_timestep = np.max(X, axis=1)  # (nb_paths, nb_dates)
-            barrier_never_hit = np.all(max_per_timestep < time_varying_barrier.squeeze(), axis=1)
+            barrier_never_hit = np.all(max_per_timestep < time_varying_barrier, axis=1)
             return barrier_never_hit.astype(float)
         else:
             # Put → Check if ALL timesteps have min(S_i) > B(t)
             min_per_timestep = np.min(X, axis=1)  # (nb_paths, nb_dates)
-            barrier_never_hit = np.all(min_per_timestep > time_varying_barrier.squeeze(), axis=1)
+            barrier_never_hit = np.all(min_per_timestep > time_varying_barrier, axis=1)
             return barrier_never_hit.astype(float)
 
     def _check_double_step_barrier(self, X):
-        """Check double step barrier (DStepB) with two cumulative random walks."""
+        """
+        Check double step barrier (DStepB) with two time-varying barriers.
+
+        By default, both barriers grow at risk-free rate: B(t) = B(0) * exp(r * t * T / nb_dates)
+        If step_param1-4 are provided, uses cumulative random walks instead.
+        """
         nb_paths, nb_stocks, nb_dates = X.shape
 
-        # Generate cumulative random walks for both barriers
-        random_increments_lower = np.random.uniform(
-            self.step_param1, self.step_param2,
-            size=(nb_paths, nb_dates)
-        )
-        random_increments_upper = np.random.uniform(
-            self.step_param3, self.step_param4,
-            size=(nb_paths, nb_dates)
-        )
+        # Compute time-varying barriers
+        if self.step_param1 is None or self.step_param2 is None:
+            # Default: lower barrier grows at risk-free rate
+            time_steps = np.arange(nb_dates)
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)
+            barrier_lower = self.barrier_down * growth_factor[np.newaxis, :]  # (nb_paths, nb_dates)
+        else:
+            # User-specified: cumulative random walk
+            random_increments_lower = np.random.uniform(
+                self.step_param1, self.step_param2,
+                size=(nb_paths, nb_dates)
+            )
+            cumulative_walk_lower = np.cumsum(random_increments_lower, axis=1)
+            barrier_lower = self.barrier_down + cumulative_walk_lower
 
-        cumulative_walk_lower = np.cumsum(random_increments_lower, axis=1)
-        cumulative_walk_upper = np.cumsum(random_increments_upper, axis=1)
-
-        # Barriers: (nb_paths, nb_dates)
-        barrier_lower = self.barrier_down + cumulative_walk_lower
-        barrier_upper = self.barrier_up + cumulative_walk_upper
+        if self.step_param3 is None or self.step_param4 is None:
+            # Default: upper barrier grows at risk-free rate
+            time_steps = np.arange(nb_dates)
+            growth_factor = np.exp(self.rate * self.maturity * time_steps / nb_dates)
+            barrier_upper = self.barrier_up * growth_factor[np.newaxis, :]  # (nb_paths, nb_dates)
+        else:
+            # User-specified: cumulative random walk
+            random_increments_upper = np.random.uniform(
+                self.step_param3, self.step_param4,
+                size=(nb_paths, nb_dates)
+            )
+            cumulative_walk_upper = np.cumsum(random_increments_upper, axis=1)
+            barrier_upper = self.barrier_up + cumulative_walk_upper
 
         # Check if stock stays within corridor at ALL timesteps
         max_per_timestep = np.max(X, axis=1)  # (nb_paths, nb_dates)
