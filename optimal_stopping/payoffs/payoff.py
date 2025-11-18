@@ -48,9 +48,17 @@ class Payoff:
 
         Returns:
             payoffs: Array of shape (nb_paths, nb_dates+1)
+
+        Note:
+            Sets self.initial_prices to stock_paths[:, :, 0] for payoffs that
+            require normalization by initial spot prices S_i(0). This allows
+            normalized payoffs to compute returns like (S_i(t) - S_i(0)) / S_i(0).
         """
         nb_paths, nb_stocks, nb_dates = stock_paths.shape
         payoffs = np.zeros((nb_paths, nb_dates))
+
+        # Store initial prices for normalization (t=0)
+        self.initial_prices = stock_paths[:, :, 0]  # Shape: (nb_paths, nb_stocks)
 
         for date in range(nb_dates):
             if self.is_path_dependent:
