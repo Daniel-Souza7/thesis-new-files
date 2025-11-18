@@ -196,14 +196,13 @@ def extract_data_for_excel(config: configs._DefaultConfig):
     print(f"  Sample data:")
     print(df.head(3))
 
-    # CRITICAL FIX: Remove duplicates BEFORE grouping
+    # NOTE: Do NOT remove "duplicates" - multiple runs with same parameters
+    # are EXPECTED for computing statistics (mean, std) across runs!
+    # Having duplicate indices is the whole point of nb_runs > 1.
     if df.index.has_duplicates:
-        print(f"  ⚠️ WARNING: Index has duplicates!")
         dup_count = df.index.duplicated().sum()
-        print(f"     {dup_count} duplicate index entries found")
-        print(f"     Removing duplicates (keeping last)...")
-        df = df[~df.index.duplicated(keep='last')]
-        print(f"     After removing duplicates: {len(df)} rows")
+        print(f"  ✓ Index has {dup_count} duplicate entries (multiple runs with same params)")
+        print(f"    This is EXPECTED for computing std across {dup_count + 1} runs")
 
     # Group by index and calculate statistics
     print(f"  Grouping by: {list(df.index.names)}")
