@@ -130,7 +130,7 @@ def compare_lsm_implementations():
     """Compare your LSM vs debug LSM for both PUT and CALL options."""
 
     # Common parameters
-    nb_paths = 10000
+    nb_paths = 100000  # Increased for better accuracy
     nb_stocks = 1
     nb_dates = 10
     maturity = 1.0

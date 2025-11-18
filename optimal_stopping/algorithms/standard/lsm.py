@@ -89,8 +89,8 @@ class LeastSquaresPricer:
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
 
-        # Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
+        # Track exercise dates (initialize to maturity = nb_dates, not nb_dates-1)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
 
         # Clear previous learned policy and prepare to store new one
         self._learned_coefficients = {}
@@ -221,7 +221,7 @@ class LeastSquaresPricer:
         payoffs = self.payoff(stock_paths)
 
         # Initialize tracking
-        exercise_times = np.full(nb_paths, nb_dates - 1, dtype=int)  # Default to maturity
+        exercise_times = np.full(nb_paths, nb_dates, dtype=int)  # Default to maturity = nb_dates
         payoff_values = payoffs[:, -1].copy()  # Default to terminal payoff
         exercised = np.zeros(nb_paths, dtype=bool)  # Track which paths already exercised
 

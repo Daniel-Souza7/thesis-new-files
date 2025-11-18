@@ -131,8 +131,8 @@ class RLSM:
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
 
-        # Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
+        # Track exercise dates (initialize to maturity = nb_dates, not nb_dates-1)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
 
         # Clear previous learned policy and prepare to store new one
         self._learned_coefficients = {}
@@ -263,7 +263,7 @@ class RLSM:
         nb_dates = self.model.nb_dates
 
         # Initialize tracking
-        exercise_times = np.full(nb_paths, nb_dates - 1, dtype=int)  # Default to maturity
+        exercise_times = np.full(nb_paths, nb_dates, dtype=int)  # Default to maturity = nb_dates
         payoff_values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])  # Terminal payoff
         exercised = np.zeros(nb_paths, dtype=bool)  # Track which paths already exercised
 

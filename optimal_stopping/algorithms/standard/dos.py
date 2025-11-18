@@ -111,8 +111,8 @@ class DeepOptimalStopping:
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
 
-        # Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, self.model.nb_dates - 1, dtype=int)
+        # Track exercise dates (initialize to maturity = nb_dates, not nb_dates-1)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
 
         # Backward induction from T-1 to 1
         for date in range(self.model.nb_dates - 1, 0, -1):

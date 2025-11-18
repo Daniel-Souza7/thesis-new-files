@@ -124,8 +124,8 @@ class SRLSM:
         # CRITICAL: Pass FULL PATH HISTORY (all dates from 0 to T)
         values = self.payoff.eval(stock_paths)
 
-        # NEW: Track exercise dates (initialize to maturity)
-        self._exercise_dates = np.full(nb_paths, nb_dates - 1, dtype=int)
+        # Track exercise dates (initialize to maturity = nb_dates, not nb_dates-1)
+        self._exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
 
 
         # Backward induction from T-1 to 1
