@@ -108,7 +108,6 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'risk_free_rate', 'volatilit
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
                 'barrier', 'barriers_up', 'barriers_down',
                 'k', 'weights', 'step_param1', 'step_param2', 'step_param3', 'step_param4',
-                'custom_spots',
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input',
                 'train_ITM_only',
@@ -195,8 +194,7 @@ def _run_algos():
             config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
             config.barriers_up, config.barriers_down,
             config.k, config.weights,
-            config.step_param1, config.step_param2, config.step_param3, config.step_param4,
-            config.custom_spots))
+            config.step_param1, config.step_param2, config.step_param3, config.step_param4))
 
         for params in combinations:
             for i in range(config.nb_runs):
@@ -265,7 +263,6 @@ def _run_algo(
         barrier_up=None, barrier_down=None,
         k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
-        custom_spots=None,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
         poly_deg=None, fd_freeze_exe_boundary=True,
@@ -289,15 +286,6 @@ def _run_algo(
         np.random.seed(path_gen_seed)  # Numpy (will be set again in price() but good to set early)
         import torch
         torch.manual_seed(path_gen_seed)  # PyTorch for randomized neural networks
-
-    # Validate custom_spots parameter
-    if custom_spots is not None:
-        if nb_stocks == 1:
-            raise ValueError("custom_spots cannot be used with nb_stocks=1")
-        if nb_stocks < 2:
-            raise ValueError("custom_spots requires nb_stocks >= 2")
-        if len(custom_spots) != nb_stocks:
-            raise ValueError(f"custom_spots length ({len(custom_spots)}) must equal nb_stocks ({nb_stocks})")
 
     print(f"{algo} {payoff_name} spot={spot} vol={volatility} mat={maturity} "
           f"paths={nb_paths} ... ", end="")
@@ -326,13 +314,11 @@ def _run_algo(
 
     # Instantiate stock model
     # Note: Don't pass 'name' - each model sets its own name internally
-    # Use custom_spots if provided, otherwise use spot
-    effective_spot = custom_spots if custom_spots is not None else spot
     stock_model_obj = _STOCK_MODELS[stock_model_name](
         drift=drift, risk_free_rate=risk_free_rate, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=nb_paths, nb_dates=nb_dates,
-        spot=effective_spot, dividend=dividend,
+        spot=spot, dividend=dividend,
         maturity=maturity)
 
     # Instantiate pricer based on algorithm and payoff type
@@ -503,7 +489,6 @@ def _run_algo(
         'step_param2': step_param2,
         'step_param3': step_param3,
         'step_param4': step_param4,
-        'custom_spots': custom_spots,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,
