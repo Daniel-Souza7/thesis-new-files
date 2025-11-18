@@ -194,7 +194,7 @@ def _run_algos():
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
             config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
             config.barriers_up, config.barriers_down,
-            config.alpha, config.k, config.weights,
+            config.k, config.weights,
             config.step_param1, config.step_param2, config.step_param3, config.step_param4,
             config.custom_spots))
 
@@ -263,7 +263,7 @@ def _run_algo(
         factors=(1., 1., 1.), ridge_coeff=1.,
         train_ITM_only=True, use_payoff_as_input=False,
         barrier_up=None, barrier_down=None,
-        alpha=0.95, k=2, weights=None,
+        k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
         custom_spots=None,
         fail_on_error=False,
@@ -313,7 +313,6 @@ def _run_algo(
         barrier=barrier,
         barrier_up=barrier_up,
         barrier_down=barrier_down,
-        alpha=alpha,
         k=k,
         weights=weights,
         step_param1=step_param1,
@@ -498,7 +497,6 @@ def _run_algo(
         'barrier': barrier,
         'barriers_up': barrier_up,
         'barriers_down': barrier_down,
-        'alpha': alpha,
         'k': k,
         'weights': weights,
         'step_param1': step_param1,

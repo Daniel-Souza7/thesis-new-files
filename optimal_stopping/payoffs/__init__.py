@@ -3,11 +3,11 @@ Optimal stopping payoffs package.
 
 This package provides:
 - Base Payoff class with auto-registration
-- 34 base payoff classes (standard options without barriers)
+- 30 base payoff classes (standard options without barriers)
 - BarrierPayoff wrapper that applies 11 barrier types to any base payoff
-- 374 barrier variant payoffs (34 base × 11 barriers)
+- 330 barrier variant payoffs (30 base × 11 barriers)
 
-Total: 408 unique payoff types
+Total: 360 unique payoff types
 """
 
 # Import base classes
@@ -39,11 +39,6 @@ from .basket_rank import (
     RankWeightedBasketCall, RankWeightedBasketPut
 )
 
-# Import basket quantile payoffs (2)
-from .basket_quantile import (
-    QuantileBasketCall, QuantileBasketPut
-)
-
 # Import simple single payoffs (2)
 from .single_simple import Call, Put
 
@@ -64,14 +59,9 @@ from .single_range import (
     RangeCall_Single, RangePut_Single
 )
 
-# Import single quantile payoffs (2)
-from .single_quantile import (
-    QuantileCall, QuantilePut
-)
 
-
-# Auto-generate all barrier variants for all 34 base payoffs
-# This creates 374 barrier payoffs (34 base × 11 barriers)
+# Auto-generate all barrier variants for all 30 base payoffs
+# This creates 330 barrier payoffs (30 base × 11 barriers)
 _BASE_PAYOFFS = [
     # Simple basket (6)
     BasketCall, BasketPut,
@@ -90,9 +80,6 @@ _BASE_PAYOFFS = [
     BestOfKCall, WorstOfKPut,
     RankWeightedBasketCall, RankWeightedBasketPut,
 
-    # Basket Quantile (2)
-    QuantileBasketCall, QuantileBasketPut,
-
     # Simple single (2)
     Call, Put,
 
@@ -106,9 +93,6 @@ _BASE_PAYOFFS = [
 
     # Single Range (2)
     RangeCall_Single, RangePut_Single,
-
-    # Single Quantile (2)
-    QuantileCall, QuantilePut,
 ]
 
 _BARRIER_TYPES = ['UO', 'DO', 'UI', 'DI', 'UODO', 'UIDI', 'UIDO', 'UODI', 'PTB', 'StepB', 'DStepB']
@@ -147,9 +131,6 @@ __all__ = [
     'BestOfKCall', 'WorstOfKPut',
     'RankWeightedBasketCall', 'RankWeightedBasketPut',
 
-    # Basket Quantile
-    'QuantileBasketCall', 'QuantileBasketPut',
-
     # Single payoffs
     'Call', 'Put',
 
@@ -163,9 +144,6 @@ __all__ = [
 
     # Single Range
     'RangeCall_Single', 'RangePut_Single',
-
-    # Single Quantile
-    'QuantileCall', 'QuantilePut',
 
     # Registry access
     '_PAYOFF_REGISTRY',
@@ -184,36 +162,32 @@ def print_payoff_summary():
     print(f"   Total payoffs:   {len(payoffs)}")
 
     # Count by category
-    basket_simple = [p for p in base_payoffs if any(x in p for x in ['Basket', 'Geometric', 'Max', 'Min']) and 'Asian' not in p and 'Range' not in p and 'Rank' not in p and 'Quant' not in p]
+    basket_simple = [p for p in base_payoffs if any(x in p for x in ['Basket', 'Geometric', 'Max', 'Min']) and 'Asian' not in p and 'Range' not in p and 'Rank' not in p]
     basket_asian = [p for p in base_payoffs if 'Asian' in p and ('Bsk' in p or 'Basket' in p or 'Fixed' in p or 'Floating' in p)]
-    basket_other = [p for p in base_payoffs if any(x in p for x in ['Range', 'Disp', 'Best', 'Worst', 'Rank']) and 'Quant' not in p]
-    basket_quant = [p for p in base_payoffs if 'Quant' in p and 'Bsk' in p]
+    basket_other = [p for p in base_payoffs if any(x in p for x in ['Range', 'Disp', 'Best', 'Worst', 'Rank'])]
 
     single_simple = [p for p in base_payoffs if p in ['Call', 'Put']]
     single_lookback = [p for p in base_payoffs if 'Lookback' in p or 'LB' in p]
     single_asian = [p for p in base_payoffs if 'Asian' in p and 'Single' in p]
     single_range = [p for p in base_payoffs if 'Range' in p and 'Single' in p]
-    single_quant = [p for p in base_payoffs if 'Quant' in p and ('Call' in p or 'Put' in p) and 'Bsk' not in p]
 
     print(f"\n Base Payoffs Breakdown:")
     print(f"   Basket Simple:         {len(basket_simple)}")
     print(f"   Basket Asian:          {len(basket_asian)}")
     print(f"   Basket Range/Disp/Rank:{len(basket_other)}")
-    print(f"   Basket Quantile:       {len(basket_quant)}")
     print(f"   Single Simple:         {len(single_simple)}")
     print(f"   Single Lookback:       {len(single_lookback)}")
     print(f"   Single Asian:          {len(single_asian)}")
     print(f"   Single Range:          {len(single_range)}")
-    print(f"   Single Quantile:       {len(single_quant)}")
 
-    expected_total = 34 + 34 * 11  # 34 base + 374 barriers
+    expected_total = 30 + 30 * 11  # 30 base + 330 barriers
     print(f"\n Expected total: {expected_total}")
     print(f" Actual total:   {len(payoffs)}")
 
     if len(payoffs) >= expected_total:
-        print(f" ✅ All {expected_total} payoffs successfully registered!")
+        print(f" All {expected_total} payoffs successfully registered!")
     else:
-        print(f" ⚠️  Missing {expected_total - len(payoffs)} payoffs")
+        print(f" Missing {expected_total - len(payoffs)} payoffs")
 
 
 if __name__ == "__main__":
