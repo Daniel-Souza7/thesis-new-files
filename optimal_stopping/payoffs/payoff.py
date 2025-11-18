@@ -26,6 +26,7 @@ class Payoff:
         """
         self.strike = strike
         self.params = kwargs  # Store all extra parameters
+        self.initial_prices = None  # Initialize for normalized payoffs
 
     def __init_subclass__(cls, **kwargs):
         """Auto-register payoff classes when they're defined."""
@@ -53,6 +54,9 @@ class Payoff:
             Sets self.initial_prices to stock_paths[:, :, 0] for payoffs that
             require normalization by initial spot prices S_i(0). This allows
             normalized payoffs to compute returns like (S_i(t) - S_i(0)) / S_i(0).
+
+            For path-dependent algorithms that call eval() directly without using
+            __call__(), use the _get_initial_prices() helper method instead.
         """
         nb_paths, nb_stocks, nb_dates = stock_paths.shape
         payoffs = np.zeros((nb_paths, nb_dates))
@@ -82,6 +86,32 @@ class Payoff:
             Array of shape (nb_paths,) with payoff values
         """
         raise NotImplementedError("Subclasses must implement eval()")
+
+    def _get_initial_prices(self, X):
+        """
+        Get initial prices for normalization.
+
+        For path-dependent payoffs, X has shape (nb_paths, nb_stocks, nb_dates+1),
+        so extract initial prices from X[:, :, 0].
+
+        For standard payoffs called via __call__(), initial_prices is already set.
+
+        Args:
+            X: Stock prices (2D or 3D array)
+
+        Returns:
+            initial_prices: Array of shape (nb_paths, nb_stocks)
+        """
+        if self.initial_prices is not None:
+            # Already set by __call__() for standard payoffs
+            return self.initial_prices
+
+        # For path-dependent payoffs, extract from X
+        if X.ndim == 3:
+            return X[:, :, 0]
+
+        # Fallback: assume current prices are initial prices (no normalization)
+        return X
 
     def __repr__(self):
         """String representation of payoff."""
