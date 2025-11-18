@@ -209,6 +209,83 @@ class FQIFast:
         normalized_times = self._exercise_dates[self.split:] / nb_dates
         return float(np.mean(normalized_times))
 
+    def backward_induction_on_paths(self, stock_paths, var_paths=None):
+        """
+        Apply learned policy using backward induction.
+
+        This method replicates the pricing behavior for video generation by using
+        the learned Q-function weights to make exercise decisions via backward induction.
+
+        Args:
+            stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
+            var_paths: (nb_paths, nb_stocks, nb_dates+1) - Variance paths (optional)
+
+        Returns:
+            exercise_dates: (nb_paths,) - Time step when each path is exercised
+            payoff_values: (nb_paths,) - Payoff value at exercise for each path
+            price: float - Average discounted payoff
+
+        Raises:
+            ValueError: If no learned policy available (must call price() first)
+        """
+        if not hasattr(self, 'weights') or np.allclose(self.weights, 0):
+            raise ValueError("No learned policy available. Must call price() first to train.")
+
+        nb_paths = stock_paths.shape[0]
+        nb_dates = self.model.nb_dates
+
+        # Compute all payoffs upfront
+        payoffs = self.payoff(stock_paths)
+
+        # Prepare stock paths with optional features
+        paths = stock_paths.copy()
+        if self.use_payoff_as_input:
+            paths = np.concatenate([paths, np.expand_dims(payoffs, axis=1)], axis=1)
+        if self.use_var and var_paths is not None:
+            paths = np.concatenate([paths, var_paths], axis=1)
+
+        # Evaluate basis functions for all paths and times
+        eval_bases = self._evaluate_bases_all(paths, nb_dates + 1)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Track exercise dates (initialize to maturity = nb_dates)
+        exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
+
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
+
+        # Backward induction from T-1 to 1
+        for date in range(nb_dates - 1, 0, -1):
+            # Current immediate exercise value
+            immediate_exercise = payoffs[:, date]
+
+            # Compute continuation values using learned weights
+            continuation_values = self._predict(eval_bases[:, date, :])
+
+            # Clip to non-negative (American option value can't be negative)
+            continuation_values = np.maximum(0, continuation_values)
+
+            # Discount future values
+            discounted_values = values * disc_factor
+
+            # Exercise decision: exercise if immediate > continuation
+            exercise_now = immediate_exercise > continuation_values
+
+            # Update values
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Track exercise dates - only update if exercising earlier
+            exercise_dates[exercise_now] = date
+
+        # Extract payoff values at exercise time
+        payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
+
+        # Compute price (average discounted payoff)
+        price = np.mean(values)
+
+        return exercise_dates, payoff_values, price
+
 
 class FQIFastDeg1(FQIFast):
     """FQI using degree-1 polynomial basis."""
