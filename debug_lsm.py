@@ -15,16 +15,20 @@ T = 1.0             # Maturity (years) - changed to 1 to match your configs
 DT = 1/10           # Time step - changed to match nb_dates=10
 TIME = np.arange(DT, T + DT, DT)
 N = len(TIME)       # Number of time intervals
-R = 0.02            # Risk-free rate (matching drift - 0.04 = 0.06 - 0.04)
+DRIFT = 0.06        # Drift for path generation (matching your config)
+R = 0.02            # Risk-free rate for discounting (matching drift - 0.04)
 SIGMA = 0.2         # Volatility
 D = 0.0             # Dividend yield
 S_0 = 100.0         # Initial stock price
 K = 100.0           # Strike price
 
 
-def generate_gbm_paths(n_paths, n_steps, s0, r, sigma, dt, d=0.0):
+def generate_gbm_paths(n_paths, n_steps, s0, drift, sigma, dt, d=0.0):
     """
     Generate stock price paths using Geometric Brownian Motion.
+
+    Args:
+        drift: Drift parameter for path generation (mu)
 
     Returns:
         S: (n_paths, n_steps+1) array of stock prices
@@ -37,10 +41,10 @@ def generate_gbm_paths(n_paths, n_steps, s0, r, sigma, dt, d=0.0):
     Z = np.random.normal(0, 1, (n_paths, n_steps))
 
     # Vectorized GBM
-    drift = (r - d - 0.5 * sigma**2) * dt
+    drift_term = (drift - d - 0.5 * sigma**2) * dt
     diffusion = sigma * np.sqrt(dt)
 
-    increments = np.exp(drift + diffusion * Z)
+    increments = np.exp(drift_term + diffusion * Z)
     S[:, 1:] = s0 * np.cumprod(increments, axis=1)
 
     return S
@@ -146,13 +150,14 @@ def main():
     print(f"  Maturity:     {T} years")
     print(f"  Strike:       {K}")
     print(f"  Spot:         {S_0}")
-    print(f"  Rate:         {R}")
+    print(f"  Drift:        {DRIFT} (path generation)")
+    print(f"  Rate:         {R} (discounting)")
     print(f"  Volatility:   {SIGMA}")
     print(f"  Dividend:     {D}")
 
     # Generate paths
     print(f"\nGenerating {REPS:,} stock price paths...")
-    S = generate_gbm_paths(REPS, N, S_0, R, SIGMA, DT, D)
+    S = generate_gbm_paths(REPS, N, S_0, DRIFT, SIGMA, DT, D)
 
     # Price American put
     print("Running LSM backward induction...")

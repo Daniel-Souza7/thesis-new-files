@@ -93,11 +93,11 @@ def compare_lsm_implementations():
     # Reset seed to generate same paths
     np.random.seed(42)
 
-    # Generate paths
+    # Generate paths using DRIFT (not rate) to match current implementation
     dt = maturity / nb_dates
-    S = generate_gbm_paths(nb_paths, nb_dates, spot, rate, volatility, dt, d=0.0)
+    S = generate_gbm_paths(nb_paths, nb_dates, spot, drift, volatility, dt, d=0.0)
 
-    # Price
+    # Price using RATE for discounting
     price_debug, ex_time_debug, _, _ = lsm_american_option(S, strike, rate, dt, option_type='put')
 
     print(f"Price:              {price_debug:.4f}")
