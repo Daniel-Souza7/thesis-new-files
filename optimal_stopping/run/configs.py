@@ -1800,3 +1800,121 @@ test_real_data_all_algos = _DefaultConfig(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+'''
+Test 1: custom_spots with standard basket payoffs
+Tests custom_spots feature with extreme price differences to verify:
+- Basket formulas use custom initial prices correctly
+- Strikes are applied correctly regardless of spot price scale
+- Algorithm convergence with heterogeneous initial prices
+'''
+test_custom_spots_basic = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(5,),
+    algos=('RLSM', 'LSM'),
+    payoffs=('BskCall', 'BskPut', 'GeoCall'),
+    custom_spots=((1, 2, 4, 20, 100),),  # Extreme price differences
+    train_ITM_only=(True,)
+)
+
+'''
+Test 2: MaxCall/MinPut normalization
+Tests that MaxCall and MinPut correctly normalize returns by initial prices:
+- MaxCall(S) = max(S_i(T)/S_i(0)) should be scale-invariant
+- MinPut(S) = 1/min(S_i(T)/S_i(0)) should be scale-invariant
+- Strike is applied to normalized returns
+- Tests multiple scales to verify normalization works correctly
+'''
+test_normalized_max_min = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(3, 5),
+    algos=('RLSM', 'LSM'),
+    payoffs=('MaxCall', 'MinPut'),
+    custom_spots=((10, 50, 100), (1, 10, 100, 500, 1000)),  # Test different scales
+    strikes=(1.05, 1.2),  # Strike on normalized returns
+    train_ITM_only=(True,)
+)
+
+'''
+Test 3: DispersionCall/Put with varying dispersions
+Tests that DispersionCall and DispersionPut correctly compute dispersion:
+- Dispersion = std(S_i(T)/S_i(0)) measures spread of returns
+- Tests uniform vs varied initial prices to create different dispersion scenarios
+- Strike is applied to standard deviation of returns
+- Different market volatilities create different dispersion levels
+'''
+test_normalized_dispersion = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(5, 10),
+    algos=('RLSM', 'LSM'),
+    payoffs=('DispersionCall', 'DispersionPut'),
+    custom_spots=((100, 100, 100, 100, 100), (10, 50, 100, 200, 500)),  # Uniform vs varied
+    strikes=(0.05, 0.1, 0.2),  # Strike on standard deviation of returns
+    volatilities=(0.1, 0.3),  # Different market volatilities
+    train_ITM_only=(True,)
+)
+
+'''
+Test 4: RangeCall/Put normalization
+Tests that RangeCall and RangePut correctly compute range of returns:
+- Range = max(S_i(T)/S_i(0)) - min(S_i(T)/S_i(0)) measures spread
+- Tests uniform vs extreme initial price spreads
+- Strike is applied to range of returns
+- Verifies scale-invariance of range measure
+'''
+test_normalized_range = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(3, 5),
+    algos=('RLSM', 'LSM'),
+    payoffs=('RangeCall', 'RangePut'),
+    custom_spots=((100, 100, 100), (1, 50, 1000)),  # Uniform vs extreme spread
+    strikes=(0.1, 0.3),  # Strike on range of returns
+    volatilities=(0.2,),
+    train_ITM_only=(True,)
+)
+
+'''
+Test 5: Ranking by returns (BestOfK, WorstOfK, RankWeighted)
+Tests that ranking-based payoffs correctly rank by normalized returns:
+- BestOfKCall: average of top k returns
+- WorstOfKPut: inverse of average of bottom k returns
+- RankWeightedBasketCall: weighted average of returns sorted by performance
+- Tests huge initial price differences to verify ranking by returns, not absolute prices
+- Strike is applied to average return of selected stocks
+'''
+test_normalized_rank_based = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(5,),
+    algos=('RLSM', 'LSM'),
+    payoffs=('BestOfKCall', 'WorstOfKPut', 'RankWeightedBasketCall'),
+    custom_spots=((1, 10, 50, 100, 500),),  # Huge initial price differences
+    k=(2, 3),  # Test different k values
+    strikes=(1.1, 1.3),  # Strike on average return of top/bottom k
+    train_ITM_only=(True,)
+)
+
+'''
+Test 6: custom_spots vs uniform spots comparison
+Compares pricing with custom_spots vs uniform spots:
+- Same payoff should give similar prices when normalized correctly
+- Tests that normalization makes pricing scale-invariant
+- custom_spots=None uses uniform spots parameter
+- custom_spots=(1, 10, 50, 100, 500) uses heterogeneous initial prices
+- Expected: normalized payoffs should show similar prices in both cases
+'''
+test_custom_spots_vs_uniform = _DefaultConfig(
+    nb_runs=10,
+    nb_paths=(100000,),
+    nb_stocks=(5,),
+    algos=('RLSM',),
+    payoffs=('MaxCall', 'DispersionCall', 'RankWeightedBasketCall'),
+    custom_spots=(None, (1, 10, 50, 100, 500)),  # Compare uniform vs custom
+    spots=(100,),  # Uniform spot when custom_spots=None
+    strikes=(1.2,),
+    train_ITM_only=(True,)
+)
