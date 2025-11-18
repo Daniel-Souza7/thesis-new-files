@@ -108,6 +108,7 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'risk_free_rate', 'volatilit
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
                 'barrier', 'barriers_up', 'barriers_down',
                 'k', 'weights', 'step_param1', 'step_param2', 'step_param3', 'step_param4',
+                'user_data_file',
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input',
                 'train_ITM_only',
@@ -263,6 +264,7 @@ def _run_algo(
         barrier_up=None, barrier_down=None,
         k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
+        user_data_file=None,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
         poly_deg=None, fd_freeze_exe_boundary=True,
@@ -321,7 +323,7 @@ def _run_algo(
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=nb_paths, nb_dates=nb_dates,
         spot=spot, dividend=dividend,
-        maturity=maturity)
+        maturity=maturity, user_data_file=user_data_file)
 
     # Instantiate pricer based on algorithm and payoff type
     try:
@@ -491,6 +493,7 @@ def _run_algo(
         'step_param2': step_param2,
         'step_param3': step_param3,
         'step_param4': step_param4,
+        'user_data_file': user_data_file,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,
