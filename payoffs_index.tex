@@ -37,7 +37,7 @@
 \multicolumn{3}{c}{\textbf{STANDARD BASKET OPTIONS (6)}} \\
 \midrule
 BasketCall & BskCall & $\max(0, \overline{S}(t) - K)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
-BasketPut & BskPut & $\max(0, K - \overline{S}(t))$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
+BasketPut & BskPut & $\max(0, K - \overline{S}(t))$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
 GeometricCall & GeoCall & $\max(0, G(t) - K)$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
 GeometricPut & GeoPut & $\max(0, K - G(t))$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
 MaxCall & MaxCall & $\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K\right)$ \\
