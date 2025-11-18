@@ -82,8 +82,8 @@ DispersionPut & Disp-BskPut & $\max\left(0, K - \sigma(t)\right)$ where $\sigma(
 BestOfKCall & BestK-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right)$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 WorstOfKPut & WorstK-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right)$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
-RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t) - K\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
-RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t)\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right)$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 \bottomrule
 \end{tabular}
@@ -1256,117 +1256,117 @@ DoubleStepBarrierWorstOfKPut & DStepB-WorstK-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutRankWeightedBasketCall & UO-Rank-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpAndOutRankWeightedBasketPut & UO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DownAndOutRankWeightedBasketCall & DO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DownAndOutRankWeightedBasketPut & DO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpAndInRankWeightedBasketCall & UI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpAndInRankWeightedBasketPut & UI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DownAndInRankWeightedBasketCall & DI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DownAndInRankWeightedBasketPut & DI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANK-WEIGHTED BASKET OPTIONS (8)}} \\
 \midrule
 
 DoubleKnockOutRankWeightedBasketCall & UODO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DoubleKnockOutRankWeightedBasketPut & UODO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DoubleKnockInRankWeightedBasketCall & UIDI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DoubleKnockInRankWeightedBasketPut & UIDI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpInDownOutRankWeightedBasketCall & UIDO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpInDownOutRankWeightedBasketPut & UIDO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpOutDownInRankWeightedBasketCall & UODI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 UpOutDownInRankWeightedBasketPut & UODI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{CUSTOM RANK-WEIGHTED BASKET BARRIER OPTIONS (6)}} \\
 \midrule
 
 PartialTimeBarrierRankWeightedBasketCall & PTB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 PartialTimeBarrierRankWeightedBasketPut & PTB-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 StepBarrierRankWeightedBasketCall & StepB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 StepBarrierRankWeightedBasketPut & StepB-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \sum_{i=1}^k w_i S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DoubleStepBarrierRankWeightedBasketCall & DStepB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \sum_{i=1}^k w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
+\end{cases}$ where $w_i$ are user-specified weights (summing to 1) applied to the $k$ best performing assets, and $S_{(1)} \geq \ldots \geq S_{(d)}$ are sorted prices $S_i(t)$ \\
 
 DoubleStepBarrierRankWeightedBasketPut & DStepB-Rank-BskPut & $\begin{cases}
 \max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\

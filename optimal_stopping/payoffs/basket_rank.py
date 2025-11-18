@@ -78,7 +78,7 @@ class WorstOfKPut(Payoff):
 
 
 class RankWeightedBasketCall(Payoff):
-    """Rank-Weighted Basket Call: max(0, (1/k) * sum(w_i * S_(i)) - K) for i=1 to k
+    """Rank-Weighted Basket Call: max(0, sum(w_i * S_(i)) - K) for i=1 to k
 
     Ranks stocks by absolute prices S_i in descending order,
     then applies user-specified weights to only the top k performers.
@@ -87,7 +87,7 @@ class RankWeightedBasketCall(Payoff):
     - k: number of top performers to include (default: 2)
     - weights: user-specified weights that apply to top k assets (default: equal weights summing to 1)
 
-    Formula: (1/k) * sum_{i=1}^k (w_i * S_(i)) where S_(1) >= S_(2) >= ... >= S_(d)
+    Formula: sum_{i=1}^k (w_i * S_(i)) - K where S_(1) >= S_(2) >= ... >= S_(d) and sum(w_i) = 1
     """
     abbreviation = "Rank-BskCall"
     is_path_dependent = False
@@ -133,12 +133,12 @@ class RankWeightedBasketCall(Payoff):
         # Apply weights and compute weighted sum
         weighted_sum = np.sum(top_k_prices * weights, axis=1)
 
-        # Multiply by 1/k and subtract strike
-        return np.maximum(0, (1.0 / k) * weighted_sum - self.strike)
+        # Subtract strike (no need to multiply by 1/k since weights already sum to 1)
+        return np.maximum(0, weighted_sum - self.strike)
 
 
 class RankWeightedBasketPut(Payoff):
-    """Rank-Weighted Basket Put: max(0, K - (1/k) * sum(w_i * S_(i))) for i=1 to k
+    """Rank-Weighted Basket Put: max(0, K - sum(w_i * S_(i))) for i=1 to k
 
     Ranks stocks by absolute prices S_i in descending order,
     then applies user-specified weights to only the top k performers.
@@ -147,7 +147,7 @@ class RankWeightedBasketPut(Payoff):
     - k: number of top performers to include (default: 2)
     - weights: user-specified weights that apply to top k assets (default: equal weights summing to 1)
 
-    Formula: K - (1/k) * sum_{i=1}^k (w_i * S_(i)) where S_(1) >= S_(2) >= ... >= S_(d)
+    Formula: K - sum_{i=1}^k (w_i * S_(i)) where S_(1) >= S_(2) >= ... >= S_(d) and sum(w_i) = 1
     """
     abbreviation = "Rank-BskPut"
     is_path_dependent = False
@@ -193,5 +193,5 @@ class RankWeightedBasketPut(Payoff):
         # Apply weights and compute weighted sum
         weighted_sum = np.sum(top_k_prices * weights, axis=1)
 
-        # Multiply by 1/k
-        return np.maximum(0, self.strike - (1.0 / k) * weighted_sum)
+        # Subtract from strike (no need to multiply by 1/k since weights already sum to 1)
+        return np.maximum(0, self.strike - weighted_sum)
