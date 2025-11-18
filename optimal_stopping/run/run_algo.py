@@ -278,7 +278,14 @@ def _run_algo(
     - All 34 payoffs (8 standard + 26 barriers)
     """
     if path_gen_seed is not None:
+        # Set all random seeds for reproducibility
         configs.path_gen_seed.set_seed(path_gen_seed)
+        import random
+        random.seed(path_gen_seed)  # Python's random module
+        import numpy as np
+        np.random.seed(path_gen_seed)  # Numpy (will be set again in price() but good to set early)
+        import torch
+        torch.manual_seed(path_gen_seed)  # PyTorch for randomized neural networks
 
     print(f"{algo} {payoff_name} spot={spot} vol={volatility} mat={maturity} "
           f"paths={nb_paths} ... ", end="")
@@ -518,6 +525,11 @@ def main(argv):
 
     if FLAGS.DEBUG:
         configs.path_gen_seed.set_seed(FLAGS.path_gen_seed)
+        if FLAGS.path_gen_seed is not None:
+            import random
+            random.seed(FLAGS.path_gen_seed)
+            import torch
+            torch.manual_seed(FLAGS.path_gen_seed)
         filepath = _run_algos()
         return
 
@@ -529,6 +541,11 @@ def main(argv):
                 chat_id="798647521"
             )
         configs.path_gen_seed.set_seed(FLAGS.path_gen_seed)
+        if FLAGS.path_gen_seed is not None:
+            import random
+            random.seed(FLAGS.path_gen_seed)
+            import torch
+            torch.manual_seed(FLAGS.path_gen_seed)
         filepath = _run_algos()
 
         if FLAGS.generate_pdf:
