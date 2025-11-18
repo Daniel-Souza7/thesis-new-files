@@ -21,7 +21,7 @@
 \date{11th November 2025}
 \begin{document}
 
-\maketitle
+\large Payoff Dictionary
 
 \section{Payoffs Before Barriers}
 \subsection{Simple $d>1$}
@@ -37,11 +37,11 @@
 \multicolumn{3}{c}{\textbf{STANDARD BASKET OPTIONS (6)}} \\
 \midrule
 BasketCall & BskCall & $\max(0, \overline{S}(t) - K)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
-BasketPut & BskPut & $\max(0, K - \overline{S}(t))$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+BasketPut & BskPut & $\max(0, K - \overline{S}(t))$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 GeometricCall & GeoCall & $\max(0, G(t) - K)$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
 GeometricPut & GeoPut & $\max(0, K - G(t))$ where $G(t) = \left(\prod_{i=1}^d S_i(t)\right)^{1/d}$ \\
-MaxCall & MaxCall & $\max(0, \max_i S_i(t) - K)$ \\
-MinPut & MinPut & $\max(0, K - \min_i S_i(t))$ \\
+MaxCall & MaxCall & $\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K\right)$ \\
+MinPut & MinPut & $\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right)$ \\
 \midrule
 \end{tabular}
 \end{table}
@@ -68,18 +68,18 @@ AsianFloatingStrikePut & AsianFl-BskPut & $\max\left(0, \frac{1}{t}\sum_{k=1}^t 
 
 \multicolumn{3}{c}{\textbf{RANGE \& DISPERSION BASKET OPTIONS (4)}} \\
 \midrule
-RangeCall & Range-BskCall & $\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right)$ \\
-RangePut & Range-BskPut & $\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right)$ \\
-DispersionCall & Disp-BskCall & $\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
-DispersionPut & Disp-BskPut & $\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right)$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+RangeCall & Range-BskCall & $\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)} - K\right)$ \\
+RangePut & Range-BskPut & $\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right)$ \\
+DispersionCall & Disp-BskCall & $\max\left(0, \sigma_{\text{norm}}(t) - K\right)$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
+DispersionPut & Disp-BskPut & $\max\left(0, K - \sigma_{\text{norm}}(t)\right)$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 \multicolumn{3}{c}{\textbf{RANK-BASED BASKET OPTIONS (4)}} \\
 \midrule
-BestOfKCall & BestK-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right)$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ are sorted prices \\
-WorstOfKPut & WorstK-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right)$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+BestOfKCall & BestK-BskCall & $\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right)$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
+WorstOfKPut & WorstK-BskPut & $\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right)$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
-RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
-RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+RankWeightedBasketCall & Rank-BskCall & $\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
+RankWeightedBasketPut & Rank-BskPut & $\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right)$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 \bottomrule
 \end{tabular}
@@ -430,42 +430,42 @@ DoubleStepBarrierGeometricPut & DStepB-GeoPut & $\begin{cases}
 \midrule
 
 UpAndOutMaxCall & UO-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndOutMinPut & UO-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndOutMaxCall & DO-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndOutMinPut & DO-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndInMaxCall & UI-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndInMinPut & UI-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndInMaxCall & DI-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndInMinPut & DI-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 \midrule
@@ -474,42 +474,42 @@ DownAndInMinPut & DI-MinPut & $\begin{cases}
 \midrule
 
 DoubleKnockOutMaxCall & UODO-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockOutMinPut & UODO-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockInMaxCall & UIDI-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockInMinPut & UIDI-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpInDownOutMaxCall & UIDO-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpInDownOutMinPut & UIDO-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpOutDownInMaxCall & UODI-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpOutDownInMinPut & UODI-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 \midrule
@@ -518,32 +518,32 @@ UpOutDownInMinPut & UODI-MinPut & $\begin{cases}
 \midrule
 
 PartialTimeBarrierMaxCall & PTB-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 PartialTimeBarrierMinPut & PTB-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 StepBarrierMaxCall & StepB-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 StepBarrierMinPut & StepB-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleStepBarrierMaxCall & DStepB-MaxCall & $\begin{cases}
-\max(0, \max_i S_i(t) - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \max_i \frac{S_i(t)}{S_i(0)} - K) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleStepBarrierMinPut & DStepB-MinPut & $\begin{cases}
-\max(0, K - \min_i S_i(t)) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, K - \min_i \frac{S_i(t)}{S_i(0)}\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
@@ -842,42 +842,42 @@ DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutRangeCall & UO-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndOutRangePut & UO-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndOutRangeCall & DO-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndOutRangePut & DO-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndInRangeCall & UI-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpAndInRangePut & UI-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndInRangeCall & DI-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DownAndInRangePut & DI-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 \midrule
@@ -886,42 +886,42 @@ DownAndInRangePut & DI-Range-BskPut & $\begin{cases}
 \midrule
 
 DoubleKnockOutRangeCall & UODO-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockOutRangePut & UODO-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockInRangeCall & UIDI-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleKnockInRangePut & UIDI-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpInDownOutRangeCall & UIDO-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpInDownOutRangePut & UIDO-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpOutDownInRangeCall & UODI-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 UpOutDownInRangePut & UODI-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
 \end{cases}$ \\
 \midrule
@@ -930,32 +930,32 @@ UpOutDownInRangePut & UODI-Range-BskPut & $\begin{cases}
 \midrule
 
 PartialTimeBarrierRangeCall & PTB-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 PartialTimeBarrierRangePut & PTB-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 StepBarrierRangeCall & StepB-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 StepBarrierRangePut & StepB-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleStepBarrierRangeCall & DStepB-Range-BskCall & $\begin{cases}
-\max\left(0, \left[\max_i S_i(t) - \min_i S_i(t)\right] - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right] - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
 DoubleStepBarrierRangePut & DStepB-Range-BskPut & $\begin{cases}
-\max\left(0, K - \left[\max_i S_i(t) - \min_i S_i(t)\right]\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, K - \left[\max_i \frac{S_i(t)}{S_i(0)} - \min_i \frac{S_i(t)}{S_i(0)}\right]\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
 \end{cases}$ \\
 
@@ -978,122 +978,122 @@ DoubleStepBarrierRangePut & DStepB-Range-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutDispersionCall & UO-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndOutDispersionPut & UO-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutDispersionCall & DO-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutDispersionPut & DO-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInDispersionCall & UI-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInDispersionPut & UI-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInDispersionCall & DI-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInDispersionPut & DI-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{DOUBLE BARRIER DISPERSION BASKET OPTIONS (8)}} \\
 \midrule
 
 DoubleKnockOutDispersionCall & UODO-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockOutDispersionPut & UODO-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInDispersionCall & UIDI-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInDispersionPut & UIDI-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutDispersionCall & UIDO-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutDispersionPut & UIDO-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInDispersionCall & UODI-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInDispersionPut & UODI-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{CUSTOM DISPERSION BASKET BARRIER OPTIONS (6)}} \\
 \midrule
 
 PartialTimeBarrierDispersionCall & PTB-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 PartialTimeBarrierDispersionPut & PTB-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierDispersionCall & StepB-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierDispersionPut & StepB-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierDispersionCall & DStepB-Disp-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d S_i(t) - \overline{S}(t) \right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \sigma_{\text{norm}}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierDispersionPut & DStepB-Disp-BskPut & $\begin{cases}
-\max\left(0, - \sum_{i=1}^d S_i(t) - \overline{S}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, K - \sigma_{\text{norm}}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $\overline{S}(t) = \frac{1}{d}\sum_{i=1}^d S_i(t)$ \\
+\end{cases}$ where $\sigma_{\text{norm}}(t) = \sqrt{\frac{1}{d}\sum_{i=1}^d \left(\frac{S_i(t)}{S_i(0)} - \overline{R}(t)\right)^2}$ and $\overline{R}(t) = \frac{1}{d}\sum_{i=1}^d \frac{S_i(t)}{S_i(0)}$ \\
 
 \bottomrule
 \end{tabular}
@@ -1116,122 +1116,122 @@ DoubleStepBarrierDispersionPut & DStepB-Disp-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutBestOfKCall & UO-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndOutWorstOfKPut & UO-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutBestOfKCall & DO-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutWorstOfKPut & DO-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInBestOfKCall & UI-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInWorstOfKPut & UI-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInBestOfKCall & DI-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInWorstOfKPut & DI-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{DOUBLE BARRIER BEST/WORST-OF-K BASKET OPTIONS (8)}} \\
 \midrule
 
 DoubleKnockOutBestOfKCall & UODO-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockOutWorstOfKPut & UODO-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInBestOfKCall & UIDI-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInWorstOfKPut & UIDI-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutBestOfKCall & UIDO-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutWorstOfKPut & UIDO-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInBestOfKCall & UODI-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInWorstOfKPut & UODI-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{CUSTOM BEST/WORST-OF-K BASKET BARRIER OPTIONS (6)}} \\
 \midrule
 
 PartialTimeBarrierBestOfKCall & PTB-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 PartialTimeBarrierWorstOfKPut & PTB-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierBestOfKCall & StepB-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierWorstOfKPut & StepB-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierBestOfKCall & DStepB-BestK-BskCall & $\begin{cases}
-\max\left(0, \frac{1}{k}\sum_{i=1}^k S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \frac{1}{k}\sum_{i=1}^k R_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq S_{(2)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq R_{(2)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierWorstOfKPut & DStepB-WorstK-BskPut & $\begin{cases}
-\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d S_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, K - \frac{1}{k}\sum_{i=d-k+1}^d R_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 \bottomrule
 \end{tabular}
@@ -1252,122 +1252,122 @@ DoubleStepBarrierWorstOfKPut & DStepB-WorstK-BskPut & $\begin{cases}
 \midrule
 
 UpAndOutRankWeightedBasketCall & UO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndOutRankWeightedBasketPut & UO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutRankWeightedBasketCall & DO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndOutRankWeightedBasketPut & DO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInRankWeightedBasketCall & UI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpAndInRankWeightedBasketPut & UI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInRankWeightedBasketCall & DI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DownAndInRankWeightedBasketPut & DI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{DOUBLE BARRIER RANK-WEIGHTED BASKET OPTIONS (8)}} \\
 \midrule
 
 DoubleKnockOutRankWeightedBasketCall & UODO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockOutRankWeightedBasketPut & UODO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } B_L < \min_{\tau,i} S_i(\tau) < \max_{\tau,i} S_i(\tau) < B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInRankWeightedBasketCall & UIDI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleKnockInRankWeightedBasketPut & UIDI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \min_{\tau,i} S_i(\tau) \le B_L \text{ or } \max_{\tau,i} S_i(\tau) \ge B_U \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutRankWeightedBasketCall & UIDO-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpInDownOutRankWeightedBasketPut & UIDO-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) \ge B_U \text{ and } \min_{\tau,i} S_i(\tau) > B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInRankWeightedBasketCall & UODI-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 UpOutDownInRankWeightedBasketPut & UODI-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \max_{\tau,i} S_i(\tau) < B_U \text{ and } \min_{\tau,i} S_i(\tau) \le B_L \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 \midrule
 
 \multicolumn{3}{c}{\textbf{CUSTOM RANK-WEIGHTED BASKET BARRIER OPTIONS (6)}} \\
 \midrule
 
 PartialTimeBarrierRankWeightedBasketCall & PTB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \max_{\tau \in [T_1,T_2],i} S_i(\tau) < B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 PartialTimeBarrierRankWeightedBasketPut & PTB-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \min_{\tau \in [T_1,T_2],i} S_i(\tau) > B \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierRankWeightedBasketCall & StepB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \forall \tau: \max_i S_i(\tau) < B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 StepBarrierRankWeightedBasketPut & StepB-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \forall \tau: \min_i S_i(\tau) > B(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierRankWeightedBasketCall & DStepB-Rank-BskCall & $\begin{cases}
-\max\left(0, \sum_{i=1}^d w_i S_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, \sum_{i=1}^d w_i R_{(i)}(t) - K\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 DoubleStepBarrierRankWeightedBasketPut & DStepB-Rank-BskPut & $\begin{cases}
-\max\left(0, K - \sum_{i=1}^d w_i S_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
+\max\left(0, K - \sum_{i=1}^d w_i R_{(i)}(t)\right) & \text{if } \forall \tau: B_L(\tau) < \min_i S_i(\tau) \text{ and } \max_i S_i(\tau) < B_U(\tau) \\
 0 & \text{otherwise}
-\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $S_{(1)} \geq \ldots \geq S_{(d)}$ \\
+\end{cases}$ where $w_i = \frac{d+1-i}{\sum_{j=1}^d j}$ and $R_{(1)} \geq \ldots \geq R_{(d)}$ are sorted returns $R_i(t) = \frac{S_i(t)}{S_i(0)}$ \\
 
 \bottomrule
 \end{tabular}
@@ -2192,3 +2192,4 @@ DoubleStepBarrierAsianFloatingStrikePut & DStepB-AsianFl-Put & $\begin{cases}
 \end{tabular}
 \end{table}
 
+\end{document}
