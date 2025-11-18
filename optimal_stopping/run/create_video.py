@@ -297,8 +297,8 @@ def create_video(config, stock_paths, exercise_times, payoff_values,
 
     # Create figure with main plot, stats panel, and TWO population stats panels
     fig = plt.figure(figsize=(14, 10))
-    gs = fig.add_gridspec(4, 2, height_ratios=[3, 0.8, 0.4, 0.4], width_ratios=[3, 1],
-                          hspace=0.15)  # Minimal vertical spacing between subplots
+    gs = fig.add_gridspec(4, 2, height_ratios=[3, 0.8, 0.3, 0.3], width_ratios=[3, 1],
+                          hspace=0.05)  # Extremely minimal vertical spacing between subplots
 
     ax_main = fig.add_subplot(gs[0, :])
     ax_stats = fig.add_subplot(gs[1, 0])
@@ -363,11 +363,10 @@ def create_video(config, stock_paths, exercise_times, payoff_values,
 
     # Population statistics text for DISPLAYED paths
     pop_stats_text_display = ax_pop_stats_display.text(
-        0.5, 0.5, '', transform=ax_pop_stats_display.transAxes,
-        fontsize=11, verticalalignment='center',
+        0.5, 0.0, '', transform=ax_pop_stats_display.transAxes,
+        fontsize=11, verticalalignment='bottom',
         horizontalalignment='center',
-        fontfamily='monospace',
-        bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+        fontfamily='monospace')
     pop_stats_str_display = (
         f"DISPLAYED PATHS (n={pop_stats_display['nb_paths']:,}) | "
         f"Avg Ex Time: {pop_stats_display['avg_ex_time']:.4f} | "
@@ -379,11 +378,10 @@ def create_video(config, stock_paths, exercise_times, payoff_values,
 
     # Population statistics text for ALL paths
     pop_stats_text_all = ax_pop_stats_all.text(
-        0.5, 0.5, '', transform=ax_pop_stats_all.transAxes,
-        fontsize=11, verticalalignment='center',
+        0.5, 1.0, '', transform=ax_pop_stats_all.transAxes,
+        fontsize=11, verticalalignment='top',
         horizontalalignment='center',
-        fontfamily='monospace',
-        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+        fontfamily='monospace')
     pop_stats_str_all = (
         f"ALL PATHS (n={pop_stats_all['nb_paths']:,}) | "
         f"Avg Ex Time: {pop_stats_all['avg_ex_time']:.4f} | "
