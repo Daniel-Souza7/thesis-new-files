@@ -250,13 +250,25 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     # Colors for different stocks
     colors = plt.cm.tab10(np.linspace(0, 1, nb_stocks))
 
-    # Create figure with main plot and stats panel
-    fig = plt.figure(figsize=(14, 8))
-    gs = fig.add_gridspec(2, 2, height_ratios=[3, 1], width_ratios=[3, 1])
+    # Calculate population statistics (to display on video)
+    normalized_ex_times = exercise_times / nb_dates
+    exercised_at_maturity = (exercise_times == nb_dates).sum()
+    pop_stats = {
+        'avg_ex_time': normalized_ex_times.mean(),
+        'pct_at_maturity': 100 * exercised_at_maturity / nb_paths,
+        'avg_payoff': payoff_values.mean(),
+        'std_payoff': payoff_values.std(),
+        'median_payoff': np.median(payoff_values)
+    }
+
+    # Create figure with main plot, stats panel, and population stats panel
+    fig = plt.figure(figsize=(14, 9))
+    gs = fig.add_gridspec(3, 2, height_ratios=[3, 0.8, 0.8], width_ratios=[3, 1])
 
     ax_main = fig.add_subplot(gs[0, :])
     ax_stats = fig.add_subplot(gs[1, 0])
     ax_payoff = fig.add_subplot(gs[1, 1])
+    ax_pop_stats = fig.add_subplot(gs[2, :])
 
     # Title
     strike = config.strikes[0] if isinstance(config.strikes, (list, tuple)) else config.strikes
@@ -300,7 +312,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
             markers.append(marker)
         exercise_markers.append(markers)
 
-    # Stats text
+    # Stats text (current frame statistics)
     stats_text = ax_stats.text(0.05, 0.5, '', transform=ax_stats.transAxes,
                                fontsize=11, verticalalignment='center',
                                fontfamily='monospace')
@@ -312,6 +324,20 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
     ax_payoff.set_xlim(0, nb_dates)
     ax_payoff.grid(True, alpha=0.3)
     payoff_line, = ax_payoff.plot([], [], 'b-', linewidth=2)
+
+    # Population statistics text (overall stats for all paths)
+    pop_stats_text = ax_pop_stats.text(0.5, 0.5, '', transform=ax_pop_stats.transAxes,
+                                        fontsize=12, verticalalignment='center',
+                                        horizontalalignment='center',
+                                        fontfamily='monospace',
+                                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    pop_stats_str = (f"POPULATION STATISTICS (n={nb_paths} paths) | "
+                    f"Avg Exercise Time: {pop_stats['avg_ex_time']:.4f} | "
+                    f"@ Maturity: {pop_stats['pct_at_maturity']:.1f}% | "
+                    f"Avg Payoff: {pop_stats['avg_payoff']:.2f} ± {pop_stats['std_payoff']:.2f} | "
+                    f"Median: {pop_stats['median_payoff']:.2f}")
+    pop_stats_text.set_text(pop_stats_str)
+    ax_pop_stats.axis('off')
 
     # Track cumulative statistics
     payoff_evolution = []
@@ -326,9 +352,10 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
                 marker.set_data([], [])
         stats_text.set_text('')
         payoff_line.set_data([], [])
+        # pop_stats_text stays constant (already set above)
         return [l for path_lines in lines for l in path_lines] + \
                [m for markers in exercise_markers for m in markers] + \
-               [stats_text, payoff_line]
+               [stats_text, payoff_line, pop_stats_text]
 
     def animate(frame):
         """Update animation at frame (with smooth interpolation)."""
@@ -413,7 +440,7 @@ def create_video(config, stock_paths, exercise_times, payoff_values, algo_name, 
 
         return [l for path_lines in lines for l in path_lines] + \
                [m for markers in exercise_markers for m in markers] + \
-               [stats_text, payoff_line]
+               [stats_text, payoff_line, pop_stats_text]
 
     # Create animation with smooth interpolation
     frames_per_step = 10
