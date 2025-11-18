@@ -123,6 +123,15 @@ debug_early_exercise = _DefaultConfig(
     hidden_size=(50, 100)  # More basis functions for better approximation
 )
 
+video_testing2 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=(100000,),
+    nb_stocks=(1,),
+    algos=('LSM',),
+    payoffs=('Call',),
+    train_ITM_only=(True,),
+)
+
 
 '''
 Comparison prices and computation time
