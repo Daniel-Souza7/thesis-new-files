@@ -115,23 +115,32 @@ def run_algorithm_for_video(config, nb_paths_to_display):
     use_payoff_as_input = config.use_payoff_as_input[0] if isinstance(config.use_payoff_as_input, (list, tuple)) else config.use_payoff_as_input
     train_ITM_only = config.train_ITM_only[0] if isinstance(config.train_ITM_only, (list, tuple)) else config.train_ITM_only
 
-    # Create payoff with barrier parameters if needed
+    # Create payoff with all optional parameters
     payoff_params = {}
-    if 'barrier' in payoff_name.lower():
-        if hasattr(config, 'barriers'):
-            payoff_params['barrier'] = config.barriers[0] if isinstance(config.barriers, (list, tuple)) else config.barriers
-        if hasattr(config, 'barriers_up'):
-            payoff_params['barrier_up'] = config.barriers_up[0] if isinstance(config.barriers_up, (list, tuple)) else config.barriers_up
-        if hasattr(config, 'barriers_down'):
-            payoff_params['barrier_down'] = config.barriers_down[0] if isinstance(config.barriers_down, (list, tuple)) else config.barriers_down
 
-    # Add other payoff parameters
+    # Barrier parameters (for barrier options like UO-*, DO-*, etc.)
+    if hasattr(config, 'barriers'):
+        payoff_params['barrier'] = config.barriers[0] if isinstance(config.barriers, (list, tuple)) else config.barriers
+    if hasattr(config, 'barriers_up'):
+        payoff_params['barrier_up'] = config.barriers_up[0] if isinstance(config.barriers_up, (list, tuple)) else config.barriers_up
+    if hasattr(config, 'barriers_down'):
+        payoff_params['barrier_down'] = config.barriers_down[0] if isinstance(config.barriers_down, (list, tuple)) else config.barriers_down
+
+    # Step barrier parameters (for StepB-*, DStepB-*)
+    if hasattr(config, 'step_param1'):
+        payoff_params['step_param1'] = config.step_param1[0] if isinstance(config.step_param1, (list, tuple)) else config.step_param1
+    if hasattr(config, 'step_param2'):
+        payoff_params['step_param2'] = config.step_param2[0] if isinstance(config.step_param2, (list, tuple)) else config.step_param2
+    if hasattr(config, 'step_param3'):
+        payoff_params['step_param3'] = config.step_param3[0] if isinstance(config.step_param3, (list, tuple)) else config.step_param3
+    if hasattr(config, 'step_param4'):
+        payoff_params['step_param4'] = config.step_param4[0] if isinstance(config.step_param4, (list, tuple)) else config.step_param4
+
+    # Rank-based parameters
     if hasattr(config, 'k'):
         payoff_params['k'] = config.k[0] if isinstance(config.k, (list, tuple)) else config.k
     if hasattr(config, 'weights'):
         payoff_params['weights'] = config.weights[0] if isinstance(config.weights, (list, tuple)) else config.weights
-    if hasattr(config, 'alpha'):
-        payoff_params['alpha'] = config.alpha[0] if isinstance(config.alpha, (list, tuple)) else config.alpha
 
     payoff = PayoffClass(
         strike=config.strikes[0] if isinstance(config.strikes, (list, tuple)) else config.strikes,
