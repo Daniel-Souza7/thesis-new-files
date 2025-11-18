@@ -54,22 +54,26 @@ class GeometricPut(Payoff):
 
 
 class MaxCall(Payoff):
-    """Max Call: max(0, max(S) - K)"""
+    """Max Call: max(0, max(S_i(t)/S_i(0)) - K)"""
     abbreviation = "MaxCall"
     is_path_dependent = False
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
-        max_stock = np.max(X, axis=1)
-        return np.maximum(0, max_stock - self.strike)
+        # Normalize by initial prices
+        normalized_returns = X / self.initial_prices  # Element-wise division
+        max_return = np.max(normalized_returns, axis=1)
+        return np.maximum(0, max_return - self.strike)
 
 
 class MinPut(Payoff):
-    """Min Put: max(0, K - min(S))"""
+    """Min Put: max(0, K - min(S_i(t)/S_i(0)))"""
     abbreviation = "MinPut"
     is_path_dependent = False
 
     def eval(self, X):
         """X shape: (nb_paths, nb_stocks)"""
-        min_stock = np.min(X, axis=1)
-        return np.maximum(0, self.strike - min_stock)
+        # Normalize by initial prices
+        normalized_returns = X / self.initial_prices
+        min_return = np.min(normalized_returns, axis=1)
+        return np.maximum(0, self.strike - min_return)
