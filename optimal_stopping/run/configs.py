@@ -2061,3 +2061,78 @@ test_all_bug_fixes = _DefaultConfig(
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
+
+# ==============================================================================
+# CONVERGENCE PLOT CONFIGS
+# ==============================================================================
+# These configs are for plot_convergence.py which plots mean price vs a varying
+# parameter. Must have exactly 1 payoff and exactly 1 parameter with multiple values.
+
+# Convergence test 1: Price vs Number of Paths
+plot_convergence1 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[500, 1000, 10000, 100000],
+    nb_stocks=[7],
+    algos=['RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'],
+    payoffs=['Call'],
+    nb_epochs=[30],
+    hidden_size=[50],
+)
+
+# Convergence test 2: Price vs Hidden Layer Size
+plot_convergence2 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[10000],
+    nb_stocks=[1],
+    algos=['RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'],
+    payoffs=['Call'],
+    hidden_size=[1, 2, 5, 7, 8, 10, 15, 50, 100],
+    nb_epochs=[30],
+)
+
+# Convergence test 3: Price vs Number of Stocks
+plot_convergence3 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[10000],
+    nb_stocks=[1, 2, 5, 10, 20, 50],
+    algos=['RLSM', 'RFQI'],
+    payoffs=['BasketCall'],
+    nb_epochs=[30],
+    hidden_size=[50],
+)
+
+# Convergence test 4: Price vs Number of Time Steps
+plot_convergence4 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[10000],
+    nb_stocks=[5],
+    nb_dates=[5, 10, 20, 50, 100],
+    algos=['RLSM', 'RFQI', 'SRLSM', 'SRFQI'],
+    payoffs=['AsianFixedStrikeCall'],
+    nb_epochs=[30],
+    hidden_size=[50],
+)
+
+# Convergence test 5: Price vs Volatility
+plot_convergence5 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[10000],
+    nb_stocks=[5],
+    algos=['RLSM', 'RFQI'],
+    payoffs=['BasketCall'],
+    volatilities=[0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5],
+    nb_epochs=[30],
+    hidden_size=[50],
+)
+
+# Convergence test 6: Price vs Epochs (for neural network methods)
+plot_convergence6 = _DefaultConfig(
+    nb_runs=3,
+    nb_paths=[10000],
+    nb_stocks=[5],
+    algos=['RFQI', 'NLSM', 'DOS'],
+    payoffs=['BasketCall'],
+    nb_epochs=[5, 10, 15, 20, 30, 50, 100],
+    hidden_size=[50],
+)
+
