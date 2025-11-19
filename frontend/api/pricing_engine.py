@@ -16,6 +16,8 @@ import os
 import numpy as np
 from typing import Dict, Any, Optional, List
 import warnings
+from contextlib import redirect_stdout
+import io
 
 # Add parent directory to path for imports (cross-platform)
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -268,8 +270,9 @@ class PricingEngine:
             # Create algorithm instance
             algo = AlgoClass(model=model, payoff=payoff)
 
-            # Price the option
-            price, comp_time = algo.price()
+            # Price the option (suppress debug prints)
+            with redirect_stdout(io.StringIO()):
+                price, comp_time = algo.price()
 
             # Get exercise time if available
             exercise_time = None
