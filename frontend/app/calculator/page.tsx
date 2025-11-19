@@ -44,19 +44,6 @@ export default function CalculatorPage() {
   const handlePayoffSelect = (payoff: PayoffInfo, parameters: Record<string, any>) => {
     setSelectedPayoff(payoff);
     setPayoffParameters(parameters);
-
-    // Auto-switch algorithm based on path dependency
-    if (payoff.isPathDependent) {
-      // Switch to path-dependent algorithm if current is not
-      if (!['SRLSM', 'SRFQI'].includes(algorithm)) {
-        setAlgorithm('SRLSM');
-      }
-    } else {
-      // Switch to standard algorithm if current is path-dependent
-      if (['SRLSM', 'SRFQI'].includes(algorithm)) {
-        setAlgorithm('RLSM');
-      }
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,6 +51,17 @@ export default function CalculatorPage() {
 
     if (!selectedPayoff) {
       setError('Please select a payoff');
+      return;
+    }
+
+    // Validate algorithm compatibility
+    const isPathDependent = selectedPayoff.isPathDependent;
+    if (isPathDependent && ['RLSM', 'RFQI'].includes(algorithm)) {
+      setError('RLSM and RFQI cannot be used with path-dependent options. Please use SRLSM, SRFQI, LSM, FQI, or EOP.');
+      return;
+    }
+    if (!isPathDependent && ['SRLSM', 'SRFQI'].includes(algorithm)) {
+      setError('SRLSM and SRFQI can only be used with path-dependent options. Please use RLSM, RFQI, LSM, FQI, or EOP.');
       return;
     }
 
@@ -136,8 +134,42 @@ export default function CalculatorPage() {
     textShadow: '0 0 5px #00ffff',
   };
 
+  const backButtonStyles: React.CSSProperties = {
+    fontFamily: "'Press Start 2P', cursive",
+    fontSize: '0.7rem',
+    padding: '0.5rem 1rem',
+    color: '#00ffff',
+    background: 'rgba(0, 255, 255, 0.1)',
+    border: '2px solid #00ffff',
+    borderRadius: '4px',
+    boxShadow: '0 0 10px #00ffff',
+    textShadow: '0 0 5px #00ffff',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+  };
+
   return (
     <ArcadeCabinet title="OPTION PRICING CALCULATOR">
+      {/* Back Button */}
+      <div style={{ padding: '1rem 1rem 0 1rem' }}>
+        <button
+          onClick={() => window.location.href = '/'}
+          style={backButtonStyles}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 20px #00ffff, 0 0 30px #00ffff';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 10px #00ffff';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          ← BACK TO HOME
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit} style={{ padding: '1rem' }}>
         <div style={{
           display: 'grid',
@@ -171,25 +203,13 @@ export default function CalculatorPage() {
                 onChange={(e) => setAlgorithm(e.target.value)}
                 style={inputStyles}
               >
-                {selectedPayoff?.isPathDependent ? (
-                  // Path-dependent algorithms
-                  <>
-                    <option value="SRLSM">SRLSM (Path-Dependent)</option>
-                    <option value="SRFQI">SRFQI (Path-Dependent)</option>
-                    <option value="LSM">LSM</option>
-                    <option value="FQI">FQI</option>
-                    <option value="EOP">EOP</option>
-                  </>
-                ) : (
-                  // Standard algorithms
-                  <>
-                    <option value="RLSM">RLSM</option>
-                    <option value="RFQI">RFQI</option>
-                    <option value="LSM">LSM</option>
-                    <option value="FQI">FQI</option>
-                    <option value="EOP">EOP</option>
-                  </>
-                )}
+                <option value="RLSM">RLSM (Standard only)</option>
+                <option value="RFQI">RFQI (Standard only)</option>
+                <option value="SRLSM">SRLSM (Path-Dependent only)</option>
+                <option value="SRFQI">SRFQI (Path-Dependent only)</option>
+                <option value="LSM">LSM</option>
+                <option value="FQI">FQI</option>
+                <option value="EOP">EOP</option>
               </select>
             </RetroPanel>
 
