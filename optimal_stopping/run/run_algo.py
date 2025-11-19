@@ -325,6 +325,21 @@ def _run_algo(
         spot=spot, dividend=dividend,
         maturity=maturity, user_data_file=user_data_file)
 
+    # Capture actual parameter values used by the model for CSV output
+    # (important when drift/volatility/risk_free_rate are None and model uses empirical values)
+    actual_drift = drift
+    actual_volatility = volatility
+    actual_risk_free_rate = risk_free_rate
+
+    # For RealData, get the actual empirical values used (either empirical or override)
+    if stock_model_name == 'RealData' and hasattr(stock_model_obj, 'target_drift_daily'):
+        actual_drift = np.mean(stock_model_obj.target_drift_daily) * 252
+        actual_volatility = np.mean(stock_model_obj.target_vol_daily) * np.sqrt(252)
+
+    # Get actual risk_free_rate from model (applies to all models)
+    if hasattr(stock_model_obj, 'rate'):
+        actual_risk_free_rate = stock_model_obj.rate
+
     # Instantiate pricer based on algorithm and payoff type
     try:
         if algo in ["RLSM", "RFQI"]:
@@ -472,9 +487,9 @@ def _run_algo(
         'algo': algo,
         'model': stock_model_name,
         'payoff': payoff_name,
-        'drift': drift,
-        'risk_free_rate': risk_free_rate,
-        'volatility': volatility,
+        'drift': actual_drift,
+        'risk_free_rate': actual_risk_free_rate,
+        'volatility': actual_volatility,
         'mean': mean,
         'speed': speed,
         'correlation': correlation,
