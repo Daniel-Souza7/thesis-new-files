@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PayoffSelector } from '@/components/PayoffSelector';
+import { PayoffSelector } from '@/components/ui/PayoffSelector';
 import { RetroPanel } from '@/components/ui/RetroPanel';
 import type { PayoffInfo } from '@/lib/payoffs';
 
@@ -241,7 +241,7 @@ export function SimplePayoffSelectorExample() {
   return (
     <div className="p-8">
       <PayoffSelector
-        onPayoffSelect={(payoff, params) => {
+        onPayoffSelect={(payoff: PayoffInfo, params: Record<string, any>) => {
           // Send to API
           console.log('Selected:', payoff.name, params);
 
@@ -264,7 +264,7 @@ export function FilteredPayoffExample() {
       {/* Single Asset Options */}
       <PayoffSelector
         defaultCategory="Single Asset"
-        onPayoffSelect={(payoff, params) => {
+        onPayoffSelect={(payoff: PayoffInfo, params: Record<string, any>) => {
           console.log('Single asset option:', payoff.name);
         }}
       />
@@ -272,7 +272,7 @@ export function FilteredPayoffExample() {
       {/* Basket Options */}
       <PayoffSelector
         defaultCategory="Basket"
-        onPayoffSelect={(payoff, params) => {
+        onPayoffSelect={(payoff: PayoffInfo, params: Record<string, any>) => {
           console.log('Basket option:', payoff.name);
         }}
       />
