@@ -144,9 +144,12 @@ def extract_data_for_excel(config: configs._DefaultConfig):
                 # Single non-string value (shouldn't happen, but be safe)
                 values = [value]
 
-        # Skip filter if config has only None values (means "use any value")
-        # This handles cases like drift=(None,) or risk_free_rate=(None,)
-        if all(v is None for v in values):
+        # Skip filter if config has ANY None values (means "accept any value for this param")
+        # This handles cases like:
+        # - drift=(None,) → skip filter, accept all drift values
+        # - drift=[0.06, None] → skip filter, accept all drift values
+        # None in config means "use empirical/default", which gets converted to actual value in CSV
+        if any(v is None for v in values):
             continue
 
         if not values:
@@ -157,22 +160,8 @@ def extract_data_for_excel(config: configs._DefaultConfig):
 
         rows_before = len(df)
 
-        # Special handling for None values (match NaN, None, empty, "None")
-        if None in values:
-            col_values = df.index.get_level_values(column_name)
-            # Match: None, NaN, empty string, or string "None"
-            idx = (col_values.isna() |
-                   (col_values == None) |
-                   (col_values == '') |
-                   (col_values == 'None') |
-                   (col_values.astype(str) == 'nan'))
-            # Also include other non-None values from the filter
-            other_values = [v for v in values if v is not None]
-            if other_values:
-                idx = idx | col_values.isin(other_values)
-            df = df[idx]
-        else:
-            df = df[df.index.get_level_values(column_name).isin(values)]
+        # Apply filter (no None handling needed since we skip above)
+        df = df[df.index.get_level_values(column_name).isin(values)]
 
         rows_after = len(df)
 
