@@ -1,10 +1,10 @@
 """
 Create convergence plots showing how price varies with a parameter.
 
-This script visualizes algorithm convergence by plotting:
-- Mean price vs varying parameter (e.g., nb_paths, hidden_size)
-- Error bars showing standard deviation
-- Multiple algorithms in different colors
+This script visualizes algorithm convergence by:
+- Running algorithms for each value of the varying parameter
+- Computing mean price and standard deviation over nb_runs
+- Plotting multiple algorithms in different colors
 - Auto-scaled axes (log or linear)
 
 Usage:
@@ -16,16 +16,26 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+import copy
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from optimal_stopping.run import configs
-from optimal_stopping.utilities import read_data
+from optimal_stopping.data.stock_model import BlackScholes, STOCK_MODELS
+from optimal_stopping.payoffs import get_payoff_class
+from optimal_stopping.algorithms.standard.rlsm import RLSM
+from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer
+from optimal_stopping.algorithms.standard.fqi import FQIFast
+from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
+from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
+from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
+from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
+from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 
 # Telegram setup
 try:
@@ -39,39 +49,47 @@ except:
         def send_notification(*args, **kwargs):
             pass
 
+# Algorithm registry
+_ALGOS = {
+    "RLSM": RLSM,
+    "SRLSM": SRLSM,
+    "RFQI": RFQI,
+    "SRFQI": SRFQI,
+    "LSM": LeastSquaresPricer,
+    "FQI": FQIFast,
+    "NLSM": NeuralNetworkPricer,
+    "DOS": DeepOptimalStopping,
+    "EOP": EuropeanOptionPrice,
+}
 
-# Mapping from config parameter names to CSV column names and display names
-PARAM_MAPPING = {
-    'nb_paths': ('nb_paths', 'Number of Paths'),
-    'nb_dates': ('nb_dates', 'Number of Time Steps'),
-    'nb_stocks': ('nb_stocks', 'Number of Stocks'),
-    'hidden_size': ('hidden_size', 'Hidden Layer Size'),
-    'nb_epochs': ('nb_epochs', 'Number of Epochs'),
-    'volatilities': ('volatility', 'Volatility'),
-    'drift': ('drift', 'Drift'),
-    'strikes': ('strike', 'Strike'),
-    'spots': ('spot', 'Spot Price'),
-    'maturities': ('maturity', 'Maturity'),
-    'k': ('k', 'K (Best-of-K)'),
-    'barriers': ('barrier', 'Barrier Level'),
-    'barriers_up': ('barriers_up', 'Upper Barrier'),
-    'barriers_down': ('barriers_down', 'Lower Barrier'),
-    'hurst': ('hurst', 'Hurst Parameter'),
-    'ridge_coeff': ('ridge_coeff', 'Ridge Coefficient'),
+
+# Mapping from config parameter names to display names
+PARAM_NAMES = {
+    'nb_paths': 'Number of Paths',
+    'nb_dates': 'Number of Time Steps',
+    'nb_stocks': 'Number of Stocks',
+    'hidden_size': 'Hidden Layer Size',
+    'nb_epochs': 'Number of Epochs',
+    'volatilities': 'Volatility',
+    'drift': 'Drift',
+    'strikes': 'Strike',
+    'spots': 'Spot Price',
+    'maturities': 'Maturity',
+    'k': 'K (Best-of-K)',
+    'barriers': 'Barrier Level',
+    'barriers_up': 'Upper Barrier',
+    'barriers_down': 'Lower Barrier',
+    'hurst': 'Hurst Parameter',
+    'ridge_coeff': 'Ridge Coefficient',
 }
 
 
 def validate_config(config):
     """Validate that config has exactly 1 payoff and 1 varying parameter.
 
-    Args:
-        config: Config object
-
     Returns:
         varying_param: str - name of the varying parameter
-
-    Raises:
-        ValueError: If validation fails
+        param_values: list - values of the varying parameter
     """
     # Check exactly 1 payoff
     if len(config.payoffs) != 1:
@@ -80,10 +98,11 @@ def validate_config(config):
             f"got {len(config.payoffs)}: {config.payoffs}"
         )
 
-    # Find varying parameters (those with multiple values)
+    # Find varying parameters
     varying_params = []
+    param_values_dict = {}
 
-    for param_name in PARAM_MAPPING.keys():
+    for param_name in PARAM_NAMES.keys():
         if hasattr(config, param_name):
             param_value = getattr(config, param_name)
 
@@ -96,6 +115,7 @@ def validate_config(config):
             # Check if has multiple values
             if len(values) > 1:
                 varying_params.append(param_name)
+                param_values_dict[param_name] = values
 
     # Must have exactly 1 varying parameter
     if len(varying_params) == 0:
@@ -110,75 +130,177 @@ def validate_config(config):
             f"Please set all but one parameter to single values."
         )
 
-    return varying_params[0]
+    varying_param = varying_params[0]
+    return varying_param, param_values_dict[varying_param]
 
 
-def extract_convergence_data(config, varying_param):
-    """Extract mean and std prices for each algorithm and parameter value.
+def extract_single_value(param):
+    """Extract single value from potentially iterable parameter."""
+    if isinstance(param, (list, tuple)):
+        return param[0]
+    return param
+
+
+def run_single_experiment(config, algo_name, param_value, varying_param):
+    """Run a single experiment and return the price.
 
     Args:
-        config: Config object
-        varying_param: str - name of varying parameter
+        config: Base config
+        algo_name: Algorithm name
+        param_value: Value for the varying parameter
+        varying_param: Name of the varying parameter
+
+    Returns:
+        price: float
+    """
+    # Create a copy of config and set the varying parameter
+    exp_config = copy.copy(config)
+    setattr(exp_config, varying_param, [param_value])
+
+    # Extract parameters
+    payoff_name = exp_config.payoffs[0]
+
+    # Get algorithm and payoff classes
+    if algo_name not in _ALGOS:
+        raise ValueError(f"Unknown algorithm: {algo_name}")
+    Algo = _ALGOS[algo_name]
+    PayoffClass = get_payoff_class(payoff_name)
+
+    # Extract config values
+    nb_stocks = extract_single_value(exp_config.nb_stocks)
+    spot = extract_single_value(exp_config.spots)
+    strike = extract_single_value(exp_config.strikes)
+    drift = extract_single_value(exp_config.drift)
+    volatility = extract_single_value(exp_config.volatilities)
+    nb_dates = extract_single_value(exp_config.nb_dates)
+    nb_paths = extract_single_value(exp_config.nb_paths)
+    maturity = extract_single_value(exp_config.maturities)
+    hidden_size = extract_single_value(exp_config.hidden_size)
+    nb_epochs = extract_single_value(exp_config.nb_epochs)
+
+    risk_free_rate = extract_single_value(exp_config.risk_free_rate)
+    if risk_free_rate is None:
+        risk_free_rate = drift - 0.04
+    dividend = extract_single_value(exp_config.dividends)
+
+    factors = extract_single_value(exp_config.factors)
+    use_payoff_as_input = extract_single_value(exp_config.use_payoff_as_input)
+    train_ITM_only = extract_single_value(exp_config.train_ITM_only)
+
+    # Create payoff with parameters
+    payoff_params = {}
+    if hasattr(exp_config, 'barriers'):
+        payoff_params['barrier'] = extract_single_value(exp_config.barriers)
+    if hasattr(exp_config, 'barriers_up'):
+        payoff_params['barrier_up'] = extract_single_value(exp_config.barriers_up)
+    if hasattr(exp_config, 'barriers_down'):
+        payoff_params['barrier_down'] = extract_single_value(exp_config.barriers_down)
+    if hasattr(exp_config, 'k'):
+        payoff_params['k'] = extract_single_value(exp_config.k)
+    if hasattr(exp_config, 'weights'):
+        payoff_params['weights'] = extract_single_value(exp_config.weights)
+    if hasattr(exp_config, 'step_param1'):
+        payoff_params['step_param1'] = extract_single_value(exp_config.step_param1)
+    if hasattr(exp_config, 'step_param2'):
+        payoff_params['step_param2'] = extract_single_value(exp_config.step_param2)
+    if hasattr(exp_config, 'step_param3'):
+        payoff_params['step_param3'] = extract_single_value(exp_config.step_param3)
+    if hasattr(exp_config, 'step_param4'):
+        payoff_params['step_param4'] = extract_single_value(exp_config.step_param4)
+
+    # Pass rate and maturity for step barriers
+    if 'step_param1' in payoff_params:
+        payoff_params['rate'] = risk_free_rate
+        payoff_params['maturity'] = maturity
+
+    payoff = PayoffClass(strike=strike, **payoff_params)
+
+    # Create stock model
+    stock_model_name = extract_single_value(exp_config.stock_models)
+    if stock_model_name in STOCK_MODELS:
+        ModelClass = STOCK_MODELS[stock_model_name]
+
+        # Build kwargs for model
+        model_kwargs = {
+            'drift': drift,
+            'risk_free_rate': risk_free_rate,
+            'volatility': volatility,
+            'nb_stocks': nb_stocks,
+            'nb_paths': nb_paths,
+            'nb_dates': nb_dates,
+            'spot': spot,
+            'dividend': dividend,
+            'maturity': maturity
+        }
+
+        # Add model-specific parameters
+        if hasattr(exp_config, 'hurst') and stock_model_name == 'FractionalBlackScholes':
+            model_kwargs['hurst'] = extract_single_value(exp_config.hurst)
+
+        model = ModelClass(**model_kwargs)
+    else:
+        raise ValueError(f"Unknown stock model: {stock_model_name}")
+
+    # Create and run algorithm
+    if algo_name == "EOP":
+        algo = Algo(model, payoff)
+    else:
+        algo = Algo(
+            model, payoff,
+            hidden_size=hidden_size,
+            nb_epochs=nb_epochs,
+            factors=factors,
+            train_ITM_only=train_ITM_only,
+            use_payoff_as_input=use_payoff_as_input
+        )
+
+    price, _ = algo.price()
+    return price
+
+
+def run_convergence_experiments(config, varying_param, param_values):
+    """Run all experiments and collect results.
 
     Returns:
         data_dict: dict mapping algo -> (x_values, mean_prices, std_prices)
-        param_display_name: str - display name for parameter
-        csv_column_name: str - CSV column name for parameter
     """
-    # Read CSV data
-    print(f"Reading results from CSV files...")
-    df = read_data.read_csvs(config, remove_duplicates=False)
+    algos = list(config.algos)
+    nb_runs = config.nb_runs
 
-    if df.empty:
-        raise ValueError("No data found matching the config filters")
+    print(f"\nRunning experiments...")
+    print(f"  Algorithms: {len(algos)}")
+    print(f"  Parameter values: {len(param_values)}")
+    print(f"  Runs per combination: {nb_runs}")
+    print(f"  Total experiments: {len(algos) * len(param_values) * nb_runs}")
 
-    # Get CSV column name and display name
-    csv_column_name, param_display_name = PARAM_MAPPING[varying_param]
-
-    # Get unique algorithms
-    algos = df.index.get_level_values('algo').unique().tolist()
-
-    # Get parameter values
-    if csv_column_name in df.index.names:
-        param_values = sorted(df.index.get_level_values(csv_column_name).unique())
-    else:
-        raise ValueError(f"Parameter '{csv_column_name}' not found in CSV data")
-
-    print(f"Found {len(algos)} algorithm(s): {algos}")
-    print(f"Found {len(param_values)} values for {param_display_name}: {param_values}")
-
-    # Extract data for each algorithm
     data_dict = {}
 
     for algo in algos:
+        print(f"\n{algo}:")
         x_values = []
         mean_prices = []
         std_prices = []
 
         for param_val in param_values:
-            # Filter to this algo and parameter value
-            try:
-                # Get all price values for this combination
-                subset = df.xs((algo, param_val), level=('algo', csv_column_name))
+            prices = []
 
-                if 'price' in subset.columns:
-                    prices = subset['price'].values
-                else:
-                    print(f"⚠️  Warning: 'price' column not found for {algo}, {param_val}")
+            for run in range(nb_runs):
+                print(f"  {varying_param}={param_val}, run {run+1}/{nb_runs}...", end=" ")
+                try:
+                    price = run_single_experiment(config, algo, param_val, varying_param)
+                    prices.append(price)
+                    print(f"price={price:.4f}")
+                except Exception as e:
+                    print(f"FAILED: {e}")
                     continue
 
-                # Calculate statistics
-                if len(prices) > 0:
-                    x_values.append(param_val)
-                    mean_prices.append(np.mean(prices))
-                    std_prices.append(np.std(prices))
-                else:
-                    print(f"⚠️  Warning: No prices found for {algo}, {param_val}")
-
-            except KeyError:
-                # This algo/param combination doesn't exist in data
-                print(f"⚠️  Warning: No data for {algo} at {csv_column_name}={param_val}")
-                continue
+            if len(prices) > 0:
+                x_values.append(param_val)
+                mean_prices.append(np.mean(prices))
+                std_prices.append(np.std(prices))
+                print(f"  → Mean: {np.mean(prices):.4f}, Std: {np.std(prices):.4f}")
+            else:
+                print(f"  → All runs failed for {varying_param}={param_val}")
 
         if len(x_values) > 0:
             data_dict[algo] = (
@@ -186,65 +308,38 @@ def extract_convergence_data(config, varying_param):
                 np.array(mean_prices),
                 np.array(std_prices)
             )
-            print(f"  {algo}: {len(x_values)} points")
-        else:
-            print(f"⚠️  Warning: No data collected for {algo}")
 
-    if not data_dict:
-        raise ValueError("No data could be extracted for any algorithm")
-
-    return data_dict, param_display_name, csv_column_name
+    return data_dict
 
 
 def should_use_log_scale(values):
-    """Determine if x-axis should use log scale.
-
-    Use log scale if values span more than 2 orders of magnitude.
-
-    Args:
-        values: array of parameter values
-
-    Returns:
-        bool: True if should use log scale
-    """
+    """Determine if x-axis should use log scale."""
     if len(values) < 2:
         return False
 
     min_val = np.min(values)
     max_val = np.max(values)
 
-    # Avoid division by zero
     if min_val <= 0:
         return False
 
-    # Check if range > 100x
     ratio = max_val / min_val
     return ratio > 100
 
 
-def create_convergence_plot(config, data_dict, param_display_name,
-                           csv_column_name, output_path):
-    """Create and save convergence plot.
-
-    Args:
-        config: Config object
-        data_dict: dict mapping algo -> (x_values, mean_prices, std_prices)
-        param_display_name: str - display name for parameter
-        csv_column_name: str - CSV column name
-        output_path: Path - where to save plot
-    """
-    # Get payoff name for title
+def create_convergence_plot(config, data_dict, varying_param, output_path):
+    """Create and save convergence plot."""
     payoff_name = config.payoffs[0]
+    param_display_name = PARAM_NAMES.get(varying_param, varying_param)
 
-    # Determine if we should use log scale
-    # Check all x values across all algorithms
+    # Determine log scale
     all_x_values = np.concatenate([x for x, _, _ in data_dict.values()])
     use_log = should_use_log_scale(all_x_values)
 
     # Create figure
     fig, ax = plt.subplots(figsize=(12, 8))
 
-    # Color cycle for algorithms
+    # Color cycle
     colors = plt.cm.tab10(np.linspace(0, 1, len(data_dict)))
 
     # Plot each algorithm
@@ -256,11 +351,11 @@ def create_convergence_plot(config, data_dict, param_display_name,
                 marker='o', markersize=8, linewidth=2,
                 label=algo, color=color, alpha=0.8)
 
-        # Add error bars (std dev)
+        # Error bars
         ax.errorbar(x_values, mean_prices, yerr=std_prices,
                    fmt='none', ecolor=color, alpha=0.3, capsize=5)
 
-        # Add shaded region for std dev
+        # Shaded region
         ax.fill_between(x_values,
                         mean_prices - std_prices,
                         mean_prices + std_prices,
@@ -269,7 +364,7 @@ def create_convergence_plot(config, data_dict, param_display_name,
     # Set scale
     if use_log:
         ax.set_xscale('log')
-        print(f"Using log scale for x-axis (range: {np.min(all_x_values):.0f} to {np.max(all_x_values):.0f})")
+        print(f"Using log scale for x-axis")
     else:
         ax.set_xscale('linear')
         print(f"Using linear scale for x-axis")
@@ -288,7 +383,7 @@ def create_convergence_plot(config, data_dict, param_display_name,
     # Tight layout
     plt.tight_layout()
 
-    # Save figure
+    # Save
     print(f"Saving plot to {output_path}...")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
@@ -298,28 +393,23 @@ def create_convergence_plot(config, data_dict, param_display_name,
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create convergence plot showing price vs varying parameter"
+        description="Create convergence plot by running algorithms"
     )
     parser.add_argument(
         '--configs',
         type=str,
         required=True,
-        help='Config name from configs.py (must have exactly 1 payoff and 1 varying parameter)'
+        help='Config name from configs.py'
     )
     parser.add_argument('--telegram_token', type=str,
-                        default="8239319342:AAGIIcoDaxJ1uauHbWfdByF4yzNYdQ5jpiA",
-                        help='Telegram bot token')
+                        default="8239319342:AAGIIcoDaxJ1uauHbWfdByF4yzNYdQ5jpiA")
     parser.add_argument('--telegram_chat_id', type=str,
-                        default="798647521",
-                        help='Telegram chat ID')
-    parser.add_argument('--send_telegram', action='store_true', default=True,
-                        help='Whether to send notifications via Telegram (default: True)')
-    parser.add_argument('--no_telegram', action='store_true',
-                        help='Disable Telegram notifications')
+                        default="798647521")
+    parser.add_argument('--send_telegram', action='store_true', default=True)
+    parser.add_argument('--no_telegram', action='store_true')
 
     args = parser.parse_args()
 
-    # Handle no_telegram flag
     if args.no_telegram:
         args.send_telegram = False
 
@@ -330,54 +420,52 @@ def main():
     # Load config
     print(f"\nLoading config: {args.configs}")
     if not hasattr(configs, args.configs):
-        raise ValueError(f"Config '{args.configs}' not found in configs.py")
+        raise ValueError(f"Config '{args.configs}' not found")
     config = getattr(configs, args.configs)
 
-    # Validate config
+    # Validate
     print(f"\nValidating config...")
-    varying_param = validate_config(config)
+    varying_param, param_values = validate_config(config)
     print(f"✓ Config valid")
     print(f"  Payoff: {config.payoffs[0]}")
-    print(f"  Varying parameter: {varying_param}")
+    print(f"  Varying parameter: {varying_param} = {param_values}")
     print(f"  Algorithms: {list(config.algos)}")
+    print(f"  Runs per point: {config.nb_runs}")
 
     # Send start notification
     if TELEGRAM_ENABLED and args.send_telegram:
         try:
             SBM.send_notification(
                 token=args.telegram_token,
-                text=f'📊 Starting convergence plot generation...\n\n'
+                text=f'📊 Starting convergence experiments...\n\n'
                      f'Config: {args.configs}\n'
                      f'Payoff: {config.payoffs[0]}\n'
                      f'Varying: {varying_param}\n'
-                     f'Algos: {len(config.algos)}',
+                     f'Total runs: {len(config.algos) * len(param_values) * config.nb_runs}',
                 chat_id=args.telegram_chat_id
             )
         except Exception as e:
-            print(f"⚠️  Telegram notification failed: {e}")
+            print(f"⚠️  Telegram failed: {e}")
 
-    # Extract data
-    print(f"\nExtracting data...")
-    data_dict, param_display_name, csv_column_name = extract_convergence_data(
-        config, varying_param
-    )
+    # Run experiments
+    data_dict = run_convergence_experiments(config, varying_param, param_values)
+
+    if not data_dict:
+        raise ValueError("No data collected from experiments")
 
     # Create output directory
     output_dir = Path('results') / args.configs
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate filename with timestamp
+    # Generate filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_path = output_dir / f'convergence_{args.configs}_{timestamp}.png'
 
     # Create plot
     print(f"\nCreating plot...")
-    create_convergence_plot(
-        config, data_dict, param_display_name,
-        csv_column_name, output_path
-    )
+    create_convergence_plot(config, data_dict, varying_param, output_path)
 
-    # Print summary statistics
+    # Print summary
     print(f"\n{'='*70}")
     print("SUMMARY STATISTICS")
     print(f"{'='*70}")
@@ -387,26 +475,23 @@ def main():
         print(f"  Parameter range: {x_values[0]} to {x_values[-1]}")
         print(f"  Price range: {np.min(mean_prices):.4f} to {np.max(mean_prices):.4f}")
         print(f"  Mean std dev: {np.mean(std_prices):.4f}")
-        print(f"  Max std dev: {np.max(std_prices):.4f}")
 
-        # Check for convergence (price change < 1% between last two points)
         if len(x_values) >= 2:
             price_change = abs(mean_prices[-1] - mean_prices[-2]) / mean_prices[-2] * 100
             if price_change < 1.0:
                 print(f"  ✓ Converged (last change: {price_change:.2f}%)")
             else:
-                print(f"  ⚠ Not yet converged (last change: {price_change:.2f}%)")
+                print(f"  ⚠ Not converged (last change: {price_change:.2f}%)")
 
     print(f"\n{'='*70}")
     print(f"✓ Done! Plot saved to: {output_path}")
     print(f"{'='*70}\n")
 
-    # Send completion notification
+    # Send completion
     if TELEGRAM_ENABLED and args.send_telegram:
         try:
-            # Prepare statistics text
-            stats_text = f"\n\nStatistics:\n"
-            for algo, (x_values, mean_prices, std_prices) in data_dict.items():
+            stats_text = "\n\nResults:\n"
+            for algo, (x_values, mean_prices, _) in data_dict.items():
                 stats_text += f"\n{algo}:\n"
                 stats_text += f"  Range: {x_values[0]} → {x_values[-1]}\n"
                 stats_text += f"  Price: {np.min(mean_prices):.4f} → {np.max(mean_prices):.4f}\n"
@@ -415,14 +500,13 @@ def main():
                 token=args.telegram_token,
                 text=f'✅ Convergence plot complete!\n\n'
                      f'Config: {args.configs}\n'
-                     f'Payoff: {config.payoffs[0]}\n'
-                     f'File: {output_path.name}'
+                     f'Payoff: {config.payoffs[0]}'
                      f'{stats_text}',
                 chat_id=args.telegram_chat_id,
                 files=[str(output_path)]
             )
         except Exception as e:
-            print(f"⚠️  Telegram notification failed: {e}")
+            print(f"⚠️  Telegram failed: {e}")
 
 
 if __name__ == '__main__':
