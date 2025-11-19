@@ -22,7 +22,8 @@ async function callPythonEngine(command: string, params?: any): Promise<any> {
       args.push(JSON.stringify(params));
     }
 
-    const pythonProcess = spawn(PYTHON_PATH, args, { shell: true });
+    // Don't use shell mode to avoid JSON escaping issues on Windows
+    const pythonProcess = spawn(PYTHON_PATH, args);
 
     let stdout = '';
     let stderr = '';

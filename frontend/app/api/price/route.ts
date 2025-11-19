@@ -22,10 +22,12 @@ async function executePricingEngine(
   return new Promise((resolve, reject) => {
     const args = [PRICING_ENGINE_SCRIPT, command];
     if (params) {
+      // Use JSON.stringify without shell to avoid escaping issues
       args.push(JSON.stringify(params));
     }
 
-    const pythonProcess = spawn(PYTHON_PATH, args, { shell: true });
+    // Don't use shell mode to avoid JSON escaping issues on Windows
+    const pythonProcess = spawn(PYTHON_PATH, args);
 
     let stdout = '';
     let stderr = '';
