@@ -176,6 +176,9 @@ export default function CalculatorPage() {
                   <>
                     <option value="SRLSM">SRLSM (Path-Dependent)</option>
                     <option value="SRFQI">SRFQI (Path-Dependent)</option>
+                    <option value="LSM">LSM</option>
+                    <option value="FQI">FQI</option>
+                    <option value="EOP">EOP</option>
                   </>
                 ) : (
                   // Standard algorithms

@@ -59,11 +59,11 @@ export default function Home() {
                 <ul className="arcade-text-small mb-8 space-y-2 text-left text-xs sm:text-sm text-gray-400">
                   <li className="flex items-start">
                     <span className="mr-2 text-[#39ff14]">▸</span>
-                    <span>408 option payoffs available</span>
+                    <span>360 option payoffs available</span>
                   </li>
                   <li className="flex items-start">
                     <span className="mr-2 text-[#39ff14]">▸</span>
-                    <span>4 stochastic models</span>
+                    <span>5 stochastic models</span>
                   </li>
                   <li className="flex items-start">
                     <span className="mr-2 text-[#39ff14]">▸</span>
