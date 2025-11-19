@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = 'python3';
-const PRICING_ENGINE_SCRIPT = '/home/user/thesis-new-files/frontend/api/pricing_engine.py';
+const PYTHON_PATH = 'python';
+const PRICING_ENGINE_SCRIPT = path.join(process.cwd(), 'api', 'pricing_engine.py');
 
 /**
  * Call Python pricing engine to get payoff information
