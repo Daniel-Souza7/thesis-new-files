@@ -52,7 +52,9 @@ async function executePricingEngine(
 
     pythonProcess.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`Python process exited with code ${code}: ${stderr}`));
+        console.error('Python stderr:', stderr);
+        console.error('Python stdout:', stdout);
+        reject(new Error(`Python process exited with code ${code}. Stderr: ${stderr}. Stdout: ${stdout}`));
         return;
       }
 
@@ -60,6 +62,7 @@ async function executePricingEngine(
         const result = JSON.parse(stdout);
         resolve(result);
       } catch (error) {
+        console.error('Failed to parse output:', stdout);
         reject(new Error(`Failed to parse JSON output: ${stdout}`));
       }
     });
