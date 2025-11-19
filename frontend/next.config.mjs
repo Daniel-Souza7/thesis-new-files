@@ -9,61 +9,10 @@ const nextConfig = {
   },
 
   // Turbopack configuration (Next.js 16+)
-  turbopack: {},
-
-  // Webpack configuration for Python integration
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Server-side: allow Python files
-      config.resolve.extensions.push('.py');
-
-      // Ignore Python bytecode and cache files
-      config.module.rules.push({
-        test: /\.pyc$/,
-        loader: 'ignore-loader',
-      });
-    }
-
-    // Optimize bundle size
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: 'deterministic',
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          // Vendor chunk
-          vendor: {
-            name: 'vendor',
-            chunks: 'all',
-            test: /node_modules/,
-            priority: 20,
-          },
-          // Common chunk
-          common: {
-            name: 'common',
-            minChunks: 2,
-            chunks: 'all',
-            priority: 10,
-            reuseExistingChunk: true,
-            enforce: true,
-          },
-        },
-      },
-    };
-
-    // Ignore certain large dependencies in client bundle
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        os: false,
-      };
-    }
-
-    return config;
+  turbopack: {
+    resolveAlias: {
+      // Optimize bundle by aliasing large modules
+    },
   },
 
   // API routes configuration
