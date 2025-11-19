@@ -9,13 +9,16 @@ This module provides utilities for managing stock ticker data:
 
 import sys
 import json
+import os
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
-# Add parent directory to path for imports
-sys.path.insert(0, '/home/user/thesis-new-files')
+# Add parent directory to path for imports (cross-platform)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))  # Go up two levels from api/
+sys.path.insert(0, project_root)
 
 from optimal_stopping.data.real_data import RealDataModel
 

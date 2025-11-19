@@ -12,12 +12,15 @@ The API is designed to be called from Next.js API routes via subprocess.
 
 import sys
 import json
+import os
 import numpy as np
 from typing import Dict, Any, Optional, List
 import warnings
 
-# Add parent directory to path for imports
-sys.path.insert(0, '/home/user/thesis-new-files')
+# Add parent directory to path for imports (cross-platform)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))  # Go up two levels from api/
+sys.path.insert(0, project_root)
 
 from optimal_stopping.data.stock_model import BlackScholes, Heston, FractionalBlackScholes, RoughHeston
 from optimal_stopping.data.real_data import RealDataModel
