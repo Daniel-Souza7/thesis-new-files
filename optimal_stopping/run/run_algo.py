@@ -326,17 +326,19 @@ def _run_algo(
         maturity=maturity, user_data_file=user_data_file)
 
     # Capture actual parameter values used by the model for CSV output
-    # (important when drift/volatility/risk_free_rate are None and model uses empirical values)
+    # (important when drift/volatility/risk_free_rate are None and model uses empirical/default values)
     actual_drift = drift
     actual_volatility = volatility
     actual_risk_free_rate = risk_free_rate
 
-    # For RealData, get the actual empirical values used (either empirical or override)
-    if stock_model_name == 'RealData' and hasattr(stock_model_obj, 'target_drift_daily'):
-        actual_drift = np.mean(stock_model_obj.target_drift_daily) * 252
-        actual_volatility = np.mean(stock_model_obj.target_vol_daily) * np.sqrt(252)
+    # Extract actual values from the created model object (works for ALL models)
+    if hasattr(stock_model_obj, 'drift'):
+        # model.drift already has dividend subtracted, so add it back for reporting
+        actual_drift = stock_model_obj.drift + dividend
 
-    # Get actual risk_free_rate from model (applies to all models)
+    if hasattr(stock_model_obj, 'volatility'):
+        actual_volatility = stock_model_obj.volatility
+
     if hasattr(stock_model_obj, 'rate'):
         actual_risk_free_rate = stock_model_obj.rate
 
