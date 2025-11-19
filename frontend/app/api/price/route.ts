@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = '/usr/bin/python3.11';
-const PRICING_ENGINE_SCRIPT = path.join(process.cwd(), 'api', 'pricing_engine.py');
+const PYTHON_PATH = 'python3';
+const PRICING_ENGINE_SCRIPT = '/home/user/thesis-new-files/frontend/api/pricing_engine.py';
 
 /**
  * Execute Python pricing engine.
@@ -25,7 +25,7 @@ async function executePricingEngine(
       args.push(JSON.stringify(params));
     }
 
-    const pythonProcess = spawn(PYTHON_PATH, args);
+    const pythonProcess = spawn(PYTHON_PATH, args, { shell: true });
 
     let stdout = '';
     let stderr = '';

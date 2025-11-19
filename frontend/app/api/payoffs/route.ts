@@ -8,21 +8,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = '/usr/bin/python3.11';
+const PYTHON_PATH = 'python3';
+const PRICING_ENGINE_SCRIPT = '/home/user/thesis-new-files/frontend/api/pricing_engine.py';
 
 /**
  * Call Python pricing engine to get payoff information
  */
 async function callPythonEngine(command: string, params?: any): Promise<any> {
   return new Promise((resolve, reject) => {
-    const pythonScript = path.join(process.cwd(), 'api', 'pricing_engine.py');
-    const args = [pythonScript, command];
+    const args = [PRICING_ENGINE_SCRIPT, command];
 
     if (params) {
       args.push(JSON.stringify(params));
     }
 
-    const pythonProcess = spawn(PYTHON_PATH, args);
+    const pythonProcess = spawn(PYTHON_PATH, args, { shell: true });
 
     let stdout = '';
     let stderr = '';

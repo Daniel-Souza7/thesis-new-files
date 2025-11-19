@@ -11,8 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = '/usr/bin/python3.11';
-const STOCK_DATA_SCRIPT = path.join(process.cwd(), 'api', 'stock_data.py');
+const PYTHON_PATH = 'python3';
+const STOCK_DATA_SCRIPT = '/home/user/thesis-new-files/frontend/api/stock_data.py';
 
 /**
  * Execute Python stock data script.
@@ -27,7 +27,7 @@ async function executePythonScript(
       args.push(JSON.stringify(params));
     }
 
-    const pythonProcess = spawn(PYTHON_PATH, args);
+    const pythonProcess = spawn(PYTHON_PATH, args, { shell: true });
 
     let stdout = '';
     let stderr = '';
