@@ -144,6 +144,11 @@ def extract_data_for_excel(config: configs._DefaultConfig):
                 # Single non-string value (shouldn't happen, but be safe)
                 values = [value]
 
+        # Skip filter if config has only None values (means "use any value")
+        # This handles cases like drift=(None,) or risk_free_rate=(None,)
+        if all(v is None for v in values):
+            continue
+
         if not values:
             continue
 
