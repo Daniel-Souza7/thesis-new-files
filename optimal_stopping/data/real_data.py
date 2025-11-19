@@ -600,6 +600,10 @@ class RealDataModel(Model):
         """
         nb_paths = nb_paths or self.nb_paths
 
+        # Calculate total trading days to sample (252 trading days per year)
+        total_trading_days = int(self.maturity * 252)
+        days_per_step = total_trading_days / self.nb_dates
+
         # Initialize paths array
         paths = np.zeros((nb_paths, self.nb_stocks, self.nb_dates + 1))
 
@@ -607,11 +611,9 @@ class RealDataModel(Model):
         paths[:, :, 0] = self.spot
 
         for path_idx in range(nb_paths):
-            # Generate bootstrap indices for this path
-            indices = self._stationary_bootstrap_indices(self.nb_dates)
-
-            # Sample returns using these indices
-            sampled_returns = self.returns_array[indices, :]  # Shape: (nb_dates, nb_stocks)
+            # Sample enough daily returns to cover the full maturity period
+            indices = self._stationary_bootstrap_indices(total_trading_days)
+            sampled_returns = self.returns_array[indices, :]  # Shape: (total_trading_days, nb_stocks)
 
             # Adjust returns if drift/vol override specified
             if self.drift_override is not None or self.volatility_override is not None:
@@ -619,10 +621,17 @@ class RealDataModel(Model):
                 sampled_returns = (sampled_returns - self.empirical_drift_daily) / self.empirical_vol_daily
                 sampled_returns = sampled_returns * self.target_vol_daily + self.target_drift_daily
 
-            # Build path from returns
+            # Build path by aggregating returns into nb_dates periods
             for t in range(self.nb_dates):
-                # Apply log returns: S(t+1) = S(t) * exp(r(t))
-                paths[path_idx, :, t + 1] = paths[path_idx, :, t] * np.exp(sampled_returns[t, :])
+                # Get returns for this time period
+                start_day = int(t * days_per_step)
+                end_day = int((t + 1) * days_per_step)
+
+                # Aggregate log returns: sum of log returns = log of product
+                period_returns = np.sum(sampled_returns[start_day:end_day, :], axis=0)
+
+                # Apply aggregated return
+                paths[path_idx, :, t + 1] = paths[path_idx, :, t] * np.exp(period_returns)
 
         return paths, None
 
