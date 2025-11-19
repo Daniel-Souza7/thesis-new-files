@@ -151,9 +151,8 @@ POST /api/price
 
 ### 4. Frontend Components
 
-The calculator and interactive pages already exist and are ready to integrate with the RealData API:
+The calculator page already exists and is ready to integrate with the RealData API:
 - /home/user/thesis-new-files/frontend/app/calculator/page.tsx
-- /home/user/thesis-new-files/frontend/app/interactive/page.tsx
 
 ## Testing Status
 

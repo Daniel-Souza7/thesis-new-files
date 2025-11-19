@@ -430,8 +430,6 @@ frontend/
 │   │       └── route.ts         # Pricing API endpoint
 │   ├── calculator/
 │   │   └── page.tsx             # Calculator UI
-│   └── interactive/
-│       └── page.tsx             # Interactive visualization
 └── REALDATA_INTEGRATION.md      # This file
 ```
 

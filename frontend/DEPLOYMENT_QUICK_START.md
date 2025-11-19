@@ -214,19 +214,6 @@ Expected response (2-5 seconds):
    - Computation time
    - Greeks (Delta, Gamma, Theta, Rho, Vega)
 
-### Interactive Page
-
-1. Open https://your-app.vercel.app/interactive
-2. **Adjust Live Sliders:**
-   - Spot price, strike, volatility, interest rate, maturity
-   - Real-time price updates (if enabled)
-3. **Compare Algorithms:**
-   - Side-by-side pricing results
-   - Performance metrics
-4. **Download Results:**
-   - Export pricing history as CSV
-   - Save parameter configurations
-
 ### Monitoring & Logs
 
 **View Deployment Logs:**
