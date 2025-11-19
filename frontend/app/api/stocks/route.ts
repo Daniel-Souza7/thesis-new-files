@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = '/usr/local/bin/python3';
+const PYTHON_PATH = '/usr/bin/python3.11';
 const STOCK_DATA_SCRIPT = path.join(process.cwd(), 'api', 'stock_data.py');
 
 /**

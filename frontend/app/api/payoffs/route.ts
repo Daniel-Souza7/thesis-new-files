@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-const PYTHON_PATH = '/usr/local/bin/python3';
+const PYTHON_PATH = '/usr/bin/python3.11';
 
 /**
  * Call Python pricing engine to get payoff information
