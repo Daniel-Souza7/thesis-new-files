@@ -55,8 +55,11 @@ def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = Fals
         # Skip algo filter if ONLY requesting standard payoffs
         # (standard payoffs exist with barrier=100000 in all algos)
         if filter_name == "algos" and has_standard and not has_barriers:
-            if FLAGS.debug_csv_filtering:
-                print(f"⚠️ Skipping algo filter (standard payoffs use barrier=100000 from any algo)")
+            try:
+                if FLAGS.debug_csv_filtering:
+                    print(f"⚠️ Skipping algo filter (standard payoffs use barrier=100000 from any algo)")
+            except:
+                pass  # Flags not parsed yet
             continue
 
         if column_name not in df.index.names:
@@ -102,8 +105,11 @@ def filter_df(df, config: configs._DefaultConfig, reverse_filtering: bool = Fals
         if reverse_filtering:
             idx = ~idx
 
-        if FLAGS.debug_csv_filtering and any(~idx):
-            print(f"Filtering {sum(~idx)} rows: {column_name} not in {values}")
+        try:
+            if FLAGS.debug_csv_filtering and any(~idx):
+                print(f"Filtering {sum(~idx)} rows: {column_name} not in {values}")
+        except:
+            pass  # Flags not parsed yet
 
         df = df[idx]
 
