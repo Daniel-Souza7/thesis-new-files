@@ -5,33 +5,34 @@ import {
   ALL_PAYOFFS,
   BARRIER_TYPES,
   BARRIER_DESCRIPTIONS,
-  getPayoffsByCategory,
   getBasePayoffs,
   getBarrierParameters,
   type PayoffInfo,
-  type PayoffCategory,
   type BarrierType,
   type PayoffParameter,
 } from '@/lib/payoffs';
 import { RetroPanel } from './RetroPanel';
 
+type SimplifiedCategory = 'Single Asset' | 'Multiple Assets';
+
 interface PayoffSelectorProps {
   onPayoffSelect?: (payoff: PayoffInfo, parameters: Record<string, any>) => void;
-  defaultCategory?: PayoffCategory;
+  defaultCategory?: SimplifiedCategory;
 }
 
 export const PayoffSelector: React.FC<PayoffSelectorProps> = ({
   onPayoffSelect,
   defaultCategory = 'Single Asset',
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<PayoffCategory>(defaultCategory);
+  const [selectedCategory, setSelectedCategory] = useState<SimplifiedCategory>(defaultCategory);
   const [selectedBasePayoff, setSelectedBasePayoff] = useState<PayoffInfo | null>(null);
   const [selectedBarrierType, setSelectedBarrierType] = useState<BarrierType>('None');
   const [parameters, setParameters] = useState<Record<string, any>>({});
 
   // Get available base payoffs for selected category
   const availableBasePayoffs = useMemo(() => {
-    return getBasePayoffs().filter(p => p.category === selectedCategory);
+    const isMultiAsset = selectedCategory === 'Multiple Assets';
+    return getBasePayoffs().filter(p => p.requiresMultipleAssets === isMultiAsset);
   }, [selectedCategory]);
 
   // Get the final payoff based on selections
@@ -54,7 +55,7 @@ export const PayoffSelector: React.FC<PayoffSelectorProps> = ({
   }, [selectedPayoff]);
 
   // Handle category change
-  const handleCategoryChange = (category: PayoffCategory) => {
+  const handleCategoryChange = (category: SimplifiedCategory) => {
     setSelectedCategory(category);
     setSelectedBasePayoff(null);
     setSelectedBarrierType('None');
@@ -103,13 +104,11 @@ export const PayoffSelector: React.FC<PayoffSelectorProps> = ({
           <RetroLabel>Category</RetroLabel>
           <RetroSelect
             value={selectedCategory}
-            onChange={(e) => handleCategoryChange(e.target.value as PayoffCategory)}
+            onChange={(e) => handleCategoryChange(e.target.value as SimplifiedCategory)}
             color="cyan"
           >
             <option value="Single Asset">Single Asset</option>
-            <option value="Basket">Basket</option>
-            <option value="Barrier Single Asset">Barrier Single Asset</option>
-            <option value="Barrier Basket">Barrier Basket</option>
+            <option value="Multiple Assets">Multiple Assets</option>
           </RetroSelect>
         </div>
 

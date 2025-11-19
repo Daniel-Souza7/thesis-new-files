@@ -60,7 +60,7 @@ export default function CalculatorPage() {
 
     try {
       const requestBody = {
-        model,
+        model_type: model,
         algorithm,
         payoff: selectedPayoff.name,
         spot_price: spotPrice,
@@ -71,6 +71,7 @@ export default function CalculatorPage() {
         maturity,
         nb_paths: nbPaths,
         nb_dates: nbDates,
+        nb_stocks: selectedPayoff.requiresMultipleAssets ? 5 : 1,
         hidden_size: hiddenSize,
         epochs,
         ...payoffParameters,
