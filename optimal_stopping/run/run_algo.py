@@ -331,14 +331,23 @@ def _run_algo(
     actual_volatility = volatility
     actual_risk_free_rate = risk_free_rate
 
-    # Extract actual values from the created model object (works for ALL models)
-    if hasattr(stock_model_obj, 'drift'):
-        # model.drift already has dividend subtracted, so add it back for reporting
-        actual_drift = stock_model_obj.drift + dividend
+    # Extract actual values from the created model object
+    # Special handling for RealData which stores actual empirical values separately
+    if stock_model_name == 'RealData' and hasattr(stock_model_obj, 'target_drift_daily'):
+        # RealData stores actual drift/vol in target_drift_daily/target_vol_daily (daily values)
+        # Need to annualize: daily*252 for drift, daily*sqrt(252) for vol
+        actual_drift = np.mean(stock_model_obj.target_drift_daily) * 252
+        actual_volatility = np.mean(stock_model_obj.target_vol_daily) * np.sqrt(252)
+    else:
+        # For other models, extract from model attributes
+        if hasattr(stock_model_obj, 'drift'):
+            # model.drift already has dividend subtracted, so add it back for reporting
+            actual_drift = stock_model_obj.drift + dividend
 
-    if hasattr(stock_model_obj, 'volatility'):
-        actual_volatility = stock_model_obj.volatility
+        if hasattr(stock_model_obj, 'volatility'):
+            actual_volatility = stock_model_obj.volatility
 
+    # Get actual risk_free_rate from model (applies to all models)
     if hasattr(stock_model_obj, 'rate'):
         actual_risk_free_rate = stock_model_obj.rate
 
