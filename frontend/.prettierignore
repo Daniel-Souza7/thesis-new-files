@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Cache
+.eslintcache
+.cache
+
+# OS
+.DS_Store
+Thumbs.db
