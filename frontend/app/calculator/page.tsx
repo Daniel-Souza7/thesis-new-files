@@ -102,7 +102,9 @@ export default function CalculatorPage() {
         throw new Error(data.error || 'Failed to compute option price');
       }
 
-      setResult(data);
+      // Handle nested result structure
+      const resultData = data.result || data;
+      setResult(resultData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -373,7 +375,7 @@ export default function CalculatorPage() {
                       textShadow: '0 0 20px #00ff00, 0 0 40px #00ff00',
                       marginBottom: '1.5rem',
                     }}>
-                      ${result.price.toFixed(4)}
+                      ${result?.price?.toFixed(4) || 'N/A'}
                     </div>
 
                     <div style={{
@@ -398,11 +400,11 @@ export default function CalculatorPage() {
                           fontSize: '1rem',
                           color: '#00ff00',
                         }}>
-                          {result.computation_time.toFixed(3)}s
+                          {result?.computation_time?.toFixed(3) || 'N/A'}s
                         </p>
                       </div>
 
-                      {result.exercise_time !== undefined && (
+                      {result?.exercise_time !== undefined && (
                         <div>
                           <p style={{
                             fontFamily: "'Press Start 2P', cursive",
@@ -417,7 +419,7 @@ export default function CalculatorPage() {
                             fontSize: '1rem',
                             color: '#00ff00',
                           }}>
-                            {result.exercise_time.toFixed(3)}
+                            {result?.exercise_time?.toFixed(3) || 'N/A'}
                           </p>
                         </div>
                       )}

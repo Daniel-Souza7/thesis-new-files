@@ -97,10 +97,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Price the option
-    const result = await executePricingEngine('price', body);
+    // Check if external backend URL is configured
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-    return NextResponse.json(result);
+    if (backendUrl) {
+      // Use external backend
+      const response = await fetch(`${backendUrl}/api/price`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return NextResponse.json(result, { status: response.status });
+      }
+
+      return NextResponse.json(result);
+    } else {
+      // Use local Python backend
+      const result = await executePricingEngine('price', body);
+      return NextResponse.json(result);
+    }
   } catch (error) {
     console.error('Error pricing option:', error);
     return NextResponse.json(

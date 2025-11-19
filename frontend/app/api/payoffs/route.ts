@@ -78,23 +78,39 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const payoffName = searchParams.get('name');
 
-    if (payoffName) {
-      // Get info about specific payoff
-      const result = await callPythonEngine('payoff_info', { payoff_name: payoffName });
+    // Check if external backend URL is configured
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-      if (result.success) {
-        return NextResponse.json(result, { status: 200 });
-      } else {
-        return NextResponse.json(result, { status: 404 });
-      }
+    if (backendUrl) {
+      // Use external backend
+      const url = payoffName
+        ? `${backendUrl}/api/payoffs?name=${encodeURIComponent(payoffName)}`
+        : `${backendUrl}/api/payoffs`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      return NextResponse.json(result, { status: response.status });
     } else {
-      // Get list of all payoffs
-      const result = await callPythonEngine('list_payoffs');
+      // Use local Python backend
+      if (payoffName) {
+        // Get info about specific payoff
+        const result = await callPythonEngine('payoff_info', { payoff_name: payoffName });
 
-      if (result.success) {
-        return NextResponse.json(result, { status: 200 });
+        if (result.success) {
+          return NextResponse.json(result, { status: 200 });
+        } else {
+          return NextResponse.json(result, { status: 404 });
+        }
       } else {
-        return NextResponse.json(result, { status: 500 });
+        // Get list of all payoffs
+        const result = await callPythonEngine('list_payoffs');
+
+        if (result.success) {
+          return NextResponse.json(result, { status: 200 });
+        } else {
+          return NextResponse.json(result, { status: 500 });
+        }
       }
     }
   } catch (error) {

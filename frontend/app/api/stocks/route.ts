@@ -67,8 +67,19 @@ async function executePythonScript(
  */
 export async function GET(request: NextRequest) {
   try {
-    const result = await executePythonScript('preloaded');
-    return NextResponse.json(result);
+    // Check if external backend URL is configured
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    if (backendUrl) {
+      // Use external backend
+      const response = await fetch(`${backendUrl}/api/stocks`);
+      const result = await response.json();
+      return NextResponse.json(result, { status: response.status });
+    } else {
+      // Use local Python backend
+      const result = await executePythonScript('preloaded');
+      return NextResponse.json(result);
+    }
   } catch (error) {
     console.error('Error fetching pre-loaded tickers:', error);
     return NextResponse.json(
@@ -100,38 +111,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine command based on action
-    let command: string;
-    if (action === 'info') {
-      command = 'info';
-    } else if (action === 'validate') {
-      command = 'validate';
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid action: ${action}. Use 'info' or 'validate'`,
+    // Check if external backend URL is configured
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    if (backendUrl) {
+      // Use external backend
+      const endpoint = action === 'validate' ? '/api/stocks/validate' : '/api/stocks/info';
+      const response = await fetch(`${backendUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        { status: 400 }
-      );
-    }
+        body: JSON.stringify({ tickers, start_date, end_date }),
+      });
 
-    // Build parameters
-    const params: any = {};
-    if (tickers) {
-      params.tickers = tickers;
-    }
-    if (start_date) {
-      params.start_date = start_date;
-    }
-    if (end_date) {
-      params.end_date = end_date;
-    }
+      const result = await response.json();
+      return NextResponse.json(result, { status: response.status });
+    } else {
+      // Use local Python backend
+      // Determine command based on action
+      let command: string;
+      if (action === 'info') {
+        command = 'info';
+      } else if (action === 'validate') {
+        command = 'validate';
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid action: ${action}. Use 'info' or 'validate'`,
+          },
+          { status: 400 }
+        );
+      }
 
-    // Execute command
-    const result = await executePythonScript(command, params);
+      // Build parameters
+      const params: any = {};
+      if (tickers) {
+        params.tickers = tickers;
+      }
+      if (start_date) {
+        params.start_date = start_date;
+      }
+      if (end_date) {
+        params.end_date = end_date;
+      }
 
-    return NextResponse.json(result);
+      // Execute command
+      const result = await executePythonScript(command, params);
+
+      return NextResponse.json(result);
+    }
   } catch (error) {
     console.error('Error processing stock request:', error);
     return NextResponse.json(

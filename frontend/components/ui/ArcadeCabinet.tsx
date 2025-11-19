@@ -21,7 +21,7 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({
   };
 
   const topBarStyles: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #00ff00, #00ffff, #ff00ff, #ffff00, #ff6600)',
+    background: '#00ff00',
     padding: '1.5rem',
     textAlign: 'center',
     borderBottom: '4px solid #00ff00',
@@ -59,13 +59,13 @@ export const ArcadeCabinet: React.FC<ArcadeCabinetProps> = ({
     position: 'absolute',
     width: '20px',
     height: '20px',
-    border: '3px solid #00ffff',
-    boxShadow: '0 0 10px #00ffff',
+    border: '3px solid #00ff00',
+    boxShadow: '0 0 10px #00ff00',
   };
 
   return (
     <div style={cabinetStyles} className={className}>
-      {/* Top Bar with Rainbow Gradient */}
+      {/* Top Bar */}
       <div style={topBarStyles}>
         <h1 style={titleStyles}>{title}</h1>
       </div>

@@ -1,11 +1,19 @@
-# Vercel Deployment Guide
+# Frontend Deployment Guide
 
-Complete guide for deploying the American Options Pricing application to Vercel.
+Complete guide for deploying the Option Pricing Calculator frontend to Vercel.
 
-## Quick Start
+## Important: Two-Part Deployment
 
-### 1. Prerequisites
+This application requires a **two-part deployment**:
+1. **Python Backend** → Deploy to Railway/Render (see `/backend/DEPLOYMENT.md`)
+2. **Next.js Frontend** → Deploy to Vercel (this guide)
 
+**Why?** Vercel's serverless functions have a 2048MB memory limit, which is too small for the Python backend with all its dependencies (numpy, scipy, torch, etc.). By separating the backend, we can deploy it to a Python-friendly platform with more resources.
+
+## Prerequisites
+
+- Backend deployed first (see `/backend/DEPLOYMENT.md`)
+- Backend URL (e.g., `https://your-app-name.up.railway.app`)
 - Vercel account (sign up at https://vercel.com)
 - Git repository connected to Vercel
 - Node.js 20+ installed locally
@@ -46,12 +54,14 @@ Configure these in the Vercel dashboard under **Settings → Environment Variabl
 ### Required Variables
 
 ```bash
-# API Configuration
-NEXT_PUBLIC_API_URL=https://your-domain.vercel.app
+# Backend API URL - MOST IMPORTANT!
+NEXT_PUBLIC_BACKEND_URL=https://your-backend-name.up.railway.app
 
 # Node Environment
 NODE_ENV=production
 ```
+
+**CRITICAL**: You MUST set `NEXT_PUBLIC_BACKEND_URL` to your deployed backend URL (from Railway, Render, etc.). Without this, the app will try to spawn local Python processes which won't work on Vercel.
 
 ### Optional Variables
 
