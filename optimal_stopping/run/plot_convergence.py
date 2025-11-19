@@ -180,7 +180,11 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
 
     risk_free_rate = extract_single_value(exp_config.risk_free_rate)
     if risk_free_rate is None:
-        risk_free_rate = drift - 0.04
+        if drift is not None:
+            risk_free_rate = drift - 0.04
+        else:
+            # When drift is None (RealData empirical), use default
+            risk_free_rate = 0.02
     dividend = extract_single_value(exp_config.dividends)
 
     factors = extract_single_value(exp_config.factors)

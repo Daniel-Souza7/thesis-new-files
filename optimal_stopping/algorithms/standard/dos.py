@@ -91,6 +91,7 @@ class DeepOptimalStopping:
         # Generate paths
         if configs.path_gen_seed.get_seed() is not None:
             np.random.seed(configs.path_gen_seed.get_seed())
+            torch.manual_seed(configs.path_gen_seed.get_seed())
 
         path_result = self.model.generate_paths()
         if isinstance(path_result, tuple):
