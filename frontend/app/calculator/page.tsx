@@ -44,6 +44,19 @@ export default function CalculatorPage() {
   const handlePayoffSelect = (payoff: PayoffInfo, parameters: Record<string, any>) => {
     setSelectedPayoff(payoff);
     setPayoffParameters(parameters);
+
+    // Auto-switch algorithm based on path dependency
+    if (payoff.isPathDependent) {
+      // Switch to path-dependent algorithm if current is not
+      if (!['SRLSM', 'SRFQI'].includes(algorithm)) {
+        setAlgorithm('SRLSM');
+      }
+    } else {
+      // Switch to standard algorithm if current is path-dependent
+      if (['SRLSM', 'SRFQI'].includes(algorithm)) {
+        setAlgorithm('RLSM');
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,13 +171,22 @@ export default function CalculatorPage() {
                 onChange={(e) => setAlgorithm(e.target.value)}
                 style={inputStyles}
               >
-                <option value="RLSM">RLSM</option>
-                <option value="RFQI">RFQI</option>
-                <option value="SRLSM">SRLSM</option>
-                <option value="SRFQI">SRFQI</option>
-                <option value="LSM">LSM</option>
-                <option value="FQI">FQI</option>
-                <option value="EOP">EOP</option>
+                {selectedPayoff?.isPathDependent ? (
+                  // Path-dependent algorithms
+                  <>
+                    <option value="SRLSM">SRLSM (Path-Dependent)</option>
+                    <option value="SRFQI">SRFQI (Path-Dependent)</option>
+                  </>
+                ) : (
+                  // Standard algorithms
+                  <>
+                    <option value="RLSM">RLSM</option>
+                    <option value="RFQI">RFQI</option>
+                    <option value="LSM">LSM</option>
+                    <option value="FQI">FQI</option>
+                    <option value="EOP">EOP</option>
+                  </>
+                )}
               </select>
             </RetroPanel>
 
