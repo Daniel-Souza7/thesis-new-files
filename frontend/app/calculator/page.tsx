@@ -62,7 +62,7 @@ export default function CalculatorPage() {
       const requestBody = {
         model_type: model,
         algorithm,
-        payoff: selectedPayoff.name,
+        payoff_type: selectedPayoff.name,
         spot_price: spotPrice,
         strike: payoffParameters.strike || strikePrice,
         volatility,
