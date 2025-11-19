@@ -24,6 +24,11 @@ class Model:
     def __init__(self, drift, dividend, volatility, spot, nb_stocks,
                  nb_paths, nb_dates, maturity, name, risk_free_rate=None, **keywords):
         self.name = name
+
+        # Handle drift=None (for RealData empirical drift)
+        if drift is None:
+            drift = 0.05  # Default 5% annual drift
+
         self.drift = drift - dividend  # Drift for path generation (real-world or risk-neutral)
         self.dividend = dividend
 
