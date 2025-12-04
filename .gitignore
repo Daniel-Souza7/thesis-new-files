@@ -79,5 +79,7 @@ output/metrics/
 output/metrics_draft/
 optimal_stopping/data/stored_paths/
 results/
+.claude/
+
 *.h5
 *.hdf5

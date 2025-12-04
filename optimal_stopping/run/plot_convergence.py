@@ -21,6 +21,8 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
+import scipy.stats as st  # <--- Added for t-distribution
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -36,6 +38,7 @@ from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
 from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
+from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
 
 # Telegram setup
 try:
@@ -60,6 +63,7 @@ _ALGOS = {
     "NLSM": NeuralNetworkPricer,
     "DOS": DeepOptimalStopping,
     "EOP": EuropeanOptionPrice,
+    "SRFQI_RBF": SRFQI_RBF,
 }
 
 
@@ -266,16 +270,17 @@ def run_convergence_experiments(config, varying_param, param_values):
     """Run all experiments and collect results.
 
     Returns:
-        data_dict: dict mapping algo -> (x_values, mean_prices, std_prices)
+        data_dict: dict mapping algo -> (x_values, mean_prices, ci_margins)
     """
     algos = list(config.algos)
     nb_runs = config.nb_runs
+    confidence_level = 0.99  # <--- Set to 99%
 
     print(f"\nRunning experiments...")
     print(f"  Algorithms: {len(algos)}")
     print(f"  Parameter values: {len(param_values)}")
     print(f"  Runs per combination: {nb_runs}")
-    print(f"  Total experiments: {len(algos) * len(param_values) * nb_runs}")
+    print(f"  Confidence Level: {confidence_level * 100}% (Student's t)")
 
     data_dict = {}
 
@@ -283,13 +288,13 @@ def run_convergence_experiments(config, varying_param, param_values):
         print(f"\n{algo}:")
         x_values = []
         mean_prices = []
-        std_prices = []
+        ci_margins = []  # <--- Renamed from std_prices to ci_margins
 
         for param_val in param_values:
             prices = []
 
             for run in range(nb_runs):
-                print(f"  {varying_param}={param_val}, run {run+1}/{nb_runs}...", end=" ")
+                print(f"  {varying_param}={param_val}, run {run + 1}/{nb_runs}...", end=" ")
                 try:
                     price = run_single_experiment(config, algo, param_val, varying_param)
                     prices.append(price)
@@ -298,11 +303,30 @@ def run_convergence_experiments(config, varying_param, param_values):
                     print(f"FAILED: {e}")
                     continue
 
-            if len(prices) > 0:
+            if len(prices) > 1:
                 x_values.append(param_val)
-                mean_prices.append(np.mean(prices))
-                std_prices.append(np.std(prices))
-                print(f"  → Mean: {np.mean(prices):.4f}, Std: {np.std(prices):.4f}")
+                mean_val = np.mean(prices)
+                mean_prices.append(mean_val)
+
+                # --- CI CALCULATION START ---
+                n = len(prices)
+                # Calculate Standard Error of the Mean (SEM)
+                sem = st.sem(prices)
+                # Get t-critical value for 99% confidence and (n-1) degrees of freedom
+                t_crit = st.t.ppf((1 + confidence_level) / 2., n - 1)
+                # Calculate Margin of Error
+                margin = sem * t_crit
+
+                ci_margins.append(margin)
+                # --- CI CALCULATION END ---
+
+                print(f"  → Mean: {mean_val:.4f}, 99% CI: ±{margin:.4f} (n={n})")
+            elif len(prices) == 1:
+                # Fallback for single run (cannot calc CI)
+                x_values.append(param_val)
+                mean_prices.append(prices[0])
+                ci_margins.append(0.0)
+                print(f"  → Mean: {prices[0]:.4f}, CI: N/A (n=1)")
             else:
                 print(f"  → All runs failed for {varying_param}={param_val}")
 
@@ -310,11 +334,10 @@ def run_convergence_experiments(config, varying_param, param_values):
             data_dict[algo] = (
                 np.array(x_values),
                 np.array(mean_prices),
-                np.array(std_prices)
+                np.array(ci_margins)
             )
 
     return data_dict
-
 
 def should_use_log_scale(values):
     """Determine if x-axis should use log scale."""
@@ -332,7 +355,7 @@ def should_use_log_scale(values):
 
 
 def create_convergence_plot(config, data_dict, varying_param, output_path):
-    """Create and save convergence plot."""
+    """Create and save convergence plot with Confidence Intervals."""
     payoff_name = config.payoffs[0]
     param_display_name = PARAM_NAMES.get(varying_param, varying_param)
 
@@ -347,7 +370,7 @@ def create_convergence_plot(config, data_dict, varying_param, output_path):
     colors = plt.cm.tab10(np.linspace(0, 1, len(data_dict)))
 
     # Plot each algorithm
-    for idx, (algo, (x_values, mean_prices, std_prices)) in enumerate(data_dict.items()):
+    for idx, (algo, (x_values, mean_prices, ci_margins)) in enumerate(data_dict.items()):
         color = colors[idx]
 
         # Plot line
@@ -355,28 +378,27 @@ def create_convergence_plot(config, data_dict, varying_param, output_path):
                 marker='o', markersize=8, linewidth=2,
                 label=algo, color=color, alpha=0.8)
 
-        # Error bars
-        ax.errorbar(x_values, mean_prices, yerr=std_prices,
+        # Error bars (The 'yerr' here now represents the CI margin)
+        ax.errorbar(x_values, mean_prices, yerr=ci_margins,
                    fmt='none', ecolor=color, alpha=0.3, capsize=5)
 
-        # Shaded region
+        # Shaded region (Visualizing the 99% Confidence Interval)
         ax.fill_between(x_values,
-                        mean_prices - std_prices,
-                        mean_prices + std_prices,
-                        alpha=0.1, color=color)
+                        mean_prices - ci_margins,
+                        mean_prices + ci_margins,
+                        alpha=0.15, color=color) # Increased alpha slightly for visibility
 
     # Set scale
     if use_log:
         ax.set_xscale('log')
-        print(f"Using log scale for x-axis")
     else:
         ax.set_xscale('linear')
-        print(f"Using linear scale for x-axis")
 
     # Labels and title
     ax.set_xlabel(param_display_name, fontsize=14, fontweight='bold')
     ax.set_ylabel('Mean Price', fontsize=14, fontweight='bold')
-    ax.set_title(f'Convergence Plot: {payoff_name}', fontsize=16, fontweight='bold')
+    # Updated Title
+    ax.set_title(f'Convergence: {payoff_name} (99% Confidence Interval)', fontsize=16, fontweight='bold')
 
     # Legend
     ax.legend(loc='best', fontsize=12, framealpha=0.9)
@@ -393,7 +415,6 @@ def create_convergence_plot(config, data_dict, varying_param, output_path):
     plt.close()
 
     print(f"✓ Plot saved: {output_path}")
-
 
 def main():
     parser = argparse.ArgumentParser(

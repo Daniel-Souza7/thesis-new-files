@@ -1,7 +1,7 @@
 """CLI tool for storing stock model paths.
 
 Usage:
-    # Store RealData paths with empirical drift/volatility
+    # Store RealData paths
     python -m optimal_stopping.data.store_paths \
         --stock_model=RealData \
         --nb_stocks=50 \
@@ -11,15 +11,20 @@ Usage:
         --drift=None \
         --volatilities=None
 
-    # Store BlackScholes paths
+    # Store RoughHeston paths (New Example)
     python -m optimal_stopping.data.store_paths \
-        --stock_model=BlackScholes \
+        --stock_model=RoughHeston \
         --nb_stocks=10 \
-        --nb_paths=50000 \
+        --nb_paths=10000 \
         --nb_dates=100 \
         --maturity=0.5 \
-        --drift=0.05 \
-        --volatility=0.2
+        --spot=100 \
+        --risk_free_rate=0.0 \
+        --volatility=0.2 \
+        --mean=0.04 \
+        --speed=2.0 \
+        --correlation=-0.7 \
+        --hurst=0.1
 
     # List all stored paths
     python -m optimal_stopping.data.store_paths --list
@@ -46,24 +51,14 @@ except:
 
 
 def _parse_value(value_str: str):
-    """Parse command-line value to appropriate Python type.
-
-    Args:
-        value_str: String value from command line
-
-    Returns:
-        Parsed value (None, float, int, or str)
-    """
+    """Parse command-line value to appropriate Python type."""
     if value_str.lower() in ('none', 'null'):
         return None
     try:
-        # Try int first
         if '.' not in value_str:
             return int(value_str)
-        # Then float
         return float(value_str)
     except ValueError:
-        # Return as string
         return value_str
 
 
@@ -82,7 +77,7 @@ def main():
 
     # Required parameters for storage
     parser.add_argument('--stock_model', type=str,
-                        help='Stock model name (e.g., RealData, BlackScholes)')
+                        help='Stock model name (e.g., RealData, BlackScholes, RoughHeston)')
     parser.add_argument('--nb_stocks', type=int,
                         help='Number of stocks')
     parser.add_argument('--nb_paths', type=int,
@@ -97,18 +92,28 @@ def main():
                         help='Initial spot price (default: 100)')
     parser.add_argument('--custom_id', type=str,
                         help='Custom storage ID (default: auto-generated timestamp)')
+    parser.add_argument('--risk_free_rate', type=float, default=0.0,
+                        help='Risk free rate (r)')
 
-    # Model-specific parameters (catch-all)
+    # Model-specific parameters
     parser.add_argument('--drift', type=str,
                         help='Drift parameter (use "None" for empirical)')
     parser.add_argument('--volatility', type=str,
-                        help='Volatility parameter (use "None" for empirical)')
+                        help='Volatility/Initial Vol parameter')
     parser.add_argument('--volatilities', type=str,
-                        help='Volatilities parameter (use "None" for empirical)')
+                        help='Volatilities parameter')
     parser.add_argument('--dividend', type=float, default=0.0,
                         help='Dividend rate (default: 0)')
     parser.add_argument('--correlation', type=float,
-                        help='Correlation between stocks')
+                        help='Correlation between stocks (or between asset and vol for Heston)')
+
+    # Heston / Rough Heston specific parameters
+    parser.add_argument('--mean', type=float,
+                        help='Long-run average variance (theta) for Heston/RoughHeston')
+    parser.add_argument('--speed', type=float,
+                        help='Mean reversion speed (kappa) for Heston/RoughHeston')
+    parser.add_argument('--hurst', type=float,
+                        help='Hurst parameter (H) for Rough models')
 
     # RealData-specific parameters
     parser.add_argument('--tickers', type=str, nargs='+',
@@ -134,21 +139,17 @@ def main():
 
     args = parser.parse_args()
 
-    # Handle no_telegram flag
     if args.no_telegram:
         args.send_telegram = False
 
-    # Handle list operation
     if args.list:
         list_stored_paths(verbose=True)
         return 0
 
-    # Handle delete operation
     if args.delete:
         success = delete_stored_paths(args.delete)
         return 0 if success else 1
 
-    # Validate required arguments for storage
     required = ['stock_model', 'nb_stocks', 'nb_paths', 'nb_dates', 'maturity']
     missing = [arg for arg in required if getattr(args, arg) is None]
     if missing:
@@ -157,25 +158,29 @@ def main():
     # Build model parameters
     model_params = {
         'dividend': args.dividend,
+        'risk_free_rate': args.risk_free_rate
     }
 
     # Add optional parameters if provided
-    # Note: Pass scalar values directly (not tuples) since we're instantiating
-    # the model directly, not going through config/itertools.product
     if args.drift is not None:
-        drift_val = _parse_value(args.drift)
-        model_params['drift'] = drift_val
+        model_params['drift'] = _parse_value(args.drift)
 
     if args.volatility is not None:
-        vol_val = _parse_value(args.volatility)
-        model_params['volatility'] = vol_val
+        model_params['volatility'] = _parse_value(args.volatility)
 
     if args.volatilities is not None:
-        vol_val = _parse_value(args.volatilities)
-        model_params['volatilities'] = vol_val
+        model_params['volatilities'] = _parse_value(args.volatilities)
 
     if args.correlation is not None:
         model_params['correlation'] = args.correlation
+
+    # Add Heston/RoughHeston specific params
+    if args.mean is not None:
+        model_params['mean'] = args.mean
+    if args.speed is not None:
+        model_params['speed'] = args.speed
+    if args.hurst is not None:
+        model_params['hurst'] = args.hurst
 
     # RealData-specific
     if args.tickers:
@@ -186,6 +191,10 @@ def main():
         model_params['end_date'] = args.end_date
     if args.exclude_crisis:
         model_params['exclude_crisis'] = True
+
+    print(f"⚡ Doubling requested paths ({args.nb_paths:,}) to {args.nb_paths * 2:,} "
+          f"to ensure distinct Training and Evaluation sets.")
+    args.nb_paths = args.nb_paths * 2
 
     # Send start notification
     if TELEGRAM_ENABLED and args.send_telegram:
@@ -215,7 +224,6 @@ def main():
         )
         print(f"\n✅ Success! Storage ID: {storage_id}")
 
-        # Send completion notification
         if TELEGRAM_ENABLED and args.send_telegram:
             try:
                 SBM.send_notification(
@@ -237,7 +245,6 @@ def main():
         import traceback
         traceback.print_exc()
 
-        # Send error notification
         if TELEGRAM_ENABLED and args.send_telegram:
             try:
                 SBM.send_notification(

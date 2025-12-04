@@ -343,6 +343,29 @@ def create_video(config, stock_paths, exercise_times, payoff_values,
     # Strike line
     ax_main.axhline(y=strike, color='black', linestyle='--', linewidth=2,
                     label=f'Strike = {strike:.1f}', alpha=0.7)
+    # --- INSERT START ---
+
+    # Plot Barrier Up
+    if hasattr(config, 'barriers_up'):
+        # Extract value safely (handle list or scalar)
+        b_up = config.barriers_up[0] if isinstance(config.barriers_up, (list, tuple)) else config.barriers_up
+
+        # Check range condition (between 2 and 900)
+        if b_up is not None and 2 <= b_up <= 900:
+            ax_main.axhline(y=b_up, color='tab:red', linestyle='-.', linewidth=2,
+                            label=f'Barrier Up = {b_up:.1f}', alpha=0.7)
+
+    # Plot Barrier Down
+    if hasattr(config, 'barriers_down'):
+        # Extract value safely (handle list or scalar)
+        b_down = config.barriers_down[0] if isinstance(config.barriers_down, (list, tuple)) else config.barriers_down
+
+        # Check range condition (between 2 and 900)
+        if b_down is not None and 2 <= b_down <= 900:
+            ax_main.axhline(y=b_down, color='tab:green', linestyle='-.', linewidth=2,
+                            label=f'Barrier Down = {b_down:.1f}', alpha=0.7)
+
+    # --- INSERT END ---
     ax_main.legend(loc='upper right')
     ax_main.grid(True, alpha=0.3)
 

@@ -132,6 +132,36 @@ video_testing2 = _DefaultConfig(
 )
 
 
+video_testing3 = _DefaultConfig(
+    nb_paths=(20000,),
+    nb_stocks=(10,),
+    algos=('SRLSM',),
+    payoffs=('UODO-MinPut',),
+    barriers=(100000,),
+    barriers_up=(200,),
+    barriers_down=(30,),
+    train_ITM_only=(True,),
+    nb_dates=[14],
+    volatilities=(0.4,),
+    drift=(0.02,),
+)
+
+
+video_testing4 = _DefaultConfig(
+    nb_paths=(20000,),
+    nb_stocks=(10,),
+    algos=('SRLSM',),
+    payoffs=('UODO-MinPut',),
+    barriers=(100000,),
+    barriers_up=(200,),
+    barriers_down=(30,),
+    train_ITM_only=(True,),
+    nb_dates=[8],
+    volatilities=(0.4,),
+    drift=(0.02,),
+)
+
+
 '''
 Comparison prices and computation time
 '''
@@ -1609,15 +1639,35 @@ test_lsm = _DefaultConfig(
 
 # Example stored paths config - UPDATE THE STORAGE ID!
 test_stored = _DefaultConfig(
-    stock_models=['RealDataStored1763383103077'],  # Use stored ID
-    nb_stocks=[3],    # Can use subset (≤50)
-    nb_paths=[5000],          # Can use subset (≤100000)
-    nb_dates=[252],            # Must match exactly
+    stock_models=['BlackScholesStored1764842763797'],  # Use stored ID
+    nb_stocks=[50],    # Can use subset (≤50)
+    nb_paths=[10000],          # Can use subset (≤100000)
+    nb_dates=[10],            # Must match exactly
     maturities=[1.0],          # Must match exactly
     spots=[100],      # Will automatically rescale!
-    payoffs=['BasketCall', 'MaxCall', 'MinPut'],
-    algos=['RLSM', 'LSM'],
-    nb_runs=2,
+    payoffs=['UO-BskCall', 'UO-MaxCall', 'UO-MinPut'],
+    algos=['SRLSM'],
+    nb_runs=10,
+    barriers=[150],
+    drift=[0.5],
+    risk_free_rate=[0.5],
+    volatilities=[0.2],
+)
+# Example stored paths config - UPDATE THE STORAGE ID!
+test_stored2 = _DefaultConfig(
+    stock_models=['BlackScholes'],  # Use stored ID
+    nb_stocks=[50],    # Can use subset (≤50)
+    nb_paths=[10000],          # Can use subset (≤100000)
+    nb_dates=[10],            # Must match exactly
+    maturities=[1.0],          # Must match exactly
+    spots=[100],      # Will automatically rescale!
+    payoffs=['UO-BskCall', 'UO-MaxCall', 'UO-MinPut'],
+    algos=['SRLSM'],
+    nb_runs=10,
+    barriers=[150],
+    drift=[0.5],
+    risk_free_rate=[0.5],
+    volatilities=[0.2],
 )
 
 # ==============================================================================
@@ -1837,28 +1887,46 @@ test_bug1_barrier_path_dependent = _DefaultConfig(
     representations=['TablePriceDuration'],
 )
 
+# Test Bug 1 Fix: Barrier-wrapped path-dependent payoffs (220 payoffs)
+# Tests that barrier wrapper correctly handles 3D arrays for path-dependent payoffs
+test_article = _DefaultConfig(
+    algos=['DKL'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2, 20, 50],
+    nb_paths=[20000],
+    nb_dates=[10],
+    nb_runs=5,
+    maturities=[1],
+    payoffs=['MaxCall'],
+    spots=[90, 100, 110],
+    strikes=[100],
+    volatilities=[0.2],
+    drift=[0.05],
+    risk_free_rate=[0.05],
+    use_payoff_as_input=[True],
+    representations=['TablePriceDuration'],
+)
+
 # Test Bug 2/5 Fix: Default barriers and write_excel compatibility
 # Tests that barriers=(100000,) allows standard payoffs to work
 test_bug2_default_barriers = _DefaultConfig(
-    algos=['RLSM', 'RFQI'],
+    algos=['DKL', 'RDKL'],
     stock_models=['BlackScholes'],
-    nb_stocks=[5],
-    nb_paths=[5000],
-    nb_dates=[20],
-    nb_runs=3,
+    nb_stocks=[2, 60],
+    nb_paths=[10000],
+    nb_dates=[10],
+    nb_runs=10,
     payoffs=[
         # Standard payoffs (should have barrier=100000 in results)
-        'BasketCall', 'BasketPut',
-        'MaxCall', 'MinPut',
-        'GeometricCall', 'GeometricPut',
+        'UO-AsianFl-BskPut', 'UO-MaxCall', 'UO-MinPut'
     ],
     spots=[100],
     strikes=[100],
     # Use default barriers (should be 100000)
-    # barriers=(100000,) is the default now
+    barriers=(120, 150, 100000,),
     volatilities=[0.2],
     drift=[0.05],
-    use_payoff_as_input=[True],
+    use_payoff_as_input=[True, False],
     representations=['TablePriceDuration'],
 )
 
@@ -1890,21 +1958,43 @@ test_bug3_fractional_bs = _DefaultConfig(
 # Test Bug 4 Fix: RealDataModel initialization with tuple parameters
 # Tests that drift=(None,) and volatilities=(None,) work correctly
 test_bug4_real_data_init = _DefaultConfig(
-    algos=['RLSM', 'RFQI'],
-    stock_models=['RealData'],
-    nb_stocks=[3, 5],
-    nb_paths=[3000],
-    nb_dates=[20],
-    nb_runs=3,
-    payoffs=['BasketCall', 'MaxCall', 'MinPut'],
+    algos=['RRLSM', 'RLSM', 'SRLSM'],
+    stock_models=['RoughHestonStored1764601499227'],
+    nb_paths=[20000],
+    nb_stocks=[10],
+    nb_dates=[10],
+    payoffs=['BskPut', 'UO-MaxCall', 'UO-MinPut', ],
     spots=[100],
     strikes=[100],
-    maturities=[0.5],
+    maturities=[1],
+    hidden_size=[200],
     # Test both empirical (None) and override values
-    drift=(None,),  # Use empirical from data
-    volatilities=(None,),  # Use empirical from data
+    #drift=(None,),  # Use empirical from data
+    #volatilities=(None,),  # Use empirical from data
     use_payoff_as_input=[True],
+    barriers=[190],
     representations=['TablePriceDuration'],
+    hurst=[0.1],
+)
+
+test_bug4_real_data_init2 = _DefaultConfig(
+    algos=['RRLSM', 'RLSM', 'SRLSM'],
+    stock_models=['RoughHeston'],
+    nb_stocks=[10],
+    nb_paths=[15000],
+    nb_dates=[20],
+    nb_runs=5,
+    payoffs=['BskPut', 'UO-MaxCall', 'UO-MinPut', ],
+    spots=[100],
+    strikes=[100],
+    maturities=[2],
+    # Test both empirical (None) and override values
+    #drift=(None,),  # Use empirical from data
+    #volatilities=(None,),  # Use empirical from data
+    use_payoff_as_input=[True],
+    barriers=[190],
+    representations=['TablePriceDuration'],
+    hurst=[0.1],
 )
 
 # Test Bug 6 Fix: create_video parameters (risk_free_rate, dividend)
@@ -2071,23 +2161,64 @@ test_all_bug_fixes = _DefaultConfig(
 # Convergence test 1: Price vs Number of Paths
 plot_convergence1 = _DefaultConfig(
     nb_runs=5,
-    nb_paths=[500, 1000, 10000, 100000],
-    nb_stocks=[7],
-    algos=['RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'],
-    payoffs=['Call'],
-    nb_epochs=[30],
+    nb_paths=[10000],
+    nb_stocks=[10, 50, 100],
+    algos=['SRFQI', 'SRFQI_RBF', 'SRLSM'],
+    payoffs=['UO-MinPut'],
     hidden_size=[50],
+    use_payoff_as_input=[True],
+    strikes=[100],
+    barriers=[140],
+
+)
+
+# Convergence test 1: Price vs Number of Paths
+plot_convergence0 = _DefaultConfig(
+    nb_runs=10,
+    nb_paths=[2000, 5000, 10000, 15000],
+    nb_stocks=[10],
+    algos=['RFQI', 'RLSM'],
+    payoffs=['MinPut'],
+    #hidden_size=[5, 10, 20, 50, 100],
+    strikes=[120],
+
+)
+
+
+plot_convergence11 = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[10000, 25000],
+    nb_stocks=[1],
+    algos=['SRFQI', 'SRLSM', 'EOP'],
+    payoffs=['UO-Call'],
+    barriers=[12000],  # 1200 seems very high - did you mean 120?
+    drift=(None,),
+    volatilities=(None,),  # Use tuple like drift
+    stock_models=['RealData'],
+)
+
+plot_convergence_debug = _DefaultConfig(
+    nb_runs=5,
+    nb_paths=[25000],
+    nb_stocks=[1],
+    algos=['RLSM', 'EOP'],
+    payoffs=['Call'],  # Standard call, no barrier
+    drift=[0.06, None],  # GBM 6% vs RealData empirical 24%
+    volatilities=[0.2, None],  # GBM 20% vs RealData empirical 28%
+    stock_models=['BlackScholes', 'RealData'],
+    nb_dates=[10],
+    maturities=[1.0],
+    strikes=[100],
+    spots=[100],
 )
 
 # Convergence test 2: Price vs Hidden Layer Size
-plot_convergence2 = _DefaultConfig(
+wthappenned = _DefaultConfig(
     nb_runs=5,
-    nb_paths=[10000],
+    nb_paths=[15000, 30000],
     nb_stocks=[1],
-    algos=['RLSM', 'LSM', 'RFQI', 'FQI', 'EOP'],
+    algos=['DOS', 'NLSM', 'EOP'],
     payoffs=['Call'],
-    hidden_size=[1, 2, 5, 7, 8, 10, 15, 50, 100],
-    nb_epochs=[30],
 )
 
 # Convergence test 3: Price vs Number of Stocks
@@ -2136,3 +2267,26 @@ plot_convergence6 = _DefaultConfig(
     hidden_size=[50],
 )
 
+plot_convergence7 = _DefaultConfig( nb_runs=3,
+    nb_paths=[10000],
+    nb_stocks=[5],
+    algos=['RFQI', 'RLSM'],
+    payoffs=['BasketPut'],
+    stock_models=['RealDataStored1764754972064'])
+    #nb_epochs=[5, 10, 15, 20, 30, 50, 100],
+    #hidden_size=[50],)
+
+presentation = _DefaultConfig( nb_runs=1,
+    nb_paths=[10000],
+    nb_stocks=[7],
+    algos=['SRLSM'],
+    payoffs=['UODO-MinPut'],
+    stock_models=['RoughHeston'],
+    drift = [0.05],
+    volatilities=[0.3,],
+    risk_free_rate=[0.05],
+    nb_dates = [50],
+    barriers_up = (140,),  # Upper barrier level for double barriers
+    barriers_down = (65,))
+    #nb_epochs=[5, 10, 15, 20, 30, 50, 100],
+    #hidden_size=[50],)

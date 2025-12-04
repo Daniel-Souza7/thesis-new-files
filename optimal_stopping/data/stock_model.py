@@ -81,6 +81,10 @@ class Model:
 class BlackScholes(Model):
     def __init__(self, drift, volatility, nb_paths, nb_stocks, nb_dates, spot,
                  maturity, dividend=0, **keywords):
+
+        # --- FIX: Prevent name collision ---
+        keywords.pop('name', None)
+
         super(BlackScholes, self).__init__(
             drift=drift, dividend=dividend, volatility=volatility,
             nb_stocks=nb_stocks, nb_paths=nb_paths, nb_dates=nb_dates,
@@ -99,7 +103,11 @@ class BlackScholes(Model):
         """Returns a nparray (nb_paths * nb_stocks * nb_dates+1) with prices."""
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
-        spot_paths = np.empty((nb_paths, self.nb_stocks, nb_dates + 1))
+
+        # FIX 1: Use float32 to cut memory usage in half (15GB -> 7.5GB)
+        dtype = np.float32
+
+        spot_paths = np.empty((nb_paths, self.nb_stocks, nb_dates + 1), dtype=dtype)
 
         # Set initial values
         if X0 is None:
@@ -107,28 +115,72 @@ class BlackScholes(Model):
         else:
             spot_paths[:, :, 0] = X0
 
-        # Generate or use provided Brownian increments
+        # Generate Brownian increments
+        # FIX 2: Generate directly in float32
         if dW is None:
-            random_numbers = np.random.normal(
-                0, 1, (nb_paths, self.nb_stocks, nb_dates))
-            dW = random_numbers * np.sqrt(self.dt)
+            # We calculate this in steps to avoid holding a second 15GB array for random_numbers
+            dW = np.random.normal(0, 1, (nb_paths, self.nb_stocks, nb_dates)).astype(dtype)
+            dW *= np.sqrt(self.dt)
 
-        # Vectorized path generation
+        # FIX 3: REMOVED MASSIVE np.repeat BLOCKS
+        # We rely on NumPy broadcasting.
+        # r and sig are scalars or small vectors, they will automatically
+        # stretch to match dW's shape.
+
+        # Pre-calculate constants
+        # shape: (1, nb_stocks, 1) or scalar
+        drift_term = (self.drift - 0.5 * self.volatility ** 2) * self.dt
+        vol_term = self.volatility  # scalar or shape (nb_stocks,)
+
+        # Vectorized calculation
+        # We perform the cumsum on the exponent terms
+        # exponent = (r - 0.5*sigma^2)dt + sigma*dW
+        log_ret = drift_term + vol_term * dW
+
+        # Apply cumsum along time axis
+        spot_paths[:, :, 1:] = spot_paths[:, :, 0:1] * np.exp(np.cumsum(log_ret, axis=2))
+
+        # dimensions: [nb_paths, nb_stocks, nb_dates+1]
+        if return_dW:
+            return spot_paths, None, dW
+        return spot_paths, None
+
+    def generate_paths_with_alternatives(
+            self, nb_paths=None, nb_alternatives=1, nb_dates=None):
+        """
+        Generate paths with alternative scenarios for Greeks computation.
+        Creates additional paths that branch off at different time points.
+        """
+        nb_paths = nb_paths or self.nb_paths
+        nb_dates = nb_dates or self.nb_dates
+        total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
+        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1))
+
+        spot_paths[:, :, 0] = self.spot
+        random_numbers = np.random.normal(
+            0, 1, (total_nb_paths, self.nb_stocks, nb_dates))
+        mult = nb_alternatives * nb_paths
+
+        # Reuse Brownian increments for branching scenarios
+        for i in range(nb_dates - 1):
+            random_numbers[
+                nb_paths + i * mult:nb_paths + (i + 1) * mult, :, :nb_dates - i - 1] = np.tile(
+                random_numbers[:nb_paths, :, :nb_dates - i - 1],
+                reps=(nb_alternatives, 1, 1))
+        dW = random_numbers * np.sqrt(self.dt)
+
         drift = self.drift
         r = np.repeat(np.repeat(np.repeat(
-            np.reshape(drift, (-1, 1, 1)), nb_paths, axis=0),
+            np.reshape(drift, (-1, 1, 1)), total_nb_paths, axis=0),
             self.nb_stocks, axis=1), nb_dates, axis=2)
         sig = np.repeat(np.repeat(np.repeat(
-            np.reshape(self.volatility, (-1, 1, 1)), nb_paths, axis=0),
+            np.reshape(self.volatility, (-1, 1, 1)), total_nb_paths, axis=0),
             self.nb_stocks, axis=1), nb_dates, axis=2)
 
         spot_paths[:, :, 1:] = np.repeat(
             spot_paths[:, :, 0:1], nb_dates, axis=2) * np.exp(np.cumsum(
             r * self.dt - (sig ** 2) * self.dt / 2 + sig * dW, axis=2))
 
-        # dimensions: [nb_paths, nb_stocks, nb_dates+1]
-        if return_dW:
-            return spot_paths, None, dW
         return spot_paths, None
 
     def generate_paths_with_alternatives(
@@ -419,21 +471,24 @@ class HestonWithVar(Heston):
 class RoughHeston(Model):
     """
     Rough Heston model with fractional variance process.
-    Variance follows a fractional process with Hurst parameter H < 0.5.
-    See: "Roughening Heston" paper
-
-    Note: Computationally intensive due to fractional integration.
     """
 
     def __init__(self, drift, volatility, spot,
                  mean, speed, correlation,
                  nb_stocks, nb_paths, nb_dates, maturity,
                  nb_steps_mult=10, v0=None, hurst=0.25, dividend=0., **kwargs):
+
+        # --- FIX 1: Handle 'name' collision ---
+        # The path storage system passes 'name' in kwargs, but we define it manually below.
+        # We must pop it to avoid "multiple values for keyword argument" error.
+        kwargs.pop('name', None)
+
         super(RoughHeston, self).__init__(
             drift=drift, volatility=volatility, nb_stocks=nb_stocks,
             nb_paths=nb_paths, nb_dates=nb_dates,
             spot=spot, maturity=maturity, dividend=dividend,
             name="RoughHeston", **kwargs)
+
         self.mean = mean
         self.speed = speed
         self.nb_steps_mult = nb_steps_mult
@@ -451,26 +506,21 @@ class RoughHeston(Model):
     def get_frac_var(self, vars, dZ, step, la, thet, vol):
         """
         Compute next fractional variance value using Euler scheme.
-        See: "Roughening Heston" paper or https://github.com/sigurdroemer/rough_heston
-
-        Args:
-            vars: array with previous values of var process
-            dZ: array with the BM increments for var process
-            step: int > 0, the step of the integral
-            la: lambda (mean reversion speed)
-            thet: theta (long-run variance)
-            vol: volatility of variance
-
-        Returns:
-            Next value of fractional var process
         """
         v0 = vars[0]
+        # Check for division by zero or negative time
+        if step == 0:
+            return v0
+
         times = (self.dt * step - np.linspace(0, self.dt * (step - 1), step)) ** \
                 (self.H - 0.5)
         if len(vars.shape) == 2:
             times = np.repeat(np.expand_dims(times, 1), vars.shape[1], axis=1)
+
         int1 = np.sum(times * la * (thet - vars[:step]) * self.dt, axis=0)
         int2 = np.sum(times * vol * np.sqrt(vars[:step]) * dZ[:step], axis=0)
+
+        # --- FIX 2: Ensure scispe is imported ---
         v = v0 + (int1 + int2) / scispe.gamma(self.H + 0.5)
         return np.maximum(v, 0)
 

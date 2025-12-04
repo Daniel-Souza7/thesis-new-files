@@ -62,6 +62,7 @@ class RealDataModel(Model):
         volatility_override: Optional[float] = None,
         avg_block_length: Optional[int] = None,
         cache_data: bool = True,
+        start_index: int = 0,
         **kwargs
     ):
         """Initialize real data model.
@@ -83,6 +84,7 @@ class RealDataModel(Model):
                      - volatilities=(None,) → use empirical volatility
                      - volatilities=(0.2,) → override to 20% volatility
         """
+        self.start_index = start_index
         # Extract drift/volatility from kwargs if not explicitly provided
         # This allows configs to control behavior:
         # - drift=(None,) in config → use empirical (no override)
@@ -177,6 +179,7 @@ class RealDataModel(Model):
             print(f"   ⚠️  Using OVERRIDE volatility: {self.volatility_override:.2%} (ignoring empirical)")
 
         print(f"   Block length: {self.avg_block_length} days")
+        self._debug_data_structure()
 
     def _get_default_tickers(self, nb_stocks: int) -> List[str]:
         """Get default tickers from S&P 500 and beyond (700+ stocks with 15+ years data).
@@ -513,46 +516,129 @@ class RealDataModel(Model):
         else:
             self.target_vol_daily = self.empirical_vol_daily
 
-    def _estimate_block_length(self) -> int:
-        """Estimate optimal block length from autocorrelation decay.
+    def _estimate_block_length(self) -> float:
+        """Estimate optimal average block length using Patton, Politis & White (2009).
 
-        Uses the method from Politis & White (2004):
-        Block length ≈ where autocorrelation falls below 2/√n
+        This replaces the previous heuristic with the rigorous spectral density
+        estimation method, including the "correction" for the Stationary Bootstrap
+        variance constant.
 
         Returns:
-            Optimal average block length in days
+            Optimal average block length (float).
         """
+        print("   Computing optimal block length (Patton, Politis & White 2009)...")
         n_days, n_stocks = self.returns_array.shape
 
-        # Calculate autocorrelation for each stock
-        max_lag = min(100, n_days // 4)  # Check up to 100 days or 1/4 of data
+        # We calculate the optimal block length for a sample of stocks and average them.
+        # Computing for all 250+ stocks might be slow, so we take a robust sample.
+        sample_size = min(n_stocks, 20)
+        # Pick indices evenly spaced across the available stocks to get a mix of sectors
+        indices = np.linspace(0, n_stocks - 1, sample_size, dtype=int)
+
         block_lengths = []
 
-        for stock_idx in range(min(n_stocks, 10)):  # Sample up to 10 stocks for speed
-            returns = self.returns_array[:, stock_idx]
+        for idx in indices:
+            stock_returns = self.returns_array[:, idx]
+            b_opt = self._calc_ppw_block_size(stock_returns)
+            block_lengths.append(b_opt)
 
-            # Calculate autocorrelations
-            autocorr = np.zeros(max_lag)
-            for lag in range(1, max_lag):
-                autocorr[lag] = np.corrcoef(returns[:-lag], returns[lag:])[0, 1]
+        # Take the mean of the optimal sizes
+        avg_optimal = np.mean(block_lengths)
 
-            # Find where autocorrelation becomes insignificant
-            threshold = 2.0 / np.sqrt(n_days)
-            significant_lags = np.where(np.abs(autocorr) > threshold)[0]
+        # Clip to reasonable bounds to prevent bootstrap failure on edge cases
+        # (e.g., extremely short history or perfect white noise)
+        final_block_size = np.clip(avg_optimal, 1.0, min(100.0, n_days / 5.0))
 
-            if len(significant_lags) > 0:
-                # Block length is last significant lag
-                block_lengths.append(significant_lags[-1])
-            else:
-                # No significant autocorrelation, use small block
-                block_lengths.append(5)
+        return float(final_block_size)
 
-        # Use average across stocks, bounded between 5 and 50 days
-        avg_length = int(np.mean(block_lengths))
-        optimal_length = np.clip(avg_length, 5, 50)
+    def _calc_ppw_block_size(self, x: np.ndarray) -> float:
+        """Calculate optimal block size using PPW (2009) correction & PW (2004) Bandwidth rule.
 
-        return optimal_length
+        Strict implementation of:
+        1. Negligibility Threshold: c * sqrt(log10(N)/N) with c=2
+        2. Bandwidth Rule: M = 2 * m_hat
+        3. Flat-Top Window: Trapezoidal
+        4. Variance Correction: D_SB = 2 * g^2(0) [Patton, Politis, White 2009]
+        """
+        N = len(x)
+        if N < 20: return 1.0
 
+        # 1. Center the data
+        x_centered = x - np.mean(x)
+
+        # 2. Determine Bandwidth 'M'
+        # Search limit (K_N): "max(5, log10(N))"
+        # We search deeper to be safe, but checks use the threshold logic.
+        search_max = int(min(N / 4, np.ceil(10 * np.sqrt(np.log10(N) / N))))
+
+        # Threshold for negligible autocorrelation
+        # |R(k)| < 2 * sqrt(log10(N)/N)
+        threshold = 2.0 * np.sqrt(np.log10(N) / N)
+
+        # Compute normalized autocorrelation
+        full_corr = np.correlate(x_centered, x_centered, mode='full')
+        mid = len(full_corr) // 2
+        acov = full_corr[mid:mid + search_max + 1] / N
+        var_x = acov[0]
+
+        if var_x < 1e-12: return 1.0
+        rho = acov / var_x
+
+        # Identify m_hat (smallest integer where correlation becomes negligible)
+        # We look for the first spot where the next K_N lags are ALL below threshold
+        m_hat = 1
+        K_N = int(max(5, np.log10(N)))  #
+
+        for k in range(1, len(rho) - K_N):
+            # Check if lags k+1 through k+K_N are all insignificant
+            if np.all(np.abs(rho[k + 1: k + 1 + K_N]) < threshold):
+                m_hat = k
+                break
+
+        # "After identifying m_hat... the recommendation is to just take M = 2 * m_hat"
+        M = 2 * m_hat
+        M = max(1, M)  # Safety floor
+
+        # 3. Define Flat-Top Window
+        def flat_top(t):
+            abs_t = abs(t)
+            if abs_t <= 0.5:
+                return 1.0  # "1 if t in [0, 1/2]"
+            elif abs_t <= 1.0:
+                return 2.0 * (1.0 - abs_t)  # "2(1-t) if t in [1/2, 1]"
+            return 0.0  # "0 otherwise"
+
+        # 4. Calculate Spectral Estimators
+        # Sum from -M to M
+        w_0 = flat_top(0)
+        g_hat_0 = w_0 * acov[0]
+        G_hat = 0.0
+
+        for k in range(1, M + 1):
+            if k >= len(acov): break  # Safety check
+
+            w_k = flat_top(k / M)
+            R_k = acov[k]
+
+            # Add positive and negative lags (symmetry)
+            # g(w) estimator
+            g_hat_0 += 2.0 * w_k * R_k
+
+            # G estimator
+            G_hat += 2.0 * w_k * k * R_k
+
+        # 5. Apply the Variance Constant CORRECTION [Patton, Politis, White 2009]
+        # Replacing Eq (8) from 2004 text which was incorrect.
+        D_SB = 2.0 * (g_hat_0 ** 2)
+
+        if D_SB < 1e-10: return 1.0
+
+        # 6. Final Optimal Block Size
+        # b_opt = ((2 * G^2) / D_SB)^(1/3) * N^(1/3)
+        term_1 = (2.0 * (G_hat ** 2)) / D_SB
+        b_opt = (term_1 ** (1 / 3)) * (N ** (1 / 3))
+
+        return b_opt
     def _stationary_bootstrap_indices(self, n_samples: int) -> np.ndarray:
         """Generate indices for stationary block bootstrap.
 
@@ -647,3 +733,42 @@ class RealDataModel(Model):
         """Generate a single path (not used, but required by base class)."""
         paths, _ = self.generate_paths(nb_paths=1)
         return paths[0]
+
+    def _debug_data_structure(self):
+        """Diagnose why block size is 1.0 by checking correlations."""
+        print("\n🔍 --- DATA DIAGNOSTICS ---")
+
+        # 1. Check Data Integrity
+        zeros = np.sum(self.returns_array == 0)
+        total = self.returns_array.size
+        print(f"Data Health: {zeros} zeros out of {total} elements ({zeros / total:.2%})")
+
+        # 2. Check CROSS-Correlation (Do stocks move together?)
+        # We expect this to be HIGH
+        corr_matrix = np.corrcoef(self.returns_array.T)
+        avg_cross_corr = np.mean(corr_matrix[np.triu_indices_from(corr_matrix, k=1)])
+        print(f"Avg CROSS-Correlation (Stock vs Stock): {avg_cross_corr:.4f} (Should be High)")
+
+        # 3. Check AUTO-Correlation (Does yesterday predict today?)
+        # We expect this to be LOW (approx 0) for Raw Returns
+        print(f"\nAvg AUTO-Correlation (Lag 1 to 5):")
+        for lag in range(1, 6):
+            corrs = []
+            for i in range(self.nb_stocks):
+                series = self.returns_array[:, i]
+                c = np.corrcoef(series[:-lag], series[lag:])[0, 1]
+                corrs.append(c)
+            print(f"  Lag {lag}: {np.mean(corrs):.4f} (Raw Returns) -> Estimator sees this")
+
+        # 4. Check Volatility Clustering (Squared Returns Auto-Correlation)
+        # We expect this to be HIGHER. This is what you WANT the block size to capture.
+        print(f"\nAvg VOLATILITY-Correlation (Squared Returns, Lag 1 to 5):")
+        squared_returns = self.returns_array ** 2
+        for lag in range(1, 6):
+            corrs = []
+            for i in range(self.nb_stocks):
+                series = squared_returns[:, i]
+                c = np.corrcoef(series[:-lag], series[lag:])[0, 1]
+                corrs.append(c)
+            print(f"  Lag {lag}: {np.mean(corrs):.4f} (Squared Returns) -> Hidden structure")
+        print("--------------------------\n")

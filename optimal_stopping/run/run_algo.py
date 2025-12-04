@@ -27,6 +27,7 @@ from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
+from optimal_stopping.algorithms.path_dependent.rrlsm import RRLSM
 
 # BENCHMARK ALGORITHMS - Simple implementations for comparison
 from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer, LeastSquarePricerDeg1, LeastSquarePricerLaguerre
@@ -35,23 +36,14 @@ from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
 from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
 from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 
-# OLD IMPORTS - Keep for backward compatibility if needed
-try:
-    from optimal_stopping.algorithms.backward_induction import RRLSM
-    from optimal_stopping.algorithms.reinforcement_learning import LSPI
-    from optimal_stopping.algorithms.finite_difference import binomial
-    from optimal_stopping.algorithms.finite_difference import trinomial
-    from optimal_stopping.algorithms.backward_induction import backward_induction_pricer
-
-    OLD_ALGOS_AVAILABLE = True
-except ImportError:
-    OLD_ALGOS_AVAILABLE = False
-    print("Warning: Old algorithm implementations not found.")
-
 from optimal_stopping.run import write_figures
 from optimal_stopping.run import configs
 
-
+from optimal_stopping.algorithms.testing.zap_q import ZapQ
+from optimal_stopping.algorithms.testing.rzapq import RZapQ
+from optimal_stopping.algorithms.testing.dkl import DKL_LSM
+from optimal_stopping.algorithms.testing.rdkl import RandDKL_LSM
+from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
 # GLOBAL CLASSES
 class SendBotMessage:
     def __init__(self):
@@ -132,6 +124,12 @@ _ALGOS = {
     "SRLSM": SRLSM,  # Path-dependent options (barriers, lookbacks)
     "RFQI": RFQI,  # Standard options
     "SRFQI": SRFQI,  # Path-dependent options (barriers, lookbacks)
+    "RRLSM": RRLSM,
+    "ZAPQ": ZapQ,
+    "RZAPQ": RZapQ,
+    "RDKL": RandDKL_LSM,
+    "DKL": DKL_LSM,
+    "SRFQI_RBF": SRFQI_RBF,
 
     # BENCHMARK ALGORITHMS - Simple implementations for comparison
     "LSM": LeastSquaresPricer,
@@ -147,17 +145,6 @@ _ALGOS = {
     "EOP": EuropeanOptionPrice,  # European option (exercise only at maturity)
 }
 
-# Add old algorithms if available
-if OLD_ALGOS_AVAILABLE:
-    _ALGOS.update({
-        "LSPI": LSPI.LSPI,
-        "RRLSM": RRLSM.ReservoirRNNLeastSquarePricer2,
-        "RRLSMmix": RRLSM.ReservoirRNNLeastSquarePricer,
-        "RRLSMRidge": RRLSM.ReservoirRNNLeastSquarePricer2Ridge,
-        # "EOP": backward_induction_pricer.EuropeanOptionPricer,  # Replaced by new EOP
-        "B": binomial.BinomialPricer,
-        "Trinomial": trinomial.TrinomialPricer,
-    })
 
 
 def init_seed():
@@ -212,7 +199,9 @@ def _run_algos():
                     run_seed = FLAGS.path_gen_seed + i
 
                 delayed_jobs.append(joblib.delayed(_run_algo)(
-                    tmp_file_path, *params, fail_on_error=FLAGS.print_errors,
+                    tmp_file_path, *params,
+                    run_idx=i,  # <--- PASS THE RUN INDEX (0, 1, 2, 3, 4)
+                    fail_on_error=FLAGS.print_errors,
                     compute_greeks=FLAGS.compute_greeks,
                     greeks_method=FLAGS.greeks_method,
                     eps=FLAGS.eps, poly_deg=FLAGS.poly_deg,
@@ -265,6 +254,7 @@ def _run_algo(
         k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
         user_data_file=None,
+        run_idx=0,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
         poly_deg=None, fd_freeze_exe_boundary=True,
@@ -316,6 +306,36 @@ def _run_algo(
     # Check if payoff is path-dependent
     is_path_dependent = getattr(payoff_obj, 'is_path_dependent', False)
 
+    # --- INSERT START ---
+    start_index = 0
+
+    # Check if we are using Stored Data (H5 file) or RealData
+    if "Stored" in stock_model_name or stock_model_name == "RealData":
+        # We need 2x paths (1 for train, 1 for eval)
+        paths_per_run = nb_paths * 2
+
+        # Calculate offset: Run 0 starts at 0, Run 1 at 40k, Run 2 at 80k...
+        start_index = run_idx * paths_per_run
+
+        # We request 2x paths from the model
+        paths_to_load = paths_per_run
+        actual_train_eval_split = 2
+
+        print(f"🔄 Run {run_idx + 1}: Loading {paths_to_load:,} paths "
+              f"starting at index {start_index:,} (Range: {start_index:,} to {start_index + paths_to_load:,})")
+    else:
+        # For generated data (BlackScholes), we rely on the Seed to vary the data
+        paths_to_load = nb_paths
+        actual_train_eval_split = train_eval_split
+
+        # Instantiate stock model
+    stock_model_obj = _STOCK_MODELS[stock_model_name](
+        drift=drift, risk_free_rate=risk_free_rate, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
+        correlation=correlation, nb_stocks=nb_stocks,
+        nb_paths=paths_to_load,  # <--- CHANGED THIS
+        nb_dates=nb_dates,
+        spot=spot, dividend=dividend,
+        maturity=maturity, user_data_file=user_data_file)
     # Instantiate stock model
     # Note: Don't pass 'name' - each model sets its own name internally
     stock_model_obj = _STOCK_MODELS[stock_model_name](
@@ -409,7 +429,19 @@ def _run_algo(
                 use_payoff_as_input=use_payoff_as_input
             )
 
-        elif algo in ["LSM", "LSMDeg1", "LSMLaguerre"]:
+
+        elif algo in ['RRLSM']:
+
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_epochs=nb_epochs,
+                hidden_size=hidden_size,
+                factors=factors,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
+        elif algo in ["LSM", "LSMDeg1", "LSMLaguerre", "ZAPQ", "RZAPQ", "DKL", "RDKL", "SRFQI_RBF"]:
             pricer = _ALGOS[algo](
                 stock_model_obj, payoff_obj,
                 nb_epochs=nb_epochs,
@@ -433,14 +465,6 @@ def _run_algo(
             # European Option Price - exercises only at maturity
             pricer = _ALGOS[algo](
                 stock_model_obj, payoff_obj
-            )
-
-        # OLD ALGORITHMS - Keep for backward compatibility
-        elif OLD_ALGOS_AVAILABLE and algo in _ALGOS:
-            pricer = _ALGOS[algo](
-                stock_model_obj, payoff_obj,
-                nb_epochs=nb_epochs,
-                use_payoff_as_input=use_payoff_as_input
             )
 
         else:
@@ -469,7 +493,8 @@ def _run_algo(
 
     try:
         if not compute_greeks:
-            price, gen_time = pricer.price(train_eval_split=train_eval_split)
+            # CHANGE: Use actual_train_eval_split instead of train_eval_split
+            price, gen_time = pricer.price(train_eval_split=actual_train_eval_split)
             delta, gamma, theta, rho, vega, price_u = [None] * 6
         else:
             # Greeks computation not yet implemented for new algorithms

@@ -43,19 +43,8 @@ class StoredPathsModel(Model):
         nb_dates: Number of time steps (must match stored)
         maturity: Maturity in years (must match stored)
         spot: Spot price (can differ - paths will be rescaled)
+        start_index: Offset for sliding window (used for Train/Eval split)
         **kwargs: Other parameters passed to base Model class
-
-    Example:
-        >>> model = StoredPathsModel(
-        ...     base_model='RealData',
-        ...     storage_id='1700000000123',
-        ...     nb_stocks=10,
-        ...     nb_paths=50000,
-        ...     nb_dates=252,
-        ...     maturity=1.0,
-        ...     spot=100,
-        ... )
-        >>> paths, variance_paths = model.generate_paths()
     """
 
     def __init__(
@@ -70,6 +59,7 @@ class StoredPathsModel(Model):
         drift: float = 0.05,  # Dummy defaults for base Model class
         volatility: float = 0.2,
         dividend: float = 0.0,
+        start_index: int = 0,  # <--- Added Sliding Window Parameter
         **kwargs
     ):
         """Initialize stored paths model."""
@@ -93,6 +83,7 @@ class StoredPathsModel(Model):
 
         self.base_model = base_model
         self.storage_id = storage_id
+        self.start_index = start_index  # Store the offset
 
         # Open HDF5 file and validate (but don't load into memory yet)
         from optimal_stopping.data.path_storage import STORAGE_DIR
@@ -119,6 +110,7 @@ class StoredPathsModel(Model):
 
         print(f"   Stored: {stored_stocks} stocks, {stored_paths:,} paths, {stored_dates} dates")
         print(f"   Requested: {nb_stocks} stocks, {nb_paths:,} paths, {nb_dates} dates")
+        print(f"   Sliding Window: Reading {nb_paths:,} paths starting at index {start_index:,}")
 
         # Validate
         errors = []
@@ -128,8 +120,15 @@ class StoredPathsModel(Model):
             errors.append(f"maturity mismatch: requested {maturity}, stored {stored_maturity}")
         if nb_stocks > stored_stocks:
             errors.append(f"nb_stocks too large: requested {nb_stocks}, only {stored_stocks} stored")
-        if nb_paths > stored_paths:
-            errors.append(f"nb_paths too large: requested {nb_paths:,}, only {stored_paths:,} stored")
+
+        # VALIDATION CHANGE: Check if range [start_index, start_index + nb_paths] fits in file
+        required_end_index = start_index + nb_paths
+        if required_end_index > stored_paths:
+            errors.append(
+                f"Request out of bounds! Needed up to index {required_end_index:,}, "
+                f"but file only has {stored_paths:,} paths.\n"
+                f"   (Start: {start_index:,}, Count: {nb_paths:,})"
+            )
 
         if errors:
             self._h5_file.close()
@@ -149,7 +148,7 @@ class StoredPathsModel(Model):
         self._next_path_idx = 0
 
     def generate_paths(self, nb_paths: Optional[int] = None) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        """Return stored paths (read from memory-mapped HDF5).
+        """Return stored paths (read from memory-mapped HDF5) with SLIDING WINDOW logic.
 
         Args:
             nb_paths: Number of paths to return (default: requested paths)
@@ -167,8 +166,13 @@ class StoredPathsModel(Model):
                 f"Use nb_paths ≤ {self._nb_paths_requested}"
             )
 
+        # SLIDING WINDOW LOGIC
+        # We read from [start_index : start_index + nb_paths]
+        start = self.start_index
+        end = self.start_index + nb_paths
+
         # Read from memory-mapped HDF5 (only loads what we need)
-        paths = self._h5_file['paths'][:nb_paths, :self._nb_stocks_requested, :]
+        paths = self._h5_file['paths'][start:end, :self._nb_stocks_requested, :]
 
         # Apply spot rescaling if needed
         if not np.isclose(self._spot_scale, 1.0, rtol=1e-6):
@@ -177,7 +181,7 @@ class StoredPathsModel(Model):
         # Read variance paths if present
         variance_paths = None
         if 'variance_paths' in self._h5_file:
-            variance_paths = self._h5_file['variance_paths'][:nb_paths, :self._nb_stocks_requested, :]
+            variance_paths = self._h5_file['variance_paths'][start:end, :self._nb_stocks_requested, :]
 
         return paths, variance_paths
 
@@ -187,12 +191,21 @@ class StoredPathsModel(Model):
         Returns:
             path: Array of shape (nb_stocks, nb_dates+1)
         """
+        # Calculate absolute index in the H5 file
+        file_idx = self.start_index + self._next_path_idx
+
+        # Check bounds
+        if file_idx >= self._metadata['nb_paths']:
+            # This shouldn't happen if validation passed, but good safety
+             raise IndexError("End of stored paths reached.")
+
         if self._next_path_idx >= self._nb_paths_requested:
-            # Wrap around to beginning
+            # Wrap around to beginning of OUR WINDOW (not file beginning)
             self._next_path_idx = 0
+            file_idx = self.start_index # Reset to window start
 
         # Read single path from memory-mapped HDF5
-        path = self._h5_file['paths'][self._next_path_idx, :self._nb_stocks_requested, :]
+        path = self._h5_file['paths'][file_idx, :self._nb_stocks_requested, :]
 
         # Apply spot rescaling if needed
         if not np.isclose(self._spot_scale, 1.0, rtol=1e-6):
