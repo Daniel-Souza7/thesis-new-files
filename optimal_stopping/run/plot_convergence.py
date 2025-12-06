@@ -39,6 +39,9 @@ from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
+from optimal_stopping.algorithms.trees.crr import CRRTree
+from optimal_stopping.algorithms.trees.leisen_reimer import LeisenReimerTree
+from optimal_stopping.algorithms.trees.trinomial import TrinomialTree
 
 # Telegram setup
 try:
@@ -64,6 +67,9 @@ _ALGOS = {
     "DOS": DeepOptimalStopping,
     "EOP": EuropeanOptionPrice,
     "SRFQI_RBF": SRFQI_RBF,
+    "CRR": CRRTree,
+    "LR": LeisenReimerTree,
+    "Trinomial": TrinomialTree,
 }
 
 

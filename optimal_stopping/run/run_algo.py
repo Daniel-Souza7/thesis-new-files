@@ -44,6 +44,11 @@ from optimal_stopping.algorithms.testing.rzapq import RZapQ
 from optimal_stopping.algorithms.testing.dkl import DKL_LSM
 from optimal_stopping.algorithms.testing.rdkl import RandDKL_LSM
 from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
+
+# TREE-BASED ALGORITHMS - Lattice methods for American options
+from optimal_stopping.algorithms.trees.crr import CRRTree
+from optimal_stopping.algorithms.trees.leisen_reimer import LeisenReimerTree
+from optimal_stopping.algorithms.trees.trinomial import TrinomialTree
 # GLOBAL CLASSES
 class SendBotMessage:
     def __init__(self):
@@ -143,6 +148,11 @@ _ALGOS = {
     "NLSM": NeuralNetworkPricer,
     "DOS": DeepOptimalStopping,
     "EOP": EuropeanOptionPrice,  # European option (exercise only at maturity)
+
+    # TREE-BASED ALGORITHMS - Lattice methods
+    "CRR": CRRTree,  # Cox-Ross-Rubinstein binomial tree
+    "LR": LeisenReimerTree,  # Leisen-Reimer binomial tree
+    "Trinomial": TrinomialTree,  # Trinomial tree (3-jump process)
 }
 
 

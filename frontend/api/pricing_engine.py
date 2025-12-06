@@ -34,6 +34,9 @@ from optimal_stopping.algorithms.standard.fqi import FQIFast
 from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
+from optimal_stopping.algorithms.trees.crr import CRRTree
+from optimal_stopping.algorithms.trees.leisen_reimer import LeisenReimerTree
+from optimal_stopping.algorithms.trees.trinomial import TrinomialTree
 
 
 # Pre-loaded common tickers for quick access
@@ -83,6 +86,9 @@ class PricingEngine:
                 'LSM': LeastSquaresPricer,
                 'FQI': FQIFast,
                 'EOP': EuropeanOptionPrice,
+                'CRR': CRRTree,
+                'LR': LeisenReimerTree,
+                'Trinomial': TrinomialTree,
             }
 
         if algo_name not in algos:
