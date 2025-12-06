@@ -6,9 +6,9 @@ Leisen, D., & Reimer, M. (1996).
 "Binomial Models for Option Valuation - Examining and Improving Convergence."
 Applied Mathematical Finance.
 
-The LR model uses Peizer-Pratt inversion formulas to ensure the tree nodes
-are centered around the strike price at maturity, achieving smooth second-order
-convergence without the oscillations of the CRR model.
+Now supports multi-asset options (d=1,2,3) with correlation.
+For d=1: Full Peizer-Pratt inversion for optimal convergence.
+For d≥2: Uses LR marginal probabilities with correlation adjustments.
 """
 
 import numpy as np
@@ -16,6 +16,7 @@ import math
 import time
 from scipy.stats import norm
 from optimal_stopping.run import configs
+import itertools
 
 
 class LeisenReimerTree:
@@ -24,7 +25,7 @@ class LeisenReimerTree:
 
     Uses Peizer-Pratt inversion to align tree nodes with the strike price,
     providing superior convergence properties compared to CRR.
-    Suitable for non-path-dependent payoffs only.
+    Supports single-asset (d=1) and multi-asset (d=2,3) options with correlation.
     """
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
@@ -45,6 +46,7 @@ class LeisenReimerTree:
         """
         self.model = model
         self.payoff = payoff
+        self.d = model.nb_stocks
 
         # Ensure odd number of steps for Peizer-Pratt inversion
         self.n_steps = n_steps if n_steps % 2 == 1 else n_steps + 1
@@ -56,10 +58,13 @@ class LeisenReimerTree:
                 "Use standard payoffs only (e.g., BasketCall, MaxCall, Put)."
             )
 
-        if model.nb_stocks > 1:
-            raise ValueError(
-                "Leisen-Reimer tree currently only supports single-asset options (nb_stocks=1). "
-                "For basket options, use Monte Carlo methods instead."
+        # Warn about high dimensionality
+        if self.d > 3:
+            import warnings
+            warnings.warn(
+                f"LR tree with {self.d} assets will have ~{(self.n_steps+1)**self.d:,} nodes. "
+                f"This may be very slow or run out of memory. Consider using Monte Carlo methods (RLSM, RFQI).",
+                UserWarning
             )
 
         # Check model compatibility
@@ -73,39 +78,24 @@ class LeisenReimerTree:
             )
 
         # Extract model parameters
-        self.S0 = model.spot
+        self.S0 = np.array(model.spot).flatten()
         self.r = model.rate
         self.T = model.maturity
-        self.sigma = model.vol
-        self.K = payoff.strike  # Need strike for LR method
+        self.sigma = np.array(model.volatility).flatten()
+        self.K = payoff.strike
 
-        # Ensure scalar values
-        if isinstance(self.S0, np.ndarray):
-            self.S0 = self.S0[0]
-        if isinstance(self.sigma, np.ndarray):
-            self.sigma = self.sigma[0]
+        # Get correlation matrix
+        if hasattr(model, 'correlation_matrix'):
+            self.corr_matrix = model.correlation_matrix
+        else:
+            self.corr_matrix = np.eye(self.d)
 
         # Tree parameters
         self.dt = self.T / self.n_steps
         self.disc = math.exp(-self.r * self.dt)
 
-        # Compute d1 and d2 from Black-Scholes
-        d1 = (math.log(self.S0 / self.K) + (self.r + 0.5 * self.sigma**2) * self.T) / \
-             (self.sigma * math.sqrt(self.T))
-        d2 = d1 - self.sigma * math.sqrt(self.T)
-
-        # Peizer-Pratt inversion to get probabilities
-        # This ensures the tree is centered on the strike at maturity
-        self.p_up = self._peizer_pratt_inversion(d1, self.n_steps)
-        self.p_down = self._peizer_pratt_inversion(d2, self.n_steps)
-
-        # Compute up and down factors from probabilities
-        # These ensure the tree matches the risk-neutral drift
-        self.u = math.exp(self.r * self.dt) * self.p_up / self.p_down
-        self.d = (math.exp(self.r * self.dt) - self.p_down * self.u) / (1 - self.p_down)
-
-        # Risk-neutral probability
-        self.p = self.p_down
+        # Compute tree parameters and probabilities
+        self._compute_tree_parameters()
 
         # Storage for optimal stopping boundary
         self._stopping_boundary = None
@@ -115,7 +105,6 @@ class LeisenReimerTree:
         Peizer-Pratt method 2 inversion formula.
 
         Computes h(z, n) ≈ Φ(z) where Φ is the cumulative normal distribution.
-        This gives better accuracy than standard normal CDF for tree construction.
 
         Args:
             z: Standard normal deviate
@@ -124,14 +113,11 @@ class LeisenReimerTree:
         Returns:
             float: Inversion probability
         """
-        # Peizer-Pratt formula
         z_prime = z / math.sqrt(n * self.dt / self.T)
 
-        # Avoid division by zero
         if abs(z_prime) < 1e-10:
             return 0.5
 
-        # PP inversion formula
         numerator = 0.5 + math.copysign(1, z_prime) * math.sqrt(
             0.25 - 0.25 * math.exp(
                 -(z_prime / (n + 1.0/3.0 + 0.1/(n+1)))**2 * (n + 1.0/6.0)
@@ -139,6 +125,92 @@ class LeisenReimerTree:
         )
 
         return numerator
+
+    def _compute_tree_parameters(self):
+        """Compute tree parameters and joint probabilities."""
+        d = len(self.S0)
+
+        if d == 1:
+            # Single asset: Full LR method with Peizer-Pratt
+            d1 = (math.log(self.S0[0] / self.K) + (self.r + 0.5 * self.sigma[0]**2) * self.T) / \
+                 (self.sigma[0] * math.sqrt(self.T))
+            d2 = d1 - self.sigma[0] * math.sqrt(self.T)
+
+            p_up = self._peizer_pratt_inversion(d1, self.n_steps)
+            p_down = self._peizer_pratt_inversion(d2, self.n_steps)
+
+            self.u = np.array([math.exp(self.r * self.dt) * p_up / p_down])
+            self.d = np.array([(math.exp(self.r * self.dt) - p_down * self.u[0]) / (1 - p_down)])
+            self.joint_probs = np.array([1 - p_down, p_down])
+            self.moves = [(0,), (1,)]
+
+        elif d == 2:
+            # Two assets: LR marginal probabilities + correlation
+            rho = self.corr_matrix[0, 1]
+
+            # Compute LR marginal probabilities for each asset
+            p_marginal = []
+            self.u = np.zeros(d)
+            self.d = np.zeros(d)
+
+            for i in range(d):
+                d1 = (math.log(self.S0[i] / self.K) + (self.r + 0.5 * self.sigma[i]**2) * self.T) / \
+                     (self.sigma[i] * math.sqrt(self.T))
+                d2 = d1 - self.sigma[i] * math.sqrt(self.T)
+
+                p_up = self._peizer_pratt_inversion(d1, self.n_steps)
+                p_down = self._peizer_pratt_inversion(d2, self.n_steps)
+
+                self.u[i] = math.exp(self.r * self.dt) * p_up / p_down
+                self.d[i] = (math.exp(self.r * self.dt) - p_down * self.u[i]) / (1 - p_down)
+                p_marginal.append(p_down)
+
+            # Apply correlation to joint probabilities (Boyle's formula)
+            p1, p2 = p_marginal
+            p_uu = p1 * p2 + rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+            p_ud = p1 * (1-p2) - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+            p_du = (1-p1) * p2 - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+            p_dd = (1-p1) * (1-p2) + rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+
+            self.joint_probs = np.array([p_dd, p_du, p_ud, p_uu])
+            self.joint_probs = np.clip(self.joint_probs, 0, 1)
+            self.joint_probs /= self.joint_probs.sum()
+
+            self.moves = [(0, 0), (0, 1), (1, 0), (1, 1)]
+
+        else:
+            # d > 2: Use LR marginal probabilities, ignore correlation
+            import warnings
+            if not np.allclose(self.corr_matrix, np.eye(d)):
+                warnings.warn(
+                    f"LR tree with {d} assets currently ignores correlation. "
+                    f"Only marginal probabilities are matched.",
+                    UserWarning
+                )
+
+            p_marginal = []
+            self.u = np.zeros(d)
+            self.d = np.zeros(d)
+
+            for i in range(d):
+                d1 = (math.log(self.S0[i] / self.K) + (self.r + 0.5 * self.sigma[i]**2) * self.T) / \
+                     (self.sigma[i] * math.sqrt(self.T))
+                d2 = d1 - self.sigma[i] * math.sqrt(self.T)
+
+                p_up = self._peizer_pratt_inversion(d1, self.n_steps)
+                p_down = self._peizer_pratt_inversion(d2, self.n_steps)
+
+                self.u[i] = math.exp(self.r * self.dt) * p_up / p_down
+                self.d[i] = (math.exp(self.r * self.dt) - p_down * self.u[i]) / (1 - p_down)
+                p_marginal.append(p_down)
+
+            # Independent joint probabilities
+            self.moves = list(itertools.product([0, 1], repeat=d))
+            self.joint_probs = np.array([
+                np.prod([p_marginal[i] if move[i] == 1 else 1 - p_marginal[i]
+                         for i in range(d)])
+                for move in self.moves
+            ])
 
     def price(self, train_eval_split=2):
         """
@@ -152,49 +224,155 @@ class LeisenReimerTree:
         """
         t_start = time.time()
 
-        # Build stock price tree
+        d = len(self.S0)
+
+        if d == 1:
+            price = self._price_1d()
+        elif d == 2:
+            price = self._price_2d()
+        else:
+            price = self._price_nd()
+
+        computation_time = time.time() - t_start
+        return price, computation_time
+
+    def _price_1d(self):
+        """Price single-asset option using standard LR tree."""
         stock_tree = np.zeros((self.n_steps + 1, self.n_steps + 1))
 
-        # Fill the tree: S[i,j] = S0 * u^j * d^(i-j)
         for i in range(self.n_steps + 1):
             for j in range(i + 1):
-                stock_tree[i, j] = self.S0 * (self.u ** j) * (self.d ** (i - j))
+                stock_tree[i, j] = self.S0[0] * (self.u[0] ** j) * (self.d[0] ** (i - j))
 
-        # Initialize option value tree
         option_tree = np.zeros((self.n_steps + 1, self.n_steps + 1))
-
-        # Compute payoffs at maturity
         terminal_prices = stock_tree[self.n_steps, :self.n_steps + 1].reshape(-1, 1)
         terminal_payoffs = self.payoff.eval(terminal_prices)
         option_tree[self.n_steps, :self.n_steps + 1] = terminal_payoffs
 
-        # Storage for stopping boundary
         self._stopping_boundary = np.full(self.n_steps + 1, np.nan)
 
-        # Backward induction
+        p_up = self.joint_probs[1]
+        p_down = self.joint_probs[0]
+
         for i in range(self.n_steps - 1, -1, -1):
             for j in range(i + 1):
-                # Continuation value
                 continuation = self.disc * (
-                    self.p * option_tree[i + 1, j + 1] +
-                    (1 - self.p) * option_tree[i + 1, j]
+                    p_up * option_tree[i + 1, j + 1] +
+                    p_down * option_tree[i + 1, j]
                 )
 
-                # Immediate exercise value
                 stock_price = stock_tree[i, j].reshape(1, 1)
                 exercise = self.payoff.eval(stock_price)[0]
 
-                # American option: max of exercise and continuation
                 option_tree[i, j] = max(exercise, continuation)
 
-                # Track stopping boundary
                 if exercise > continuation and np.isnan(self._stopping_boundary[i]):
                     self._stopping_boundary[i] = stock_tree[i, j]
 
-        price = option_tree[0, 0]
-        computation_time = time.time() - t_start
+        return option_tree[0, 0]
 
-        return price, computation_time
+    def _price_2d(self):
+        """Price 2-asset option using 2D LR tree."""
+        # Reuse CRR 2D logic with LR parameters
+        stock_lattice = {}
+        option_lattice = {}
+
+        stock_lattice[(0, 0, 0)] = self.S0
+
+        for i in range(self.n_steps):
+            for j1 in range(i + 1):
+                for j2 in range(i + 1):
+                    if (i, j1, j2) not in stock_lattice:
+                        continue
+
+                    S = stock_lattice[(i, j1, j2)]
+
+                    stock_lattice[(i + 1, j1, j2)] = S * np.array([self.d[0], self.d[1]])
+                    stock_lattice[(i + 1, j1, j2 + 1)] = S * np.array([self.d[0], self.u[1]])
+                    stock_lattice[(i + 1, j1 + 1, j2)] = S * np.array([self.u[0], self.d[1]])
+                    stock_lattice[(i + 1, j1 + 1, j2 + 1)] = S * np.array([self.u[0], self.u[1]])
+
+        i = self.n_steps
+        for j1 in range(i + 1):
+            for j2 in range(i + 1):
+                if (i, j1, j2) in stock_lattice:
+                    S = stock_lattice[(i, j1, j2)]
+                    option_lattice[(i, j1, j2)] = self.payoff.eval(S.reshape(1, -1))[0]
+
+        p_dd, p_du, p_ud, p_uu = self.joint_probs
+
+        for i in range(self.n_steps - 1, -1, -1):
+            for j1 in range(i + 1):
+                for j2 in range(i + 1):
+                    if (i, j1, j2) not in stock_lattice:
+                        continue
+
+                    continuation = self.disc * (
+                        p_dd * option_lattice.get((i + 1, j1, j2), 0) +
+                        p_du * option_lattice.get((i + 1, j1, j2 + 1), 0) +
+                        p_ud * option_lattice.get((i + 1, j1 + 1, j2), 0) +
+                        p_uu * option_lattice.get((i + 1, j1 + 1, j2 + 1), 0)
+                    )
+
+                    S = stock_lattice[(i, j1, j2)]
+                    exercise = self.payoff.eval(S.reshape(1, -1))[0]
+
+                    option_lattice[(i, j1, j2)] = max(exercise, continuation)
+
+        return option_lattice[(0, 0, 0)]
+
+    def _price_nd(self):
+        """Price d-asset option using general d-dimensional tree."""
+        d = len(self.S0)
+
+        stock_lattice = {}
+        option_lattice = {}
+
+        stock_lattice[(0,) + (0,) * d] = self.S0.copy()
+
+        for i in range(self.n_steps):
+            for state_key in list(stock_lattice.keys()):
+                if state_key[0] != i:
+                    continue
+
+                S_current = stock_lattice[state_key]
+                jump_counts = np.array(state_key[1:])
+
+                for move_idx, move in enumerate(self.moves):
+                    S_next = S_current * np.array([self.u[k] if move[k] == 1 else self.d[k]
+                                                    for k in range(d)])
+                    next_jump_counts = jump_counts + np.array(move)
+
+                    next_key = (i + 1,) + tuple(next_jump_counts)
+                    stock_lattice[next_key] = S_next
+
+        i = self.n_steps
+        for state_key in stock_lattice.keys():
+            if state_key[0] == i:
+                S = stock_lattice[state_key]
+                option_lattice[state_key] = self.payoff.eval(S.reshape(1, -1))[0]
+
+        for i in range(self.n_steps - 1, -1, -1):
+            for state_key in list(stock_lattice.keys()):
+                if state_key[0] != i:
+                    continue
+
+                S_current = stock_lattice[state_key]
+                jump_counts = np.array(state_key[1:])
+
+                continuation = 0.0
+                for move_idx, move in enumerate(self.moves):
+                    next_jump_counts = jump_counts + np.array(move)
+                    next_key = (i + 1,) + tuple(next_jump_counts)
+                    continuation += self.joint_probs[move_idx] * option_lattice.get(next_key, 0)
+
+                continuation *= self.disc
+
+                exercise = self.payoff.eval(S_current.reshape(1, -1))[0]
+
+                option_lattice[state_key] = max(exercise, continuation)
+
+        return option_lattice[(0,) + (0,) * d]
 
     def get_exercise_time(self):
         """
@@ -203,29 +381,25 @@ class LeisenReimerTree:
         Returns:
             float: Expected exercise time normalized to [0, 1]
         """
-        if self._stopping_boundary is None:
-            self.price()
-
-        # Monte Carlo simulation on the tree
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
+        d = len(self.S0)
 
         for path_idx in range(n_sim):
-            S = self.S0
-            for i in range(self.n_steps + 1):
-                if not np.isnan(self._stopping_boundary[i]):
-                    stock_price = S.reshape(1, 1) if np.isscalar(S) else S.reshape(1, 1)
-                    exercise_value = self.payoff.eval(stock_price)[0]
+            S = self.S0.copy()
 
-                    if exercise_value > 0 and S >= self._stopping_boundary[i]:
-                        exercise_times[path_idx] = i
-                        break
+            for i in range(self.n_steps + 1):
+                stock_price = S.reshape(1, -1)
+                exercise_value = self.payoff.eval(stock_price)[0]
+
+                if exercise_value > 0 and exercise_value > 0.1 * self.payoff.strike:
+                    exercise_times[path_idx] = i
+                    break
 
                 if i < self.n_steps:
-                    if np.random.rand() < self.p:
-                        S *= self.u
-                    else:
-                        S *= self.d
+                    move_idx = np.random.choice(len(self.moves), p=self.joint_probs)
+                    move = self.moves[move_idx]
+                    S = S * np.array([self.u[k] if move[k] == 1 else self.d[k] for k in range(d)])
             else:
                 exercise_times[path_idx] = self.n_steps
 
@@ -243,29 +417,23 @@ class LeisenReimerTree:
         Returns:
             tuple: (exercise_dates, payoff_values, price)
         """
-        if self._stopping_boundary is None:
-            self.price()
-
-        nb_paths = stock_paths.shape[0]
-        nb_dates = stock_paths.shape[2] - 1
+        nb_paths, nb_stocks, nb_dates_plus_1 = stock_paths.shape
+        nb_dates = nb_dates_plus_1 - 1
         exercise_dates = np.full(nb_paths, nb_dates, dtype=int)
         payoff_values = np.zeros(nb_paths)
 
         for path_idx in range(nb_paths):
             for date_idx in range(nb_dates + 1):
-                tree_step = int(date_idx * self.n_steps / nb_dates)
-                S = stock_paths[path_idx, 0, date_idx]
+                S = stock_paths[path_idx, :, date_idx]
+                stock_price = S.reshape(1, -1)
+                exercise_value = self.payoff.eval(stock_price)[0]
 
-                if not np.isnan(self._stopping_boundary[tree_step]):
-                    stock_price = np.array([[S]])
-                    exercise_value = self.payoff.eval(stock_price)[0]
-
-                    if exercise_value > 0 and S >= self._stopping_boundary[tree_step]:
-                        exercise_dates[path_idx] = date_idx
-                        payoff_values[path_idx] = exercise_value
-                        break
+                if exercise_value > 0:
+                    exercise_dates[path_idx] = date_idx
+                    payoff_values[path_idx] = exercise_value
+                    break
             else:
-                stock_price = np.array([[stock_paths[path_idx, 0, -1]]])
+                stock_price = stock_paths[path_idx, :, -1].reshape(1, -1)
                 payoff_values[path_idx] = self.payoff.eval(stock_price)[0]
 
         discount_factors = np.exp(-self.r * self.T * exercise_dates / nb_dates)

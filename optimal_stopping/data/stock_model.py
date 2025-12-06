@@ -80,7 +80,7 @@ class Model:
 
 class BlackScholes(Model):
     def __init__(self, drift, volatility, nb_paths, nb_stocks, nb_dates, spot,
-                 maturity, dividend=0, **keywords):
+                 maturity, dividend=0, correlation=None, **keywords):
 
         # --- FIX: Prevent name collision ---
         keywords.pop('name', None)
@@ -89,6 +89,34 @@ class BlackScholes(Model):
             drift=drift, dividend=dividend, volatility=volatility,
             nb_stocks=nb_stocks, nb_paths=nb_paths, nb_dates=nb_dates,
             spot=spot, maturity=maturity, name="BlackScholes", **keywords)
+
+        # Handle correlation matrix for multi-asset models
+        if correlation is None:
+            # Default: independent assets (identity matrix)
+            self.correlation_matrix = np.eye(nb_stocks, dtype=np.float32)
+        elif np.isscalar(correlation):
+            # Single scalar: use for all off-diagonal elements
+            self.correlation_matrix = np.full((nb_stocks, nb_stocks), correlation, dtype=np.float32)
+            np.fill_diagonal(self.correlation_matrix, 1.0)
+        else:
+            # Full matrix provided
+            self.correlation_matrix = np.array(correlation, dtype=np.float32)
+
+        # Validate correlation matrix
+        if self.correlation_matrix.shape != (nb_stocks, nb_stocks):
+            raise ValueError(
+                f"Correlation matrix shape {self.correlation_matrix.shape} "
+                f"does not match nb_stocks={nb_stocks}"
+            )
+
+        # Pre-compute Cholesky decomposition for efficient path generation
+        try:
+            self.cholesky_corr = np.linalg.cholesky(self.correlation_matrix)
+        except np.linalg.LinAlgError:
+            raise ValueError(
+                "Correlation matrix is not positive definite. "
+                "Ensure diagonal elements are 1.0 and -1 <= off-diagonal <= 1."
+            )
 
     def drift_fct(self, x, t):
         del t
@@ -118,8 +146,19 @@ class BlackScholes(Model):
         # Generate Brownian increments
         # FIX 2: Generate directly in float32
         if dW is None:
-            # We calculate this in steps to avoid holding a second 15GB array for random_numbers
-            dW = np.random.normal(0, 1, (nb_paths, self.nb_stocks, nb_dates)).astype(dtype)
+            # Generate independent standard normals
+            Z = np.random.normal(0, 1, (nb_paths, self.nb_stocks, nb_dates)).astype(dtype)
+
+            # Apply correlation via Cholesky decomposition
+            # For single asset or identity correlation, this is a no-op
+            if self.nb_stocks > 1 and not np.allclose(self.correlation_matrix, np.eye(self.nb_stocks)):
+                # dW = L @ Z where L is Cholesky decomposition of correlation matrix
+                # Use einsum for efficient batched matrix multiplication: (nb_stocks, nb_stocks) @ (nb_paths, nb_stocks, nb_dates)
+                dW = np.einsum('ij,pjt->pit', self.cholesky_corr, Z)
+            else:
+                # No correlation: use independent normals directly
+                dW = Z
+
             dW *= np.sqrt(self.dt)
 
         # FIX 3: REMOVED MASSIVE np.repeat BLOCKS
