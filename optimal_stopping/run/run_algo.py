@@ -477,6 +477,21 @@ def _run_algo(
                 stock_model_obj, payoff_obj
             )
 
+        elif algo in ["CRR", "LR", "Trinomial"]:
+            # Tree-based algorithms - lattice methods
+            # These use n_steps instead of nb_epochs
+            # Default n_steps: 50 for CRR/Trinomial, 51 for LR (odd for Peizer-Pratt)
+            n_steps = 51 if algo == "LR" else 50
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                n_steps=n_steps,
+                nb_epochs=nb_epochs,  # Passed but ignored
+                hidden_size=hidden_size,  # Passed but ignored
+                factors=factors,  # Passed but ignored
+                train_ITM_only=train_ITM_only,  # Passed but ignored
+                use_payoff_as_input=use_payoff_as_input  # Passed but ignored
+            )
+
         else:
             raise ValueError(f"Unknown algorithm: {algo}")
 
