@@ -42,7 +42,7 @@ class CRRTree:
         self.model = model
         self.payoff = payoff
         self.n_steps = int(n_steps)  # Ensure plain Python int
-        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
+        self.dim = int(model.nb_stocks)  # Number of assets (ensure plain Python int, avoid collision with self.d down-movement array)
 
         # Validate compatibility
         if payoff.is_path_dependent:
@@ -52,10 +52,10 @@ class CRRTree:
             )
 
         # Warn about high dimensionality
-        if self.d > 3:
+        if self.dim > 3:
             import warnings
             warnings.warn(
-                f"CRR tree with {self.d} assets will have ~{(self.n_steps+1)**self.d:,} nodes. "
+                f"CRR tree with {self.dim} assets will have ~{(self.n_steps+1)**self.dim:,} nodes. "
                 f"This may be very slow or run out of memory. Consider using Monte Carlo methods (RLSM, RFQI).",
                 UserWarning
             )
@@ -82,8 +82,8 @@ class CRRTree:
             print(f"DEBUG CRR __init__: Found correlation_matrix =\n{self.corr_matrix}")
         else:
             # Default: independent assets
-            self.corr_matrix = np.eye(self.d)
-            print(f"DEBUG CRR __init__: No correlation_matrix found, using identity for {self.d} assets")
+            self.corr_matrix = np.eye(self.dim)
+            print(f"DEBUG CRR __init__: No correlation_matrix found, using identity for {self.dim} assets")
 
         # Tree parameters
         self.dt = self.T / self.n_steps
@@ -108,7 +108,7 @@ class CRRTree:
         1. Risk-neutral drift for each asset
         2. Correlation structure between assets
         """
-        d = self.d
+        d = self.dim
 
         if d == 1:
             # Single asset: standard CRR probability
@@ -179,7 +179,7 @@ class CRRTree:
         """
         t_start = time.time()
 
-        d = self.d  # FIX: Use self.d instead of len(self.S0) to avoid scalar spot issues
+        d = self.dim  # Number of assets
         print(f"DEBUG CRR price(): d={d}, self.S0={self.S0}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
@@ -300,7 +300,7 @@ class CRRTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional tree."""
-        d = self.d
+        d = self.dim
 
         # Use dictionary for sparse storage
         stock_lattice = {}
@@ -373,7 +373,7 @@ class CRRTree:
         # Simulate paths on the tree and track exercise times
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = self.d
+        d = self.dim
 
         for path_idx in range(n_sim):
             S = self.S0.copy()

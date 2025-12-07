@@ -50,7 +50,7 @@ class TrinomialTree:
         self.model = model
         self.payoff = payoff
         self.n_steps = int(n_steps)  # Ensure plain Python int
-        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
+        self.dim = int(model.nb_stocks)  # Number of assets (ensure plain Python int, avoid collision with self.d down-movement array)
 
         # Validate compatibility
         if payoff.is_path_dependent:
@@ -60,10 +60,10 @@ class TrinomialTree:
             )
 
         # Warn about high dimensionality
-        if self.d > 3:
+        if self.dim > 3:
             import warnings
             warnings.warn(
-                f"Trinomial tree with {self.d} assets will have ~{(2*self.n_steps+1)**self.d:,} nodes. "
+                f"Trinomial tree with {self.dim} assets will have ~{(2*self.n_steps+1)**self.d:,} nodes. "
                 f"This may be very slow or run out of memory. Consider using Monte Carlo methods (RLSM, RFQI).",
                 UserWarning
             )
@@ -90,8 +90,8 @@ class TrinomialTree:
             print(f"DEBUG Trinomial __init__: Found correlation_matrix =\n{self.corr_matrix}")
         else:
             # Default: independent assets
-            self.corr_matrix = np.eye(self.d)
-            print(f"DEBUG Trinomial __init__: No correlation_matrix found, using identity for {self.d} assets")
+            self.corr_matrix = np.eye(self.dim)
+            print(f"DEBUG Trinomial __init__: No correlation_matrix found, using identity for {self.dim} assets")
 
         # Tree parameters
         self.dt = self.T / self.n_steps
@@ -120,7 +120,7 @@ class TrinomialTree:
         For simplicity, we use independent marginal probabilities (ignoring correlation).
         TODO: Implement correlation for trinomial trees (more complex than binomial).
         """
-        d = self.d
+        d = self.dim
 
         # Compute marginal probabilities for each asset
         self.marginal_probs = []
@@ -264,7 +264,7 @@ class TrinomialTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional trinomial tree."""
-        d = self.d
+        d = self.dim
 
         # Use dictionary for sparse storage
         # Key: (time_step, net_up_moves_asset1, net_up_moves_asset2, ...)
@@ -350,7 +350,7 @@ class TrinomialTree:
         # Simulate paths on the tree and track exercise times
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = self.d
+        d = self.dim
 
         for path_idx in range(n_sim):
             S = self.S0.copy()

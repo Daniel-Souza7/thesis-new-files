@@ -46,7 +46,7 @@ class LeisenReimerTree:
         """
         self.model = model
         self.payoff = payoff
-        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
+        self.dim = int(model.nb_stocks)  # Number of assets (ensure plain Python int, avoid collision with self.d down-movement array)
 
         # Ensure odd number of steps for Peizer-Pratt inversion
         n_steps = int(n_steps)  # Ensure plain Python int
@@ -60,10 +60,10 @@ class LeisenReimerTree:
             )
 
         # Warn about high dimensionality
-        if self.d > 3:
+        if self.dim > 3:
             import warnings
             warnings.warn(
-                f"LR tree with {self.d} assets will have ~{(self.n_steps+1)**self.d:,} nodes. "
+                f"LR tree with {self.dim} assets will have ~{(self.n_steps+1)**self.d:,} nodes. "
                 f"This may be very slow or run out of memory. Consider using Monte Carlo methods (RLSM, RFQI).",
                 UserWarning
             )
@@ -90,8 +90,8 @@ class LeisenReimerTree:
             self.corr_matrix = model.correlation_matrix
             print(f"DEBUG LR __init__: Found correlation_matrix =\n{self.corr_matrix}")
         else:
-            self.corr_matrix = np.eye(self.d)
-            print(f"DEBUG LR __init__: No correlation_matrix found, using identity for {self.d} assets")
+            self.corr_matrix = np.eye(self.dim)
+            print(f"DEBUG LR __init__: No correlation_matrix found, using identity for {self.dim} assets")
 
         # Tree parameters
         self.dt = self.T / self.n_steps
@@ -131,7 +131,7 @@ class LeisenReimerTree:
 
     def _compute_tree_parameters(self):
         """Compute tree parameters and joint probabilities."""
-        d = self.d
+        d = self.dim
 
         if d == 1:
             # Single asset: Full LR method with Peizer-Pratt
@@ -333,7 +333,7 @@ class LeisenReimerTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional tree."""
-        d = self.d
+        d = self.dim
 
         stock_lattice = {}
         option_lattice = {}
@@ -393,7 +393,7 @@ class LeisenReimerTree:
         """
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = self.d
+        d = self.dim
 
         for path_idx in range(n_sim):
             S = self.S0.copy()
