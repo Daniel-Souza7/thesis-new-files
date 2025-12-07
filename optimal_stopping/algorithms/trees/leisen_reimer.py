@@ -79,10 +79,23 @@ class LeisenReimerTree:
             )
 
         # Extract model parameters
-        self.S0 = np.array(model.spot).flatten()
+        # Handle scalar spot: replicate to all assets
+        spot = np.array(model.spot).flatten()
+        if len(spot) == 1 and self.dim > 1:
+            self.S0 = np.full(self.dim, spot[0])  # Replicate scalar to all assets
+        else:
+            self.S0 = spot  # Use provided array
+
         self.r = model.rate
         self.T = model.maturity
-        self.sigma = np.array(model.volatility).flatten()
+
+        # Handle scalar volatility: replicate to all assets
+        vol = np.array(model.volatility).flatten()
+        if len(vol) == 1 and self.dim > 1:
+            self.sigma = np.full(self.dim, vol[0])  # Replicate scalar to all assets
+        else:
+            self.sigma = vol  # Use provided array
+
         self.K = payoff.strike
 
         # Get correlation matrix
