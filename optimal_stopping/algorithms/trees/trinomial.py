@@ -49,8 +49,8 @@ class TrinomialTree:
         """
         self.model = model
         self.payoff = payoff
-        self.n_steps = n_steps
-        self.d = model.nb_stocks  # Number of assets
+        self.n_steps = int(n_steps)  # Ensure plain Python int
+        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
 
         # Validate compatibility
         if payoff.is_path_dependent:
@@ -120,7 +120,7 @@ class TrinomialTree:
         For simplicity, we use independent marginal probabilities (ignoring correlation).
         TODO: Implement correlation for trinomial trees (more complex than binomial).
         """
-        d = len(self.S0)
+        d = self.d
 
         # Compute marginal probabilities for each asset
         self.marginal_probs = []
@@ -182,8 +182,8 @@ class TrinomialTree:
         """
         t_start = time.time()
 
-        d = len(self.S0)
-        print(f"DEBUG Trinomial price(): d={d}, corr_matrix=\n{self.corr_matrix}")
+        d = self.d  # FIX: Use self.d instead of len(self.S0) to avoid scalar spot issues
+        print(f"DEBUG Trinomial price(): d={d}, self.S0={self.S0}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
             price = self._price_1d()
@@ -264,7 +264,7 @@ class TrinomialTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional trinomial tree."""
-        d = len(self.S0)
+        d = self.d
 
         # Use dictionary for sparse storage
         # Key: (time_step, net_up_moves_asset1, net_up_moves_asset2, ...)
@@ -350,7 +350,7 @@ class TrinomialTree:
         # Simulate paths on the tree and track exercise times
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = len(self.S0)
+        d = self.d
 
         for path_idx in range(n_sim):
             S = self.S0.copy()

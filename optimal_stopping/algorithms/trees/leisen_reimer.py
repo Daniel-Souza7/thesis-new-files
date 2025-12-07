@@ -46,9 +46,10 @@ class LeisenReimerTree:
         """
         self.model = model
         self.payoff = payoff
-        self.d = model.nb_stocks
+        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
 
         # Ensure odd number of steps for Peizer-Pratt inversion
+        n_steps = int(n_steps)  # Ensure plain Python int
         self.n_steps = n_steps if n_steps % 2 == 1 else n_steps + 1
 
         # Validate compatibility
@@ -130,7 +131,7 @@ class LeisenReimerTree:
 
     def _compute_tree_parameters(self):
         """Compute tree parameters and joint probabilities."""
-        d = len(self.S0)
+        d = self.d
 
         if d == 1:
             # Single asset: Full LR method with Peizer-Pratt
@@ -231,8 +232,8 @@ class LeisenReimerTree:
         """
         t_start = time.time()
 
-        d = len(self.S0)
-        print(f"DEBUG LR price(): d={d}, corr_matrix=\n{self.corr_matrix}")
+        d = self.d  # FIX: Use self.d instead of len(self.S0) to avoid scalar spot issues
+        print(f"DEBUG LR price(): d={d}, self.S0={self.S0}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
             price = self._price_1d()
@@ -332,7 +333,7 @@ class LeisenReimerTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional tree."""
-        d = len(self.S0)
+        d = self.d
 
         stock_lattice = {}
         option_lattice = {}
@@ -392,7 +393,7 @@ class LeisenReimerTree:
         """
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = len(self.S0)
+        d = self.d
 
         for path_idx in range(n_sim):
             S = self.S0.copy()

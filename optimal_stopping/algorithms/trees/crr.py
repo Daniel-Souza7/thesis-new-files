@@ -41,8 +41,8 @@ class CRRTree:
         """
         self.model = model
         self.payoff = payoff
-        self.n_steps = n_steps
-        self.d = model.nb_stocks  # Number of assets
+        self.n_steps = int(n_steps)  # Ensure plain Python int
+        self.d = int(model.nb_stocks)  # Number of assets (ensure plain Python int)
 
         # Validate compatibility
         if payoff.is_path_dependent:
@@ -108,7 +108,7 @@ class CRRTree:
         1. Risk-neutral drift for each asset
         2. Correlation structure between assets
         """
-        d = len(self.S0)
+        d = self.d
 
         if d == 1:
             # Single asset: standard CRR probability
@@ -179,8 +179,8 @@ class CRRTree:
         """
         t_start = time.time()
 
-        d = len(self.S0)
-        print(f"DEBUG CRR price(): d={d}, corr_matrix=\n{self.corr_matrix}")
+        d = self.d  # FIX: Use self.d instead of len(self.S0) to avoid scalar spot issues
+        print(f"DEBUG CRR price(): d={d}, self.S0={self.S0}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
             price = self._price_1d()
@@ -300,7 +300,7 @@ class CRRTree:
 
     def _price_nd(self):
         """Price d-asset option using general d-dimensional tree."""
-        d = len(self.S0)
+        d = self.d
 
         # Use dictionary for sparse storage
         stock_lattice = {}
@@ -373,7 +373,7 @@ class CRRTree:
         # Simulate paths on the tree and track exercise times
         n_sim = 10000
         exercise_times = np.zeros(n_sim)
-        d = len(self.S0)
+        d = self.d
 
         for path_idx in range(n_sim):
             S = self.S0.copy()
