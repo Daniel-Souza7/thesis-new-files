@@ -381,6 +381,9 @@ def _run_algo(
     if hasattr(stock_model_obj, 'rate'):
         actual_risk_free_rate = stock_model_obj.rate
 
+    # Start timing BEFORE creating pricer (to capture __init__ time for trees)
+    t_begin = time.time()
+
     # Instantiate pricer based on algorithm and payoff type
     try:
         if algo in ["RLSM", "RFQI"]:
@@ -501,9 +504,7 @@ def _run_algo(
         print(f"ERROR creating pricer: {e}")
         return
 
-    # Run pricing
-    t_begin = time.time()
-
+    # Run pricing (t_begin already set before pricer creation to capture __init__ time)
     if DEBUG:
         if not compute_greeks:
             price, gen_time = pricer.price(train_eval_split=train_eval_split)
