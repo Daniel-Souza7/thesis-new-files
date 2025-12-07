@@ -63,7 +63,7 @@ class TrinomialTree:
         if self.dim > 3:
             import warnings
             warnings.warn(
-                f"Trinomial tree with {self.dim} assets will have ~{(2*self.n_steps+1)**self.d:,} nodes. "
+                f"Trinomial tree with {self.dim} assets will have ~{(2*self.n_steps+1)**self.dim:,} nodes. "
                 f"This may be very slow or run out of memory. Consider using Monte Carlo methods (RLSM, RFQI).",
                 UserWarning
             )
@@ -104,7 +104,7 @@ class TrinomialTree:
         # Per-asset trinomial parameters
         self.u = np.exp(self.sigma * math.sqrt(lambda_factor * self.dt))
         self.d = 1.0 / self.u
-        self.m = np.ones(self.d)  # Middle branch: no change
+        self.m = np.ones(self.dim)  # Middle branch: no change
 
         # Compute joint probabilities for multi-asset tree
         self._compute_probabilities()
@@ -182,7 +182,7 @@ class TrinomialTree:
         """
         t_start = time.time()
 
-        d = self.d  # FIX: Use self.d instead of len(self.S0) to avoid scalar spot issues
+        d = self.dim  # Number of assets
         print(f"DEBUG Trinomial price(): d={d}, self.S0={self.S0}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:

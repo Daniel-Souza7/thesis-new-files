@@ -2000,9 +2000,9 @@ test_bug4_real_data_init2 = _DefaultConfig(
 # Test Bug 6 Fix: create_video parameters (risk_free_rate, dividend)
 # Config suitable for create_video.py testing
 test_bug6_create_video = _DefaultConfig(
-    algos=['RLSM'],
+    algos=['RLSM', 'Trinomial', 'LR', 'CRR'],
     stock_models=['BlackScholes'],
-    nb_stocks=[2],
+    nb_stocks=[1],
     nb_paths=[1000],
     nb_dates=[10],
     nb_runs=1,
