@@ -79,9 +79,11 @@ class CRRTree:
         # Get correlation matrix
         if hasattr(model, 'correlation_matrix'):
             self.corr_matrix = model.correlation_matrix
+            print(f"DEBUG CRR __init__: Found correlation_matrix =\n{self.corr_matrix}")
         else:
             # Default: independent assets
             self.corr_matrix = np.eye(self.d)
+            print(f"DEBUG CRR __init__: No correlation_matrix found, using identity for {self.d} assets")
 
         # Tree parameters
         self.dt = self.T / self.n_steps
@@ -118,10 +120,12 @@ class CRRTree:
             # Two assets: 4 moves (dd, du, ud, uu)
             # Use correlation to split probabilities
             rho = self.corr_matrix[0, 1]
+            print(f"DEBUG CRR _compute_probabilities: d=2, rho={rho}")
 
             # Base probabilities for each asset (marginal)
             p1 = (math.exp(self.r * self.dt) - self.d[0]) / (self.u[0] - self.d[0])
             p2 = (math.exp(self.r * self.dt) - self.d[1]) / (self.u[1] - self.d[1])
+            print(f"DEBUG CRR: Marginal probs p1={p1:.6f}, p2={p2:.6f}")
 
             # Joint probabilities (Boyle's formula for correlated binomial)
             # For ρ correlation, adjust joint probabilities
@@ -129,11 +133,13 @@ class CRRTree:
             p_ud = p1 * (1-p2) - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
             p_du = (1-p1) * p2 - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
             p_dd = (1-p1) * (1-p2) + rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+            print(f"DEBUG CRR: Joint probs (before clip) p_uu={p_uu:.6f}, p_ud={p_ud:.6f}, p_du={p_du:.6f}, p_dd={p_dd:.6f}")
 
             # Ensure probabilities are valid
             self.joint_probs = np.array([p_dd, p_du, p_ud, p_uu])
             self.joint_probs = np.clip(self.joint_probs, 0, 1)
             self.joint_probs /= self.joint_probs.sum()  # Normalize
+            print(f"DEBUG CRR: Joint probs (after normalize) {self.joint_probs}")
 
             self.moves = [(0, 0), (0, 1), (1, 0), (1, 1)]  # (asset1, asset2)
 
@@ -174,6 +180,7 @@ class CRRTree:
         t_start = time.time()
 
         d = len(self.S0)
+        print(f"DEBUG CRR price(): d={d}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
             price = self._price_1d()
@@ -183,6 +190,7 @@ class CRRTree:
             price = self._price_nd()
 
         computation_time = time.time() - t_start
+        print(f"DEBUG CRR price(): Computed price={price:.6f}")
         return price, computation_time
 
     def _price_1d(self):

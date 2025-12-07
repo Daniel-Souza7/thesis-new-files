@@ -87,8 +87,10 @@ class LeisenReimerTree:
         # Get correlation matrix
         if hasattr(model, 'correlation_matrix'):
             self.corr_matrix = model.correlation_matrix
+            print(f"DEBUG LR __init__: Found correlation_matrix =\n{self.corr_matrix}")
         else:
             self.corr_matrix = np.eye(self.d)
+            print(f"DEBUG LR __init__: No correlation_matrix found, using identity for {self.d} assets")
 
         # Tree parameters
         self.dt = self.T / self.n_steps
@@ -147,6 +149,7 @@ class LeisenReimerTree:
         elif d == 2:
             # Two assets: LR marginal probabilities + correlation
             rho = self.corr_matrix[0, 1]
+            print(f"DEBUG LR _compute_tree_parameters: d=2, rho={rho}")
 
             # Compute LR marginal probabilities for each asset
             p_marginal = []
@@ -165,16 +168,20 @@ class LeisenReimerTree:
                 self.d[i] = (math.exp(self.r * self.dt) - p_down * self.u[i]) / (1 - p_down)
                 p_marginal.append(p_down)
 
+            print(f"DEBUG LR: Marginal probs p1={p_marginal[0]:.6f}, p2={p_marginal[1]:.6f}")
+
             # Apply correlation to joint probabilities (Boyle's formula)
             p1, p2 = p_marginal
             p_uu = p1 * p2 + rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
             p_ud = p1 * (1-p2) - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
             p_du = (1-p1) * p2 - rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
             p_dd = (1-p1) * (1-p2) + rho * math.sqrt(p1 * (1-p1) * p2 * (1-p2))
+            print(f"DEBUG LR: Joint probs (before clip) p_uu={p_uu:.6f}, p_ud={p_ud:.6f}, p_du={p_du:.6f}, p_dd={p_dd:.6f}")
 
             self.joint_probs = np.array([p_dd, p_du, p_ud, p_uu])
             self.joint_probs = np.clip(self.joint_probs, 0, 1)
             self.joint_probs /= self.joint_probs.sum()
+            print(f"DEBUG LR: Joint probs (after normalize) {self.joint_probs}")
 
             self.moves = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
@@ -225,6 +232,7 @@ class LeisenReimerTree:
         t_start = time.time()
 
         d = len(self.S0)
+        print(f"DEBUG LR price(): d={d}, corr_matrix=\n{self.corr_matrix}")
 
         if d == 1:
             price = self._price_1d()
@@ -234,6 +242,7 @@ class LeisenReimerTree:
             price = self._price_nd()
 
         computation_time = time.time() - t_start
+        print(f"DEBUG LR price(): Computed price={price:.6f}")
         return price, computation_time
 
     def _price_1d(self):
