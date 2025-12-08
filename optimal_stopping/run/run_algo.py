@@ -481,6 +481,18 @@ def _run_algo(
                 stock_model_obj, payoff_obj
             )
 
+        elif algo in ["SM", "RSM1", "RSM2"]:
+            # Stochastic Mesh algorithms - Broadie & Glasserman (2004)
+            # SM: Classic mesh with stratified weights
+            # RSM1: RNN for continuation values
+            # RSM2: RNN for optimal weights
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                nb_paths=nb_paths,
+                hidden_size=hidden_size,
+                use_payoff_as_input=use_payoff_as_input
+            )
+
         else:
             raise ValueError(f"Unknown algorithm: {algo}")
 
