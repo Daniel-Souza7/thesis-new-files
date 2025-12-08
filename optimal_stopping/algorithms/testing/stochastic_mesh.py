@@ -135,12 +135,12 @@ class StochasticMesh:
             weights[i,j] = weight from node i to node j
         """
         b = self.b
-        weights = np.ones((b, b))
+        weights = np.ones((b, b), dtype=np.float32)
 
         # For multi-asset, compute product of marginal densities
         # (assumes independence under GBM, which holds for our case)
         for asset_idx in range(self.nb_stocks):
-            asset_weights = np.zeros((b, b))
+            asset_weights = np.zeros((b, b), dtype=np.float32)
 
             for j in range(b):
                 # Compute f(t-1, X_{t-1}(k), X_t(j)) for all k
@@ -189,8 +189,8 @@ class StochasticMesh:
         # Compute all payoffs upfront
         payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
-        # Initialize value function at maturity
-        Q = np.zeros((b, T + 1))
+        # Initialize value function at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b, T + 1), dtype=np.float32)
         Q[:, T] = payoffs[:, T]
 
         # Backward induction

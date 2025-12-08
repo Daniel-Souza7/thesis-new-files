@@ -147,10 +147,10 @@ class RandomizedStochasticMesh1:
     def _compute_mesh_weights(self, paths_prev, paths_curr, t):
         """Compute stratified average density weights (same as SM)."""
         b = self.nb_paths
-        weights = np.ones((b, b))
+        weights = np.ones((b, b), dtype=np.float32)
 
         for asset_idx in range(self.nb_stocks):
-            asset_weights = np.zeros((b, b))
+            asset_weights = np.zeros((b, b), dtype=np.float32)
 
             for j in range(b):
                 densities = np.array([
@@ -193,8 +193,8 @@ class RandomizedStochasticMesh1:
         all_features = []
         all_targets = []
 
-        # Initialize value function at maturity
-        Q = np.zeros((b, T + 1))
+        # Initialize value function at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b, T + 1), dtype=np.float32)
         Q[:, T] = payoffs[:, T]
 
         # Backward induction to generate training data
@@ -263,8 +263,8 @@ class RandomizedStochasticMesh1:
         # Compute all payoffs upfront
         eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
 
-        # Initialize at maturity
-        Q = np.zeros((b_eval, T + 1))
+        # Initialize at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b_eval, T + 1), dtype=np.float32)
         Q[:, T] = eval_payoffs[:, T]
 
         # Backward induction using NN predictions

@@ -199,7 +199,7 @@ class RandomizedStochasticMesh2:
             Normalized weights[i,j] from node i to node j
         """
         b = self.nb_paths
-        weights = np.zeros((b, b))
+        weights = np.zeros((b, b), dtype=np.float32)
 
         # Predict weights using NN
         for i in range(b):
@@ -312,8 +312,8 @@ class RandomizedStochasticMesh2:
         # Compute all payoffs upfront
         payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
-        # Initialize at maturity
-        Q = np.zeros((b, T + 1))
+        # Initialize at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b, T + 1), dtype=np.float32)
         Q[:, T] = payoffs[:, T]
 
         # Backward induction using learned weights
