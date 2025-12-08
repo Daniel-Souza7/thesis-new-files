@@ -196,6 +196,19 @@ class StochasticMesh:
         # Compute all payoffs upfront
         payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
+        # DEBUG: Check payoffs at maturity
+        import tempfile, os
+        try:
+            log_path = os.path.join(tempfile.gettempdir(), 'mesh_debug.log')
+            with open(log_path, 'a') as f:
+                f.write(f"\n--- SM _mesh_estimator ---\n")
+                f.write(f"paths shape: {paths.shape}\n")
+                f.write(f"payoffs shape: {payoffs.shape}\n")
+                f.write(f"payoffs[:5, T]: {payoffs[:5, T]}\n")
+                f.write(f"payoffs at T - mean: {np.mean(payoffs[:, T])}, max: {np.max(payoffs[:, T])}\n")
+        except:
+            pass
+
         # Initialize value function at maturity (use float32 for memory efficiency)
         Q = np.zeros((b, T + 1), dtype=np.float32)
         Q[:, T] = payoffs[:, T]
@@ -222,6 +235,16 @@ class StochasticMesh:
 
                 # Optimal value
                 Q[i, t] = max(exercise_value, continuation_value)
+
+            # DEBUG: Log first time step
+            if t == 0:
+                try:
+                    with open(log_path, 'a') as f:
+                        f.write(f"At t=0: Q[:5, 0] = {Q[:5, 0]}\n")
+                        f.write(f"weights[0, :5] = {weights[0, :5]}\n")
+                        f.write(f"exercise_value[0] = {payoffs[0, 0]}\n")
+                except:
+                    pass
 
         # Mesh estimate is value at initial node
         return Q[0, 0], Q
