@@ -362,6 +362,7 @@ class StochasticMesh:
 
         except Exception as e:
             # Catch any exception and return safe defaults
-            import warnings
-            warnings.warn(f"StochasticMesh pricing failed: {e}")
+            import traceback
+            print(f"ERROR in StochasticMesh.price(): {e}")
+            traceback.print_exc()
             return 0.0, 0.0

@@ -110,8 +110,11 @@ class RandomizedStochasticMesh1:
         ])
 
         if self.use_payoff_as_input:
-            payoffs = np.array([self.payoff(states[i]) for i in range(n)])
-            features = np.column_stack([features, payoffs])
+            # Need to add time dimension for payoff: (n, d) -> (n, d, 1)
+            states_3d = states[:, :, np.newaxis]
+            payoffs = self.payoff(states_3d)  # Returns (n, 1)
+            payoffs_1d = payoffs[:, 0]  # Extract to (n,)
+            features = np.column_stack([features, payoffs_1d])
 
         # Hidden layer: h = activation(W_in @ x + b_in)
         hidden = self._activation(features @ self.W_in + self.b_in)
@@ -311,6 +314,7 @@ class RandomizedStochasticMesh1:
 
         except Exception as e:
             # Catch any exception and return safe defaults
-            import warnings
-            warnings.warn(f"RandomizedStochasticMesh1 pricing failed: {e}")
+            import traceback
+            print(f"ERROR in RandomizedStochasticMesh1.price(): {e}")
+            traceback.print_exc()
             return 0.0, 0.0

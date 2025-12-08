@@ -234,10 +234,17 @@ class RandomizedStochasticMesh2:
         num_training_meshes : int
             Number of meshes for training
         """
-        # Compute "true" European value via high-quality Monte Carlo
-        eur_paths, _ = self.model.generate_paths(nb_paths=50000)
-        eur_payoffs = self.payoff(eur_paths)  # Shape: (50000, T+1)
-        true_european = np.mean(eur_payoffs[:, -1])
+        try:
+            # Compute "true" European value via high-quality Monte Carlo
+            eur_paths, _ = self.model.generate_paths(nb_paths=50000)
+            eur_payoffs = self.payoff(eur_paths)  # Shape: (50000, T+1)
+            true_european = np.mean(eur_payoffs[:, -1])
+        except Exception as e:
+            print(f"WARNING: RSM2 training failed during European value computation: {e}")
+            # Use smaller sample as fallback
+            eur_paths, _ = self.model.generate_paths(nb_paths=5000)
+            eur_payoffs = self.payoff(eur_paths)
+            true_european = np.mean(eur_payoffs[:, -1])
 
         # Collect training samples
         all_features = []
@@ -349,6 +356,7 @@ class RandomizedStochasticMesh2:
 
         except Exception as e:
             # Catch any exception and return safe defaults
-            import warnings
-            warnings.warn(f"RandomizedStochasticMesh2 pricing failed: {e}")
+            import traceback
+            print(f"ERROR in RandomizedStochasticMesh2.price(): {e}")
+            traceback.print_exc()
             return 0.0, 0.0
