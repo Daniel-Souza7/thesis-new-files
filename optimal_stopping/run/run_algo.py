@@ -45,6 +45,11 @@ from optimal_stopping.algorithms.testing.dkl import DKL_LSM
 from optimal_stopping.algorithms.testing.rdkl import RandDKL_LSM
 from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
 
+# STOCHASTIC MESH ALGORITHMS - Broadie & Glasserman (2004)
+from optimal_stopping.algorithms.testing.stochastic_mesh import StochasticMesh
+from optimal_stopping.algorithms.testing.randomized_stochastic_mesh1 import RandomizedStochasticMesh1
+from optimal_stopping.algorithms.testing.randomized_stochastic_mesh2 import RandomizedStochasticMesh2
+
 # GLOBAL CLASSES
 class SendBotMessage:
     def __init__(self):
@@ -131,6 +136,11 @@ _ALGOS = {
     "RDKL": RandDKL_LSM,
     "DKL": DKL_LSM,
     "SRFQI_RBF": SRFQI_RBF,
+
+    # STOCHASTIC MESH ALGORITHMS - Broadie & Glasserman (2004)
+    "SM": StochasticMesh,  # Classic mesh with stratified weights
+    "RSM1": RandomizedStochasticMesh1,  # RNN for continuation values
+    "RSM2": RandomizedStochasticMesh2,  # RNN for optimal weights
 
     # BENCHMARK ALGORITHMS - Simple implementations for comparison
     "LSM": LeastSquaresPricer,

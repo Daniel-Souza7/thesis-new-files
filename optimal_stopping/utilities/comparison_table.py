@@ -34,6 +34,7 @@ ALGOS_ORDER = [
     "FQI", "FQIR", "FQIRidge", "FQILasso", "FQILaguerre", "FQIDeg1",
     "RFQITanh", "RFQIRidge", "RFQILasso", "RFQISoftplus",
     "RRFQI", "pathRFQI",
+    "SM", "RSM1", "RSM2",  # Stochastic Mesh methods
     "EOP",
 ]
 
@@ -51,6 +52,7 @@ USE_PAYOFF_FOR_ALGO = {
     "FQILaguerre": False, "FQIDeg1": False,
     "RFQITanh": False, "RFQIRidge": False, "RFQILasso": False,
     "RFQISoftplus": False, "RRFQI": False, "pathRFQI": False,
+    "SM": False, "RSM1": False, "RSM2": False,  # Stochastic Mesh methods
     "LSPI": False, "EOP": False,
 }
 
