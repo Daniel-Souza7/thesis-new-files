@@ -298,45 +298,57 @@ class RandomizedStochasticMesh2:
         path_gen_time : float
             Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        # Train weight network (if not already trained)
-        if self.W_out is None:
-            self._train_network_on_european(num_training_meshes=5)
+        try:
+            # Train weight network (if not already trained)
+            if self.W_out is None:
+                self._train_network_on_european(num_training_meshes=5)
 
-        # Generate mesh for pricing
-        paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
-        b = self.nb_paths
-        T = self.nb_dates
+            # Generate mesh for pricing
+            paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
 
-        # Compute all payoffs upfront
-        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+            # Safety check for None values
+            if paths is None or path_gen_time is None:
+                return 0.0, 0.0
 
-        # Initialize at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b, T + 1), dtype=np.float32)
-        Q[:, T] = payoffs[:, T]
+            b = self.nb_paths
+            T = self.nb_dates
 
-        # Backward induction using learned weights
-        for t in range(T - 1, -1, -1):
-            paths_t = paths[:, :, t]
-            paths_t1 = paths[:, :, t + 1]
+            # Compute all payoffs upfront
+            payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
-            # Compute weights using learned NN
-            weights = self._compute_learned_weights(paths_t, paths_t1, t)
+            # Initialize at maturity (use float32 for memory efficiency)
+            Q = np.zeros((b, T + 1), dtype=np.float32)
+            Q[:, T] = payoffs[:, T]
 
-            for i in range(b):
-                exercise_value = payoffs[i, t]
-                continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
+            # Backward induction using learned weights
+            for t in range(T - 1, -1, -1):
+                paths_t = paths[:, :, t]
+                paths_t1 = paths[:, :, t + 1]
 
-                # Handle NaN/inf from numerical issues
-                if not np.isfinite(continuation_value):
-                    continuation_value = 0.0
+                # Compute weights using learned NN
+                weights = self._compute_learned_weights(paths_t, paths_t1, t)
 
-                Q[i, t] = max(exercise_value, continuation_value)
+                for i in range(b):
+                    exercise_value = payoffs[i, t]
+                    continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
 
-        # Price is value at initial node
-        price = Q[0, 0]
+                    # Handle NaN/inf from numerical issues
+                    if not np.isfinite(continuation_value):
+                        continuation_value = 0.0
 
-        # Handle NaN/inf in final price
-        if not np.isfinite(price):
+                    Q[i, t] = max(exercise_value, continuation_value)
+
+            # Price is value at initial node
+            price = Q[0, 0]
+
+            # Handle NaN/inf in final price
+            if not np.isfinite(price) or not np.isfinite(path_gen_time):
+                return 0.0, 0.0
+
+            return float(price), float(path_gen_time)
+
+        except Exception as e:
+            # Catch any exception and return safe defaults
+            import warnings
+            warnings.warn(f"RandomizedStochasticMesh2 pricing failed: {e}")
             return 0.0, 0.0
-
-        return price, path_gen_time

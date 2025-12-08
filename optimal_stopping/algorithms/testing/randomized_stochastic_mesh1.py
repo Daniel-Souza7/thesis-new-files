@@ -257,44 +257,60 @@ class RandomizedStochasticMesh1:
         path_gen_time : float
             Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        # Generate training mesh
-        train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
+        try:
+            # Generate training mesh
+            train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
 
-        # Train neural network on mesh samples
-        self._train_network(train_paths)
+            # Safety check for None values
+            if train_paths is None or path_gen_time_train is None:
+                return 0.0, 0.0
 
-        # Price using neural network predictions (backward induction)
-        eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
-        b_eval = 1000
-        T = self.nb_dates
+            # Train neural network on mesh samples
+            self._train_network(train_paths)
 
-        # Compute all payoffs upfront
-        eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
+            # Price using neural network predictions (backward induction)
+            eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
 
-        # Initialize at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b_eval, T + 1), dtype=np.float32)
-        Q[:, T] = eval_payoffs[:, T]
+            # Safety check for None values
+            if eval_paths is None or path_gen_time_eval is None:
+                return 0.0, 0.0
 
-        # Backward induction using NN predictions
-        for t in range(T - 1, -1, -1):
-            states = eval_paths[:, :, t]
+            b_eval = 1000
+            T = self.nb_dates
 
-            # Predict continuation values using NN
-            continuation_values = self._forward(states, t)
+            # Compute all payoffs upfront
+            eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
 
-            # Optimal decision
-            for i in range(b_eval):
-                exercise_value = eval_payoffs[i, t]
-                Q[i, t] = max(exercise_value, continuation_values[i])
+            # Initialize at maturity (use float32 for memory efficiency)
+            Q = np.zeros((b_eval, T + 1), dtype=np.float32)
+            Q[:, T] = eval_payoffs[:, T]
 
-        # Return average over all paths starting from S0
-        price = np.mean(Q[:, 0])
+            # Backward induction using NN predictions
+            for t in range(T - 1, -1, -1):
+                states = eval_paths[:, :, t]
 
-        # Return total path generation time
-        total_path_gen_time = path_gen_time_train + path_gen_time_eval
+                # Predict continuation values using NN
+                continuation_values = self._forward(states, t)
 
-        # Handle case where path generation failed
-        if total_path_gen_time is None or not np.isfinite(price):
+                # Optimal decision
+                for i in range(b_eval):
+                    exercise_value = eval_payoffs[i, t]
+                    Q[i, t] = max(exercise_value, continuation_values[i])
+
+            # Return average over all paths starting from S0
+            price = np.mean(Q[:, 0])
+
+            # Return total path generation time
+            total_path_gen_time = path_gen_time_train + path_gen_time_eval
+
+            # Handle case where values are not finite
+            if not np.isfinite(price) or not np.isfinite(total_path_gen_time):
+                return 0.0, 0.0
+
+            return float(price), float(total_path_gen_time)
+
+        except Exception as e:
+            # Catch any exception and return safe defaults
+            import warnings
+            warnings.warn(f"RandomizedStochasticMesh1 pricing failed: {e}")
             return 0.0, 0.0
-
-        return price, total_path_gen_time
