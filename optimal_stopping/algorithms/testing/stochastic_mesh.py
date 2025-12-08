@@ -160,6 +160,9 @@ class StochasticMesh:
                 for i in range(b):
                     asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
 
+            # Clip weights to prevent overflow (important for float32)
+            asset_weights = np.clip(asset_weights, 0, 1e6)
+
             # Multiply across assets (independence assumption)
             weights *= asset_weights
 
@@ -311,11 +314,9 @@ class StochasticMesh:
         --------
         price : float
             Midpoint of [path_estimate, mesh_estimate] interval
-        comp_time : float
-            Computation time (path generation not included)
+        path_gen_time : float
+            Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        t_start = time.time()
-
         # Generate mesh: b independent forward paths
         mesh_paths, path_gen_time = self.model.generate_paths(nb_paths=self.b)
         # mesh_paths shape: (b, d, T+1)
@@ -335,10 +336,9 @@ class StochasticMesh:
         # Return midpoint of confidence interval as price estimate
         price = (mesh_estimate + path_estimate) / 2.0
 
-        comp_time = time.time() - t_start
-
         # Store estimates for diagnostics
         self.mesh_estimate = mesh_estimate
         self.path_estimate = path_estimate
 
-        return price, comp_time
+        # Return path_gen_time so run_algo.py can compute comp_time = total - path_gen
+        return price, path_gen_time

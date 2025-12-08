@@ -167,6 +167,9 @@ class RandomizedStochasticMesh1:
                 for i in range(b):
                     asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
 
+            # Clip weights to prevent overflow (important for float32)
+            asset_weights = np.clip(asset_weights, 0, 1e6)
+
             weights *= asset_weights
 
         return weights
@@ -244,19 +247,17 @@ class RandomizedStochasticMesh1:
         --------
         price : float
             Estimated option value
-        comp_time : float
-            Computation time
+        path_gen_time : float
+            Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        t_start = time.time()
-
         # Generate training mesh
-        train_paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
+        train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
 
         # Train neural network on mesh samples
         self._train_network(train_paths)
 
         # Price using neural network predictions (backward induction)
-        eval_paths, _ = self.model.generate_paths(nb_paths=1000)
+        eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
         b_eval = 1000
         T = self.nb_dates
 
@@ -282,6 +283,7 @@ class RandomizedStochasticMesh1:
         # Return average over all paths starting from S0
         price = np.mean(Q[:, 0])
 
-        comp_time = time.time() - t_start
+        # Return total path generation time
+        total_path_gen_time = path_gen_time_train + path_gen_time_eval
 
-        return price, comp_time
+        return price, total_path_gen_time

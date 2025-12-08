@@ -295,11 +295,9 @@ class RandomizedStochasticMesh2:
         --------
         price : float
             Estimated option value
-        comp_time : float
-            Computation time
+        path_gen_time : float
+            Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        t_start = time.time()
-
         # Train weight network (if not already trained)
         if self.W_out is None:
             self._train_network_on_european(num_training_meshes=5)
@@ -332,6 +330,4 @@ class RandomizedStochasticMesh2:
         # Price is value at initial node
         price = Q[0, 0]
 
-        comp_time = time.time() - t_start
-
-        return price, comp_time
+        return price, path_gen_time
