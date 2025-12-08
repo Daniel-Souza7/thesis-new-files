@@ -356,11 +356,15 @@ class StochasticMesh:
             # Handle NaN/inf in final price
             if not np.isfinite(price) or not np.isfinite(path_gen_time):
                 import sys
+                import tempfile
+                import os
                 msg = f"SM: price={price}, path_gen_time={path_gen_time}, mesh_est={mesh_estimate}, path_est={path_estimate}"
                 print(msg, file=sys.stderr)
                 try:
-                    with open('/tmp/mesh_errors.log', 'a') as f:
+                    log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
+                    with open(log_path, 'a') as f:
                         f.write(f"\nSM NaN/inf: {msg}\n")
+                    print(f"Logged to: {log_path}", file=sys.stderr)
                 except:
                     pass
                 return 0.0, 0.0
@@ -372,12 +376,16 @@ class StochasticMesh:
             # Catch any exception and return safe defaults
             import traceback
             import sys
+            import tempfile
+            import os
             error_msg = f"ERROR in StochasticMesh.price(): {e}\n{traceback.format_exc()}"
             print(error_msg, file=sys.stderr)
             # Also write to file since multiprocessing might suppress stdout
             try:
-                with open('/tmp/mesh_errors.log', 'a') as f:
+                log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
+                with open(log_path, 'a') as f:
                     f.write(f"\n{'='*60}\nStochasticMesh Error:\n{error_msg}\n")
+                print(f"Logged to: {log_path}", file=sys.stderr)
             except:
                 pass
             return 0.0, 0.0

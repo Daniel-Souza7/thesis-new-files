@@ -309,11 +309,15 @@ class RandomizedStochasticMesh1:
             # Handle case where values are not finite
             if not np.isfinite(price) or not np.isfinite(total_path_gen_time):
                 import sys
+                import tempfile
+                import os
                 msg = f"RSM1: price={price}, total_path_gen_time={total_path_gen_time}"
                 print(msg, file=sys.stderr)
                 try:
-                    with open('/tmp/mesh_errors.log', 'a') as f:
+                    log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
+                    with open(log_path, 'a') as f:
                         f.write(f"\nRSM1 NaN/inf: {msg}\n")
+                    print(f"Logged to: {log_path}", file=sys.stderr)
                 except:
                     pass
                 return 0.0, 0.0
@@ -324,11 +328,15 @@ class RandomizedStochasticMesh1:
             # Catch any exception and return safe defaults
             import traceback
             import sys
+            import tempfile
+            import os
             error_msg = f"ERROR in RandomizedStochasticMesh1.price(): {e}\n{traceback.format_exc()}"
             print(error_msg, file=sys.stderr)
             try:
-                with open('/tmp/mesh_errors.log', 'a') as f:
+                log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
+                with open(log_path, 'a') as f:
                     f.write(f"\n{'='*60}\nRandomizedStochasticMesh1 Error:\n{error_msg}\n")
+                print(f"Logged to: {log_path}", file=sys.stderr)
             except:
                 pass
             return 0.0, 0.0
