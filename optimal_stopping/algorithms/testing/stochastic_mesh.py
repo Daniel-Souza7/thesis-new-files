@@ -197,17 +197,18 @@ class StochasticMesh:
         payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
         # DEBUG: Check payoffs at maturity
-        import tempfile, os
         try:
-            log_path = os.path.join(tempfile.gettempdir(), 'mesh_debug.log')
-            with open(log_path, 'a') as f:
-                f.write(f"\n--- SM _mesh_estimator ---\n")
+            with open('mesh_debug.log', 'a') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"SM _mesh_estimator\n")
                 f.write(f"paths shape: {paths.shape}\n")
                 f.write(f"payoffs shape: {payoffs.shape}\n")
+                f.write(f"Sample paths[0, :, T]: {paths[0, :, T]}\n")
+                f.write(f"Sample payoffs[0, T]: {payoffs[0, T]}\n")
                 f.write(f"payoffs[:5, T]: {payoffs[:5, T]}\n")
                 f.write(f"payoffs at T - mean: {np.mean(payoffs[:, T])}, max: {np.max(payoffs[:, T])}\n")
-        except:
-            pass
+        except Exception as e:
+            print(f"SM DEBUG ERROR: {e}")
 
         # Initialize value function at maturity (use float32 for memory efficiency)
         Q = np.zeros((b, T + 1), dtype=np.float32)
@@ -239,12 +240,14 @@ class StochasticMesh:
             # DEBUG: Log first time step
             if t == 0:
                 try:
-                    with open(log_path, 'a') as f:
-                        f.write(f"At t=0: Q[:5, 0] = {Q[:5, 0]}\n")
-                        f.write(f"weights[0, :5] = {weights[0, :5]}\n")
-                        f.write(f"exercise_value[0] = {payoffs[0, 0]}\n")
-                except:
-                    pass
+                    with open('mesh_debug.log', 'a') as f:
+                        f.write(f"At t=0:\n")
+                        f.write(f"  Q[:5, 0] = {Q[:5, 0]}\n")
+                        f.write(f"  weights[0, :5] = {weights[0, :5]}\n")
+                        f.write(f"  exercise_value[0] = {payoffs[0, 0]}\n")
+                        f.write(f"  Q[0, 1] values: {Q[:5, 1]}\n")
+                except Exception as e:
+                    print(f"SM t=0 DEBUG ERROR: {e}")
 
         # Mesh estimate is value at initial node
         return Q[0, 0], Q

@@ -304,19 +304,17 @@ class RandomizedStochasticMesh1:
             price = np.mean(Q[:, 0])
 
             # DEBUG: Log pricing details
-            import tempfile
-            import os
             try:
-                log_path = os.path.join(tempfile.gettempdir(), 'mesh_debug.log')
-                with open(log_path, 'a') as f:
-                    f.write(f"\n--- RSM1 price ---\n")
+                with open('mesh_debug.log', 'a') as f:
+                    f.write(f"\n{'='*60}\n")
+                    f.write(f"RSM1 price\n")
                     f.write(f"Q[:5, 0]: {Q[:5, 0]}\n")
                     f.write(f"Q[:, 0] mean: {np.mean(Q[:, 0])}, max: {np.max(Q[:, 0])}\n")
                     f.write(f"eval_payoffs[:5, T]: {eval_payoffs[:5, T]}\n")
                     f.write(f"eval_payoffs at T - mean: {np.mean(eval_payoffs[:, T])}\n")
                     f.write(f"W_out shape: {self.W_out.shape if self.W_out is not None else 'None'}\n")
-            except:
-                pass
+            except Exception as e:
+                print(f"RSM1 DEBUG ERROR: {e}")
 
             # Return total path generation time
             total_path_gen_time = path_gen_time_train + path_gen_time_eval

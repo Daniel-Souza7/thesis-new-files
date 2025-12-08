@@ -349,19 +349,17 @@ class RandomizedStochasticMesh2:
             price = Q[0, 0]
 
             # DEBUG: Log pricing details
-            import tempfile
-            import os
             try:
-                log_path = os.path.join(tempfile.gettempdir(), 'mesh_debug.log')
-                with open(log_path, 'a') as f:
-                    f.write(f"\n--- RSM2 price ---\n")
+                with open('mesh_debug.log', 'a') as f:
+                    f.write(f"\n{'='*60}\n")
+                    f.write(f"RSM2 price\n")
                     f.write(f"Q[:5, 0]: {Q[:5, 0]}\n")
                     f.write(f"Q[0, 0]: {Q[0, 0]}\n")
                     f.write(f"payoffs[:5, T]: {payoffs[:5, T]}\n")
                     f.write(f"payoffs at T - mean: {np.mean(payoffs[:, T])}\n")
                     f.write(f"W_out shape: {self.W_out.shape if self.W_out is not None else 'None'}\n")
-            except:
-                pass
+            except Exception as e:
+                print(f"RSM2 DEBUG ERROR: {e}")
 
             # Handle NaN/inf in final price
             if not np.isfinite(price) or not np.isfinite(path_gen_time):
