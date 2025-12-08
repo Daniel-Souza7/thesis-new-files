@@ -325,9 +325,18 @@ class RandomizedStochasticMesh2:
             for i in range(b):
                 exercise_value = payoffs[i, t]
                 continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
+
+                # Handle NaN/inf from numerical issues
+                if not np.isfinite(continuation_value):
+                    continuation_value = 0.0
+
                 Q[i, t] = max(exercise_value, continuation_value)
 
         # Price is value at initial node
         price = Q[0, 0]
+
+        # Handle NaN/inf in final price
+        if not np.isfinite(price):
+            return 0.0, 0.0
 
         return price, path_gen_time

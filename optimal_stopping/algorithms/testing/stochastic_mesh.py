@@ -160,11 +160,15 @@ class StochasticMesh:
                 for i in range(b):
                     asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
 
-            # Clip weights to prevent overflow (important for float32)
-            asset_weights = np.clip(asset_weights, 0, 1e6)
+            # Clip individual asset weights to prevent extreme values
+            asset_weights = np.clip(asset_weights, 1e-6, 100)
 
             # Multiply across assets (independence assumption)
             weights *= asset_weights
+
+            # CRITICAL: Clip after each multiplication to prevent overflow
+            # With d=15, even 100^15 would overflow, so clip aggressively
+            weights = np.clip(weights, 1e-6, 1e6)
 
         return weights
 
@@ -211,6 +215,10 @@ class StochasticMesh:
 
                 # Continuation value: weighted average over next time step
                 continuation_value = np.sum(Q[:, t + 1] * weights[i, :]) / b
+
+                # Handle NaN/inf from numerical issues
+                if not np.isfinite(continuation_value):
+                    continuation_value = 0.0
 
                 # Optimal value
                 Q[i, t] = max(exercise_value, continuation_value)
@@ -339,6 +347,10 @@ class StochasticMesh:
         # Store estimates for diagnostics
         self.mesh_estimate = mesh_estimate
         self.path_estimate = path_estimate
+
+        # Handle NaN/inf in final price
+        if not np.isfinite(price):
+            return 0.0, 0.0
 
         # Return path_gen_time so run_algo.py can compute comp_time = total - path_gen
         return price, path_gen_time

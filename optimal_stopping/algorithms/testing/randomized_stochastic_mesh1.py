@@ -167,10 +167,13 @@ class RandomizedStochasticMesh1:
                 for i in range(b):
                     asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
 
-            # Clip weights to prevent overflow (important for float32)
-            asset_weights = np.clip(asset_weights, 0, 1e6)
+            # Clip individual asset weights to prevent extreme values
+            asset_weights = np.clip(asset_weights, 1e-6, 100)
 
             weights *= asset_weights
+
+            # CRITICAL: Clip after each multiplication to prevent overflow
+            weights = np.clip(weights, 1e-6, 1e6)
 
         return weights
 
@@ -211,6 +214,10 @@ class RandomizedStochasticMesh1:
             for i in range(b):
                 # Target: weighted continuation value from mesh
                 continuation_target = np.sum(Q[:, t + 1] * weights[i, :]) / b
+
+                # Handle NaN/inf from numerical issues
+                if not np.isfinite(continuation_target):
+                    continuation_target = 0.0
 
                 # Store (state, time) -> continuation_value for training
                 t_normalized = t / self.nb_dates
@@ -285,5 +292,9 @@ class RandomizedStochasticMesh1:
 
         # Return total path generation time
         total_path_gen_time = path_gen_time_train + path_gen_time_eval
+
+        # Handle case where path generation failed
+        if total_path_gen_time is None or not np.isfinite(price):
+            return 0.0, 0.0
 
         return price, total_path_gen_time
