@@ -30,14 +30,15 @@ class RandomizedStochasticMesh1:
     hidden_size : int, optional
         Number of hidden units in randomized neural network (default: 20)
     nb_paths : int, optional
-        Number of paths for training mesh (default: 5000)
+        Number of paths for training mesh (default: 1000)
+        Note: Mesh complexity is O(b²T), use smaller values than Monte Carlo!
     use_payoff_as_input : bool, optional
         Include current payoff in NN input (default: False)
     **kwargs : dict
         Additional arguments (ignored)
     """
 
-    def __init__(self, model, payoff, hidden_size=20, nb_paths=5000,
+    def __init__(self, model, payoff, hidden_size=20, nb_paths=1000,
                  use_payoff_as_input=False, **kwargs):
         self.model = model
         self.payoff = payoff

@@ -31,14 +31,15 @@ class RandomizedStochasticMesh2:
     hidden_size : int, optional
         Number of hidden units in randomized neural network (default: 20)
     nb_paths : int, optional
-        Number of paths in mesh (default: 3000)
+        Number of paths in mesh (default: 500)
+        Note: Mesh complexity is O(b²T), use smaller values than Monte Carlo!
     use_payoff_as_input : bool, optional
         Include payoff features in NN input (default: False)
     **kwargs : dict
         Additional arguments (ignored)
     """
 
-    def __init__(self, model, payoff, hidden_size=20, nb_paths=3000,
+    def __init__(self, model, payoff, hidden_size=20, nb_paths=500,
                  use_payoff_as_input=False, **kwargs):
         self.model = model
         self.payoff = payoff
@@ -235,8 +236,8 @@ class RandomizedStochasticMesh2:
         """
         # Compute "true" European value via high-quality Monte Carlo
         eur_paths, _ = self.model.generate_paths(nb_paths=50000)
-        true_european = np.mean([self.payoff(eur_paths[i, :, -1])
-                                for i in range(50000)])
+        eur_payoffs = self.payoff(eur_paths)  # Shape: (50000, T+1)
+        true_european = np.mean(eur_payoffs[:, -1])
 
         # Collect training samples
         all_features = []

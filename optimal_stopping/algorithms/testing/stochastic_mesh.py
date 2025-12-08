@@ -28,8 +28,9 @@ class StochasticMesh:
         The underlying asset model (must be BlackScholes for transition densities)
     payoff : Payoff
         The option payoff function
-    nb_paths : int
-        Number of paths in mesh (denoted 'b' in paper)
+    nb_paths : int, optional
+        Number of paths in mesh (denoted 'b' in paper, default: 500)
+        Note: Mesh complexity is O(b²T), so use smaller values than Monte Carlo!
     nb_path_estimates : int, optional
         Number of independent paths for lower bound estimator (default: nb_paths)
     use_control_variates : bool, optional
@@ -38,7 +39,7 @@ class StochasticMesh:
         Ignored (for compatibility with other algorithms)
     """
 
-    def __init__(self, model, payoff, nb_paths=1000, nb_path_estimates=None,
+    def __init__(self, model, payoff, nb_paths=500, nb_path_estimates=None,
                  use_control_variates=True, **kwargs):
         self.model = model
         self.payoff = payoff
