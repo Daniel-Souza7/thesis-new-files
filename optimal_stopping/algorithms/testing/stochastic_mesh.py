@@ -351,67 +351,28 @@ class StochasticMesh:
         path_gen_time : float
             Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        try:
-            # Generate mesh: b independent forward paths
-            mesh_paths, path_gen_time = self.model.generate_paths(nb_paths=self.b)
-            # mesh_paths shape: (b, d, T+1)
+        # Generate mesh: b independent forward paths
+        mesh_paths, path_gen_time = self.model.generate_paths(nb_paths=self.b)
+        # mesh_paths shape: (b, d, T+1)
 
-            # Safety check for None values
-            if mesh_paths is None or path_gen_time is None:
-                return 0.0, 0.0
+        # Compute high-biased mesh estimator
+        mesh_estimate, Q_values = self._mesh_estimator(mesh_paths)
 
-            # Compute high-biased mesh estimator
-            mesh_estimate, Q_values = self._mesh_estimator(mesh_paths)
+        # Compute low-biased path estimator
+        path_estimate = self._path_estimator(Q_values, mesh_paths)
 
-            # Compute low-biased path estimator
-            path_estimate = self._path_estimator(Q_values, mesh_paths)
+        # Apply control variates if requested
+        if self.use_control_variates:
+            european_value, mesh_european = self._european_control(mesh_paths)
+            control_adjustment = european_value - mesh_european
+            mesh_estimate += control_adjustment
 
-            # Apply control variates if requested
-            if self.use_control_variates:
-                european_value, mesh_european = self._european_control(mesh_paths)
-                control_adjustment = european_value - mesh_european
-                mesh_estimate += control_adjustment
+        # Return midpoint of confidence interval as price estimate
+        price = (mesh_estimate + path_estimate) / 2.0
 
-            # Return midpoint of confidence interval as price estimate
-            price = (mesh_estimate + path_estimate) / 2.0
+        # Store estimates for diagnostics
+        self.mesh_estimate = mesh_estimate
+        self.path_estimate = path_estimate
 
-            # Store estimates for diagnostics
-            self.mesh_estimate = mesh_estimate
-            self.path_estimate = path_estimate
-
-            # Handle NaN/inf in final price
-            if not np.isfinite(price) or not np.isfinite(path_gen_time):
-                import sys
-                import tempfile
-                import os
-                msg = f"SM: price={price}, path_gen_time={path_gen_time}, mesh_est={mesh_estimate}, path_est={path_estimate}"
-                print(msg, file=sys.stderr)
-                try:
-                    log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                    with open(log_path, 'a') as f:
-                        f.write(f"\nSM NaN/inf: {msg}\n")
-                    print(f"Logged to: {log_path}", file=sys.stderr)
-                except:
-                    pass
-                return 0.0, 0.0
-
-            # Return path_gen_time so run_algo.py can compute comp_time = total - path_gen
-            return float(price), float(path_gen_time)
-
-        except Exception as e:
-            # Catch any exception and return safe defaults
-            import traceback
-            import sys
-            import tempfile
-            import os
-            error_msg = f"ERROR in StochasticMesh.price(): {e}\n{traceback.format_exc()}"
-            print(error_msg, file=sys.stderr)
-            # Also write to file since multiprocessing might suppress stdout
-            try:
-                log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                with open(log_path, 'a') as f:
-                    f.write(f"\n{'='*60}\nStochasticMesh Error:\n{error_msg}\n")
-                print(f"Logged to: {log_path}", file=sys.stderr)
-            except:
-                pass
-            return 0.0, 0.0
+        # Return path_gen_time so run_algo.py can compute comp_time = total - path_gen
+        return float(price), float(path_gen_time)

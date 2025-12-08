@@ -260,96 +260,41 @@ class RandomizedStochasticMesh1:
         path_gen_time : float
             Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        try:
-            # Generate training mesh
-            train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
+        # Generate training mesh
+        train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
 
-            # Safety check for None values
-            if train_paths is None or path_gen_time_train is None:
-                return 0.0, 0.0
+        # Train neural network on mesh samples
+        self._train_network(train_paths)
 
-            # Train neural network on mesh samples
-            self._train_network(train_paths)
+        # Price using neural network predictions (backward induction)
+        eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
 
-            # Price using neural network predictions (backward induction)
-            eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
+        b_eval = 1000
+        T = self.nb_dates
 
-            # Safety check for None values
-            if eval_paths is None or path_gen_time_eval is None:
-                return 0.0, 0.0
+        # Compute all payoffs upfront
+        eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
 
-            b_eval = 1000
-            T = self.nb_dates
+        # Initialize at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b_eval, T + 1), dtype=np.float32)
+        Q[:, T] = eval_payoffs[:, T]
 
-            # Compute all payoffs upfront
-            eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
+        # Backward induction using NN predictions
+        for t in range(T - 1, -1, -1):
+            states = eval_paths[:, :, t]
 
-            # Initialize at maturity (use float32 for memory efficiency)
-            Q = np.zeros((b_eval, T + 1), dtype=np.float32)
-            Q[:, T] = eval_payoffs[:, T]
+            # Predict continuation values using NN
+            continuation_values = self._forward(states, t)
 
-            # Backward induction using NN predictions
-            for t in range(T - 1, -1, -1):
-                states = eval_paths[:, :, t]
+            # Optimal decision
+            for i in range(b_eval):
+                exercise_value = eval_payoffs[i, t]
+                Q[i, t] = max(exercise_value, continuation_values[i])
 
-                # Predict continuation values using NN
-                continuation_values = self._forward(states, t)
+        # Return average over all paths starting from S0
+        price = np.mean(Q[:, 0])
 
-                # Optimal decision
-                for i in range(b_eval):
-                    exercise_value = eval_payoffs[i, t]
-                    Q[i, t] = max(exercise_value, continuation_values[i])
+        # Return total path generation time
+        total_path_gen_time = path_gen_time_train + path_gen_time_eval
 
-            # Return average over all paths starting from S0
-            price = np.mean(Q[:, 0])
-
-            # DEBUG: Log pricing details
-            try:
-                with open('mesh_debug.log', 'a') as f:
-                    f.write(f"\n{'='*60}\n")
-                    f.write(f"RSM1 price\n")
-                    f.write(f"Q[:5, 0]: {Q[:5, 0]}\n")
-                    f.write(f"Q[:, 0] mean: {np.mean(Q[:, 0])}, max: {np.max(Q[:, 0])}\n")
-                    f.write(f"eval_payoffs[:5, T]: {eval_payoffs[:5, T]}\n")
-                    f.write(f"eval_payoffs at T - mean: {np.mean(eval_payoffs[:, T])}\n")
-                    f.write(f"W_out shape: {self.W_out.shape if self.W_out is not None else 'None'}\n")
-            except Exception as e:
-                print(f"RSM1 DEBUG ERROR: {e}")
-
-            # Return total path generation time
-            total_path_gen_time = path_gen_time_train + path_gen_time_eval
-
-            # Handle case where values are not finite
-            if not np.isfinite(price) or not np.isfinite(total_path_gen_time):
-                import sys
-                import tempfile
-                import os
-                msg = f"RSM1: price={price}, total_path_gen_time={total_path_gen_time}"
-                print(msg, file=sys.stderr)
-                try:
-                    log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                    with open(log_path, 'a') as f:
-                        f.write(f"\nRSM1 NaN/inf: {msg}\n")
-                    print(f"Logged to: {log_path}", file=sys.stderr)
-                except:
-                    pass
-                return 0.0, 0.0
-
-            return float(price), float(total_path_gen_time)
-
-        except Exception as e:
-            # Catch any exception and return safe defaults
-            import traceback
-            import sys
-            import tempfile
-            import os
-            error_msg = f"ERROR in RandomizedStochasticMesh1.price(): {e}\n{traceback.format_exc()}"
-            print(error_msg, file=sys.stderr)
-            try:
-                log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                with open(log_path, 'a') as f:
-                    f.write(f"\n{'='*60}\nRandomizedStochasticMesh1 Error:\n{error_msg}\n")
-                print(f"Logged to: {log_path}", file=sys.stderr)
-            except:
-                pass
-            return 0.0, 0.0
+        return float(price), float(total_path_gen_time)

@@ -305,93 +305,42 @@ class RandomizedStochasticMesh2:
         path_gen_time : float
             Time spent generating paths (for run_algo.py to compute comp_time)
         """
-        try:
-            # Train weight network (if not already trained)
-            if self.W_out is None:
-                self._train_network_on_european(num_training_meshes=5)
+        # Train weight network (if not already trained)
+        if self.W_out is None:
+            self._train_network_on_european(num_training_meshes=5)
 
-            # Generate mesh for pricing
-            paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
+        # Generate mesh for pricing
+        paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
 
-            # Safety check for None values
-            if paths is None or path_gen_time is None:
-                return 0.0, 0.0
+        b = self.nb_paths
+        T = self.nb_dates
 
-            b = self.nb_paths
-            T = self.nb_dates
+        # Compute all payoffs upfront
+        payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
-            # Compute all payoffs upfront
-            payoffs = self.payoff(paths)  # Shape: (b, T+1)
+        # Initialize at maturity (use float32 for memory efficiency)
+        Q = np.zeros((b, T + 1), dtype=np.float32)
+        Q[:, T] = payoffs[:, T]
 
-            # Initialize at maturity (use float32 for memory efficiency)
-            Q = np.zeros((b, T + 1), dtype=np.float32)
-            Q[:, T] = payoffs[:, T]
+        # Backward induction using learned weights
+        for t in range(T - 1, -1, -1):
+            paths_t = paths[:, :, t]
+            paths_t1 = paths[:, :, t + 1]
 
-            # Backward induction using learned weights
-            for t in range(T - 1, -1, -1):
-                paths_t = paths[:, :, t]
-                paths_t1 = paths[:, :, t + 1]
+            # Compute weights using learned NN
+            weights = self._compute_learned_weights(paths_t, paths_t1, t)
 
-                # Compute weights using learned NN
-                weights = self._compute_learned_weights(paths_t, paths_t1, t)
+            for i in range(b):
+                exercise_value = payoffs[i, t]
+                continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
 
-                for i in range(b):
-                    exercise_value = payoffs[i, t]
-                    continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
+                # Handle NaN/inf from numerical issues
+                if not np.isfinite(continuation_value):
+                    continuation_value = 0.0
 
-                    # Handle NaN/inf from numerical issues
-                    if not np.isfinite(continuation_value):
-                        continuation_value = 0.0
+                Q[i, t] = max(exercise_value, continuation_value)
 
-                    Q[i, t] = max(exercise_value, continuation_value)
+        # Price is value at initial node
+        price = Q[0, 0]
 
-            # Price is value at initial node
-            price = Q[0, 0]
-
-            # DEBUG: Log pricing details
-            try:
-                with open('mesh_debug.log', 'a') as f:
-                    f.write(f"\n{'='*60}\n")
-                    f.write(f"RSM2 price\n")
-                    f.write(f"Q[:5, 0]: {Q[:5, 0]}\n")
-                    f.write(f"Q[0, 0]: {Q[0, 0]}\n")
-                    f.write(f"payoffs[:5, T]: {payoffs[:5, T]}\n")
-                    f.write(f"payoffs at T - mean: {np.mean(payoffs[:, T])}\n")
-                    f.write(f"W_out shape: {self.W_out.shape if self.W_out is not None else 'None'}\n")
-            except Exception as e:
-                print(f"RSM2 DEBUG ERROR: {e}")
-
-            # Handle NaN/inf in final price
-            if not np.isfinite(price) or not np.isfinite(path_gen_time):
-                import sys
-                import tempfile
-                import os
-                msg = f"RSM2: price={price}, path_gen_time={path_gen_time}"
-                print(msg, file=sys.stderr)
-                try:
-                    log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                    with open(log_path, 'a') as f:
-                        f.write(f"\nRSM2 NaN/inf: {msg}\n")
-                    print(f"Logged to: {log_path}", file=sys.stderr)
-                except:
-                    pass
-                return 0.0, 0.0
-
-            return float(price), float(path_gen_time)
-
-        except Exception as e:
-            # Catch any exception and return safe defaults
-            import traceback
-            import sys
-            import tempfile
-            import os
-            error_msg = f"ERROR in RandomizedStochasticMesh2.price(): {e}\n{traceback.format_exc()}"
-            print(error_msg, file=sys.stderr)
-            try:
-                log_path = os.path.join(tempfile.gettempdir(), 'mesh_errors.log')
-                with open(log_path, 'a') as f:
-                    f.write(f"\n{'='*60}\nRandomizedStochasticMesh2 Error:\n{error_msg}\n")
-                print(f"Logged to: {log_path}", file=sys.stderr)
-            except:
-                pass
-            return 0.0, 0.0
+        return float(price), float(path_gen_time)
