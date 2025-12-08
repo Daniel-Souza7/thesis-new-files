@@ -120,8 +120,19 @@ class RandomizedStochasticMesh2:
 
         # Derived features
         distance = np.linalg.norm(S_to - S_from)
-        payoff_from = self.payoff(S_from)
-        payoff_to = self.payoff(S_to)
+
+        # For payoff, we need to call it properly
+        # Reshape to (1, d) for single state payoff computation
+        S_from_2d = S_from.reshape(1, -1)
+        S_to_2d = S_to.reshape(1, -1)
+
+        # Create dummy time dimension for payoff
+        # Shape needs to be (1, d, 1) for payoff to work
+        S_from_3d = S_from_2d[:, :, np.newaxis]
+        S_to_3d = S_to_2d[:, :, np.newaxis]
+
+        payoff_from = self.payoff(S_from_3d)[0, 0]
+        payoff_to = self.payoff(S_to_3d)[0, 0]
         payoff_diff = payoff_to - payoff_from
 
         features = np.concatenate([
@@ -297,10 +308,12 @@ class RandomizedStochasticMesh2:
         b = self.nb_paths
         T = self.nb_dates
 
+        # Compute all payoffs upfront
+        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+
         # Initialize at maturity
         Q = np.zeros((b, T + 1))
-        for i in range(b):
-            Q[i, T] = self.payoff(paths[i, :, T])
+        Q[:, T] = payoffs[:, T]
 
         # Backward induction using learned weights
         for t in range(T - 1, -1, -1):
@@ -311,7 +324,7 @@ class RandomizedStochasticMesh2:
             weights = self._compute_learned_weights(paths_t, paths_t1, t)
 
             for i in range(b):
-                exercise_value = self.payoff(paths_t[i])
+                exercise_value = payoffs[i, t]
                 continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
                 Q[i, t] = max(exercise_value, continuation_value)
 

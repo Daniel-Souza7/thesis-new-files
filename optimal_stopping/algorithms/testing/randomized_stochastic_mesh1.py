@@ -185,14 +185,16 @@ class RandomizedStochasticMesh1:
         b = self.nb_paths
         T = self.nb_dates
 
+        # Compute all payoffs upfront
+        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+
         # Collect training samples across all times and nodes
         all_features = []
         all_targets = []
 
         # Initialize value function at maturity
         Q = np.zeros((b, T + 1))
-        for i in range(b):
-            Q[i, T] = self.payoff(paths[i, :, T])
+        Q[:, T] = payoffs[:, T]
 
         # Backward induction to generate training data
         for t in range(T - 1, -1, -1):
@@ -214,13 +216,13 @@ class RandomizedStochasticMesh1:
                 ])
 
                 if self.use_payoff_as_input:
-                    features = np.concatenate([features, [self.payoff(paths_t[i])]])
+                    features = np.concatenate([features, [payoffs[i, t]]])
 
                 all_features.append(features)
                 all_targets.append(continuation_target)
 
                 # Update Q for this node
-                exercise_value = self.payoff(paths_t[i])
+                exercise_value = payoffs[i, t]
                 Q[i, t] = max(exercise_value, continuation_target)
 
         # Convert to arrays
@@ -257,10 +259,12 @@ class RandomizedStochasticMesh1:
         b_eval = 1000
         T = self.nb_dates
 
+        # Compute all payoffs upfront
+        eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
+
         # Initialize at maturity
         Q = np.zeros((b_eval, T + 1))
-        for i in range(b_eval):
-            Q[i, T] = self.payoff(eval_paths[i, :, T])
+        Q[:, T] = eval_payoffs[:, T]
 
         # Backward induction using NN predictions
         for t in range(T - 1, -1, -1):
@@ -271,7 +275,7 @@ class RandomizedStochasticMesh1:
 
             # Optimal decision
             for i in range(b_eval):
-                exercise_value = self.payoff(states[i])
+                exercise_value = eval_payoffs[i, t]
                 Q[i, t] = max(exercise_value, continuation_values[i])
 
         # Return average over all paths starting from S0

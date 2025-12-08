@@ -185,10 +185,12 @@ class StochasticMesh:
         b = self.b
         T = self.nb_dates
 
+        # Compute all payoffs upfront
+        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+
         # Initialize value function at maturity
         Q = np.zeros((b, T + 1))
-        for i in range(b):
-            Q[i, T] = self.payoff(paths[i, :, T])
+        Q[:, T] = payoffs[:, T]
 
         # Backward induction
         for t in range(T - 1, -1, -1):
@@ -201,7 +203,7 @@ class StochasticMesh:
             # For each mesh node at time t
             for i in range(b):
                 # Immediate exercise value
-                exercise_value = self.payoff(paths[i, :, t])
+                exercise_value = payoffs[i, t]
 
                 # Continuation value: weighted average over next time step
                 continuation_value = np.sum(Q[:, t + 1] * weights[i, :]) / b
@@ -235,16 +237,19 @@ class StochasticMesh:
         for _ in range(self.nb_path_estimates):
             # Generate independent path
             path, _ = self.model.generate_paths(nb_paths=1)
-            path = path[0]  # (d, T+1)
+            # path shape: (1, d, T+1)
+
+            # Compute payoffs for this path
+            path_payoffs_all = self.payoff(path)  # Shape: (1, T+1)
 
             # Determine stopping time using mesh estimate
             for t in range(self.nb_dates):
-                exercise_value = self.payoff(path[:, t])
+                exercise_value = path_payoffs_all[0, t]
 
                 # Estimate Q(t, S_t) by finding nearest mesh node
                 # and using its continuation value
-                S_t = path[:, t]
-                mesh_states = mesh_paths[:, :, t]
+                S_t = path[0, :, t]  # Shape: (d,)
+                mesh_states = mesh_paths[:, :, t]  # Shape: (b, d)
 
                 # Find nearest neighbor in mesh (simple approach)
                 distances = np.linalg.norm(mesh_states - S_t[np.newaxis, :], axis=1)
@@ -257,7 +262,7 @@ class StochasticMesh:
                     break
             else:
                 # Reached maturity without exercising
-                path_payoffs.append(self.payoff(path[:, self.nb_dates]))
+                path_payoffs.append(path_payoffs_all[0, self.nb_dates])
 
         return np.mean(path_payoffs)
 
@@ -280,13 +285,14 @@ class StochasticMesh:
             Mesh estimate of European value
         """
         # Mesh estimate: average terminal payoffs
-        mesh_european = np.mean([self.payoff(paths[i, :, -1]) for i in range(self.b)])
+        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+        mesh_european = np.mean(payoffs[:, -1])
 
         # For simple payoffs, could compute analytical European value
         # For now, use Monte Carlo estimate as "known" value
         eur_paths, _ = self.model.generate_paths(nb_paths=10000)
-        european_value = np.mean([self.payoff(eur_paths[i, :, -1])
-                                 for i in range(10000)])
+        eur_payoffs = self.payoff(eur_paths)  # Shape: (10000, T+1)
+        european_value = np.mean(eur_payoffs[:, -1])
 
         return european_value, mesh_european
 
