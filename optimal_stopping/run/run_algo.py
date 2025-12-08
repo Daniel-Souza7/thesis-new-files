@@ -45,10 +45,6 @@ from optimal_stopping.algorithms.testing.dkl import DKL_LSM
 from optimal_stopping.algorithms.testing.rdkl import RandDKL_LSM
 from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
 
-# TREE-BASED ALGORITHMS - Lattice methods for American options
-from optimal_stopping.algorithms.trees.crr import CRRTree
-from optimal_stopping.algorithms.trees.leisen_reimer import LeisenReimerTree
-from optimal_stopping.algorithms.trees.trinomial import TrinomialTree
 # GLOBAL CLASSES
 class SendBotMessage:
     def __init__(self):
@@ -148,11 +144,6 @@ _ALGOS = {
     "NLSM": NeuralNetworkPricer,
     "DOS": DeepOptimalStopping,
     "EOP": EuropeanOptionPrice,  # European option (exercise only at maturity)
-
-    # TREE-BASED ALGORITHMS - Lattice methods
-    "CRR": CRRTree,  # Cox-Ross-Rubinstein binomial tree
-    "LR": LeisenReimerTree,  # Leisen-Reimer binomial tree
-    "Trinomial": TrinomialTree,  # Trinomial tree (3-jump process)
 }
 
 
@@ -478,21 +469,6 @@ def _run_algo(
             # European Option Price - exercises only at maturity
             pricer = _ALGOS[algo](
                 stock_model_obj, payoff_obj
-            )
-
-        elif algo in ["CRR", "LR", "Trinomial"]:
-            # Tree-based algorithms - lattice methods
-            # These use n_steps instead of nb_epochs
-            # Default n_steps: 50 for CRR/Trinomial, 51 for LR (odd for Peizer-Pratt)
-            n_steps = 51 if algo == "LR" else 50
-            pricer = _ALGOS[algo](
-                stock_model_obj, payoff_obj,
-                n_steps=n_steps,
-                nb_epochs=nb_epochs,  # Passed but ignored
-                hidden_size=hidden_size,  # Passed but ignored
-                factors=factors,  # Passed but ignored
-                train_ITM_only=train_ITM_only,  # Passed but ignored
-                use_payoff_as_input=use_payoff_as_input  # Passed but ignored
             )
 
         else:

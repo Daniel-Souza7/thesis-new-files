@@ -34,7 +34,7 @@ ALGOS_ORDER = [
     "FQI", "FQIR", "FQIRidge", "FQILasso", "FQILaguerre", "FQIDeg1",
     "RFQITanh", "RFQIRidge", "RFQILasso", "RFQISoftplus",
     "RRFQI", "pathRFQI",
-    "EOP", "B", "Trinomial",
+    "EOP",
 ]
 
 COLUMNS_ORDER = ["price", "duration"]
@@ -51,7 +51,7 @@ USE_PAYOFF_FOR_ALGO = {
     "FQILaguerre": False, "FQIDeg1": False,
     "RFQITanh": False, "RFQIRidge": False, "RFQILasso": False,
     "RFQISoftplus": False, "RRFQI": False, "pathRFQI": False,
-    "LSPI": False, "EOP": False, "B": False, "Trinomial": False,
+    "LSPI": False, "EOP": False,
 }
 
 # Old script template (for no-barrier case)
