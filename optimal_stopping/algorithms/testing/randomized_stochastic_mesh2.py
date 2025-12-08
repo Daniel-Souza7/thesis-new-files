@@ -350,6 +350,14 @@ class RandomizedStochasticMesh2:
 
             # Handle NaN/inf in final price
             if not np.isfinite(price) or not np.isfinite(path_gen_time):
+                import sys
+                msg = f"RSM2: price={price}, path_gen_time={path_gen_time}"
+                print(msg, file=sys.stderr)
+                try:
+                    with open('/tmp/mesh_errors.log', 'a') as f:
+                        f.write(f"\nRSM2 NaN/inf: {msg}\n")
+                except:
+                    pass
                 return 0.0, 0.0
 
             return float(price), float(path_gen_time)
@@ -357,6 +365,12 @@ class RandomizedStochasticMesh2:
         except Exception as e:
             # Catch any exception and return safe defaults
             import traceback
-            print(f"ERROR in RandomizedStochasticMesh2.price(): {e}")
-            traceback.print_exc()
+            import sys
+            error_msg = f"ERROR in RandomizedStochasticMesh2.price(): {e}\n{traceback.format_exc()}"
+            print(error_msg, file=sys.stderr)
+            try:
+                with open('/tmp/mesh_errors.log', 'a') as f:
+                    f.write(f"\n{'='*60}\nRandomizedStochasticMesh2 Error:\n{error_msg}\n")
+            except:
+                pass
             return 0.0, 0.0
