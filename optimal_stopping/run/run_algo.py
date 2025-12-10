@@ -84,7 +84,7 @@ flags.DEFINE_bool("print_errors", False, "Set to True to print errors if any.")
 flags.DEFINE_integer("nb_jobs", NB_JOBS, "Number of CPUs to use parallelly")
 flags.DEFINE_bool("generate_pdf", False, "Whether to generate latex tables")
 flags.DEFINE_integer("path_gen_seed", None, "Seed for path generation")
-flags.DEFINE_bool("compute_upper_bound", False,
+flags.DEFINE_bool("compute_upper_bound", True,
                   "Whether to additionally compute upper bound for price")
 flags.DEFINE_bool("compute_greeks", False,
                   "Whether to compute greeks (not available for all settings)")
@@ -507,28 +507,42 @@ def _run_algo(
 
     # Run pricing (t_begin already set before pricer creation to capture __init__ time)
     if DEBUG:
-        if not compute_greeks:
+        if compute_upper_bound:
+            price, price_u, gen_time = pricer.price_upper_lower_bound(
+                train_eval_split=train_eval_split)
+            delta, gamma, theta, rho, vega = [None] * 5
+        elif not compute_greeks:
             price, gen_time = pricer.price(train_eval_split=train_eval_split)
             delta, gamma, theta, rho, vega, price_u = [None] * 6
         else:
-            # Greeks not implemented for new algorithms yet
-            price, gen_time = pricer.price(train_eval_split=train_eval_split)
-            delta, gamma, theta, rho, vega, price_u = [None] * 6
+            price, gen_time, delta, gamma, theta, rho, vega = pricer.price_and_greeks(
+                eps=eps, greeks_method=greeks_method, poly_deg=poly_deg,
+                reg_eps=reg_eps,
+                fd_freeze_exe_boundary=fd_freeze_exe_boundary,
+                fd_compute_gamma_via_PDE=fd_compute_gamma_via_PDE,
+                train_eval_split=train_eval_split)
+            price_u = None
         duration = time.time() - t_begin
         comp_time = duration - gen_time
         return
 
     try:
-        if not compute_greeks:
+        if compute_upper_bound:
+            price, price_u, gen_time = pricer.price_upper_lower_bound(
+                train_eval_split=actual_train_eval_split)
+            delta, gamma, theta, rho, vega = [None] * 5
+        elif not compute_greeks:
             # CHANGE: Use actual_train_eval_split instead of train_eval_split
             price, gen_time = pricer.price(train_eval_split=actual_train_eval_split)
             delta, gamma, theta, rho, vega, price_u = [None] * 6
         else:
-            # Greeks computation not yet implemented for new algorithms
-            price, gen_time = pricer.price(train_eval_split=train_eval_split)
-            delta, gamma, theta, rho, vega, price_u = [None] * 6
-            print("Warning: Greeks computation not yet implemented for new algorithms")
-
+            price, gen_time, delta, gamma, theta, rho, vega = pricer.price_and_greeks(
+                eps=eps, greeks_method=greeks_method, poly_deg=poly_deg,
+                reg_eps=reg_eps,
+                fd_freeze_exe_boundary=fd_freeze_exe_boundary,
+                fd_compute_gamma_via_PDE=fd_compute_gamma_via_PDE,
+                train_eval_split=actual_train_eval_split)
+            price_u = None
         duration = time.time() - t_begin
         comp_time = duration - gen_time
 
@@ -594,7 +608,10 @@ def _run_algo(
         'exercise_time': exercise_time,
     }
 
-    print(f"price: {price:.4f}, comp_time: {comp_time:.4f}")
+    if price_u is not None:
+        print(f"price: {price:.4f}, price_upper: {price_u:.4f}, comp_time: {comp_time:.4f}")
+    else:
+        print(f"price: {price:.4f}, comp_time: {comp_time:.4f}")
 
     with open(metrics_fpath, "w") as metrics_f:
         writer = csv.DictWriter(metrics_f, fieldnames=_CSV_HEADERS)

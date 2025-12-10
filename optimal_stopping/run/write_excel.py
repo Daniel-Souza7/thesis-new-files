@@ -274,6 +274,12 @@ def extract_data_for_excel(config: configs._DefaultConfig):
         stats_dict['exercise_time_std'] = grouped['exercise_time'].std().fillna(0)
         print(f"  ✅ Added exercise_time statistics")
 
+    # Add price_upper_bound if available
+    if 'price_upper_bound' in df.columns:
+        stats_dict['price_upper_bound_mean'] = grouped['price_upper_bound'].mean()
+        stats_dict['price_upper_bound_std'] = grouped['price_upper_bound'].std().fillna(0)
+        print(f"  ✅ Added price_upper_bound statistics")
+
     if not stats_dict:
         print(f"  ❌ No statistics could be calculated - no recognized columns")
         raise AssertionError("No statistics columns found")
@@ -303,7 +309,8 @@ def create_excel_workbook(label: str, config: configs._DefaultConfig):
     2. Prices: Just prices with std
     3. Times: Computational times
     4. Exercise: Exercise time statistics
-    5. Raw: Long format with all data
+    5. Upper Bounds: Price upper bounds with std
+    6. Raw: Long format with all data
     """
     print(f"\n📊 Processing {label}...")
 
@@ -366,7 +373,17 @@ def create_excel_workbook(label: str, config: configs._DefaultConfig):
                 if exercise_df is not None:
                     exercise_df.to_excel(writer, sheet_name='Exercise Times', index=False)
 
-            # Sheet 5: SUMMARY (prices + times in compact format)
+            # Sheet 5: UPPER BOUNDS
+            if 'price_upper_bound_mean' in df.columns:
+                upper_bound_df = create_wide_format_sheet(
+                    df, varying_params, 'algo',
+                    value_cols=['price_upper_bound_mean', 'price_upper_bound_std'],
+                    sheet_name='Upper Bounds'
+                )
+                if upper_bound_df is not None:
+                    upper_bound_df.to_excel(writer, sheet_name='Upper Bounds', index=False)
+
+            # Sheet 6: SUMMARY (prices + times in compact format)
             summary_df = create_summary_sheet(df, varying_params)
             if summary_df is not None:
                 summary_df.to_excel(writer, sheet_name='Summary', index=False)
@@ -381,7 +398,7 @@ def create_excel_workbook(label: str, config: configs._DefaultConfig):
             try:
                 SBM.send_notification(
                     token=FLAGS.telegram_token,
-                    text=f"📊 Excel: {label}\n\nSheets: Raw, Prices, Times, Exercise, Summary",
+                    text=f"📊 Excel: {label}\n\nSheets: Raw, Prices, Times, Exercise, Upper Bounds, Summary",
                     files=[excel_path],
                     chat_id=FLAGS.telegram_chat_id
                 )
