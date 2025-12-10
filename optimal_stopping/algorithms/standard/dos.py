@@ -184,6 +184,115 @@ class DeepOptimalStopping:
 
         return price, time_path_gen
 
+    def price_upper_lower_bound(self, train_eval_split=2):
+        """
+        Compute both lower and upper bounds using DOS.
+
+        Lower bound: Regular DOS pricing
+        Upper bound: Dual formulation (approximation for binary stopping rule)
+
+        Args:
+            train_eval_split: Ratio for splitting paths
+
+        Returns:
+            tuple: (lower_bound, upper_bound, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+            torch.manual_seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Compute payoffs
+        payoffs = self.payoff(stock_paths)
+
+        # Split
+        self.split = len(stock_paths) // train_eval_split
+
+        nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Initialize martingale M for upper bound
+        M = np.zeros((nb_paths, self.model.nb_dates + 1))
+        M[:, -1] = values.copy()
+
+        # Clear previous learned networks
+        self._learned_networks = {}
+
+        # Backward induction
+        for date in range(self.model.nb_dates - 1, 0, -1):
+            immediate_exercise = payoffs[:, date]
+
+            # Prepare state
+            if self.use_path:
+                current_state = stock_paths[:, :, :date+1]
+                if self.use_var and var_paths is not None:
+                    current_state = np.concatenate([current_state, var_paths[:, :, :date+1]], axis=1)
+                padding_shape = (current_state.shape[0], current_state.shape[1], nb_dates_from_shape - date)
+                padding = np.zeros(padding_shape)
+                current_state = np.concatenate([current_state, padding], axis=-1)
+                current_state = current_state.reshape((current_state.shape[0], -1))
+            else:
+                current_state = stock_paths[:, :, date]
+                if self.use_payoff_as_input:
+                    current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
+                if self.use_var and var_paths is not None:
+                    current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            discounted_values = values * disc_factor
+            discounted_values = np.maximum(0, discounted_values)
+
+            # Train network
+            self._train_network(
+                current_state[:self.split],
+                immediate_exercise[:self.split],
+                discounted_values[:self.split]
+            )
+
+            self._learned_networks[date] = copy.deepcopy(self.neural_network)
+
+            # Get stopping probabilities
+            stopping_rule = self._evaluate_network(current_state)
+
+            # DOS uses binary decision, but for upper bound we use expected value
+            # continuation_value ≈ (1 - stopping_prob) * discounted_value + stopping_prob * payoff
+            # For upper bound martingale: M[t] = max(payoff, continuation_estimate)
+            # Since DOS doesn't explicitly compute continuation, we use: stopping_prob * payoff + (1-p) * disc_val
+            continuation_estimate = stopping_rule * immediate_exercise + (1 - stopping_rule) * discounted_values
+
+            # Lower bound: update values
+            exercise_now = stopping_rule > 0.5
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Upper bound: update martingale M
+            M[:, date] = np.maximum(immediate_exercise, continuation_estimate)
+
+        # Lower bound
+        lower_bound = np.mean(values[self.split:])
+
+        # Upper bound
+        eval_payoffs = payoffs[self.split:]
+        eval_M = M[self.split:]
+        payoff_minus_M = eval_payoffs - eval_M
+        max_diff = np.max(payoff_minus_M, axis=1)
+        upper_bound = np.mean(max_diff + eval_M[:, 0])
+
+        return lower_bound, upper_bound, time_path_gen
+
     def _train_network(self, stock_values, immediate_exercise, discounted_next_values, batch_size=2000):
         """
         Train neural network to learn optimal stopping rule.
