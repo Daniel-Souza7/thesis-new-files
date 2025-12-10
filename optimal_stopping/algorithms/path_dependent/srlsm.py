@@ -178,6 +178,109 @@ class SRLSM:
         # Return average price on evaluation set, discounted to time 0
         return max(payoff_0[0], np.mean(values[self.split:]) * disc_factor), time_path_gen
 
+    def price_upper_lower_bound(self, train_eval_split=2):
+        """
+        Compute both lower and upper bounds for path-dependent American options.
+
+        Lower bound: Regular LSM pricing (suboptimal policy)
+        Upper bound: Dual formulation (Rogers 2002, Haugh-Kogan 2004)
+
+        Args:
+            train_eval_split: Ratio for splitting paths into training/evaluation
+
+        Returns:
+            tuple: (lower_bound, upper_bound, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Split into training and evaluation sets
+        self.split = len(stock_paths) // train_eval_split
+
+        nb_paths, nb_stocks, nb_dates_plus_one = stock_paths.shape
+        nb_dates = nb_dates_plus_one - 1
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
+
+        # Initialize with terminal payoff (pass full path history)
+        values = self.payoff.eval(stock_paths)
+
+        # Initialize martingale M for upper bound
+        M = np.zeros((nb_paths, nb_dates + 1))
+        M[:, -1] = values.copy()
+
+        # Clear previous learned policy
+        self._learned_coefficients = {}
+
+        # Backward induction from T-1 to 1
+        for date in range(nb_dates - 1, 0, -1):
+            # Current immediate exercise value (path-dependent)
+            path_history = stock_paths[:, :, :date + 1]
+            immediate_exercise = self.payoff.eval(path_history)
+
+            # Prepare current state for regression
+            current_state = stock_paths[:, :, date]
+
+            if self.use_var and var_paths is not None:
+                current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            if self.use_payoff_as_input:
+                current_state = np.concatenate([
+                    current_state,
+                    immediate_exercise.reshape(-1, 1)
+                ], axis=1)
+
+            # Learn continuation value
+            continuation_values, coefficients = self._learn_continuation(
+                current_state,
+                values * disc_factor,
+                immediate_exercise
+            )
+
+            # Store learned coefficients
+            self._learned_coefficients[date] = coefficients
+
+            # Update values for lower bound
+            exercise_now = immediate_exercise > continuation_values
+            values[exercise_now] = immediate_exercise[exercise_now]
+            values[~exercise_now] *= disc_factor
+
+            # Update martingale M for upper bound
+            M[:, date] = np.maximum(immediate_exercise, continuation_values)
+
+        # Compute lower bound
+        payoff_0 = self.payoff.eval(stock_paths[:, :, :1])
+        lower_bound = max(payoff_0[0], np.mean(values[self.split:]) * disc_factor)
+
+        # Compute upper bound on evaluation set
+        # Need to compute all payoffs at each time step for path-dependent options
+        all_payoffs = np.zeros((nb_paths, nb_dates + 1))
+        for t in range(nb_dates + 1):
+            path_history = stock_paths[:, :, :t + 1]
+            all_payoffs[:, t] = self.payoff.eval(path_history)
+
+        eval_payoffs = all_payoffs[self.split:]
+        eval_M = M[self.split:]
+
+        # Upper bound = E[max_t (payoff[t] - M[t] + M[0])]
+        payoff_minus_M = eval_payoffs - eval_M
+        max_diff = np.max(payoff_minus_M, axis=1)
+        upper_bound = np.mean(max_diff + eval_M[:, 0])
+
+        return lower_bound, upper_bound, time_path_gen
+
     def get_exercise_time(self):
         """Return average exercise time normalized to [0, 1] (evaluation set only)."""
         if not hasattr(self, '_exercise_dates'):
