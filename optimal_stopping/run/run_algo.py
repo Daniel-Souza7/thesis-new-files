@@ -507,7 +507,7 @@ def _run_algo(
 
     # Run pricing (t_begin already set before pricer creation to capture __init__ time)
     if DEBUG:
-        if compute_upper_bound:
+        if compute_upper_bound and hasattr(pricer, 'price_upper_lower_bound'):
             price, price_u, gen_time = pricer.price_upper_lower_bound(
                 train_eval_split=train_eval_split)
             delta, gamma, theta, rho, vega = [None] * 5
@@ -527,7 +527,7 @@ def _run_algo(
         return
 
     try:
-        if compute_upper_bound:
+        if compute_upper_bound and hasattr(pricer, 'price_upper_lower_bound'):
             price, price_u, gen_time = pricer.price_upper_lower_bound(
                 train_eval_split=actual_train_eval_split)
             delta, gamma, theta, rho, vega = [None] * 5
