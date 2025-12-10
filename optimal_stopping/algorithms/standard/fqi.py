@@ -156,6 +156,107 @@ class FQIFast:
 
         return price, time_path_gen
 
+    def price_upper_lower_bound(self, train_eval_split=2):
+        """
+        Compute both lower and upper bounds using FQI.
+
+        Lower bound: Regular FQI pricing
+        Upper bound: Dual formulation
+
+        Args:
+            train_eval_split: Ratio for splitting paths
+
+        Returns:
+            tuple: (lower_bound, upper_bound, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Compute payoffs
+        payoffs = self.payoff(stock_paths)
+
+        # Split
+        self.split = len(stock_paths) // train_eval_split
+
+        nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
+
+        # Prepare state
+        if self.use_payoff_as_input:
+            paths = np.concatenate([stock_paths, np.expand_dims(payoffs, axis=1)], axis=1)
+        else:
+            paths = stock_paths
+
+        if self.use_var and var_paths is not None:
+            paths = np.concatenate([paths, var_paths], axis=1)
+
+        # Evaluate basis functions
+        eval_bases = self._evaluate_bases_all(paths, nb_dates_from_shape)
+
+        # FQI iterations
+        for epoch in range(self.nb_epochs):
+            q_values = self._predict(eval_bases[:self.split, 1:, :])
+            q_values = np.maximum(0, q_values)
+            indicator_stop = np.maximum(payoffs[:self.split, 1:], q_values)
+
+            matrixU = np.tensordot(
+                eval_bases[:self.split, :-1, :],
+                eval_bases[:self.split, :-1, :],
+                axes=([0, 1], [0, 1])
+            )
+
+            vectorV = np.sum(
+                eval_bases[:self.split, :-1, :] * disc_factor * np.repeat(
+                    np.expand_dims(indicator_stop, axis=2),
+                    eval_bases.shape[2],
+                    axis=2
+                ),
+                axis=(0, 1)
+            )
+
+            self._fit(matrixU, vectorV)
+
+        # Compute continuation values
+        continuation_value = self._predict(eval_bases)
+        continuation_value = np.maximum(0, continuation_value)
+
+        # Lower bound
+        exercise = (payoffs > continuation_value).astype(int)
+        exercise[:, -1] = 1
+        exercise[:, 0] = 0
+        ex_dates = np.argmax(exercise, axis=1)
+
+        prices = np.take_along_axis(
+            payoffs, np.expand_dims(ex_dates, axis=1), axis=1
+        ).reshape(-1) * disc_factor ** ex_dates
+
+        lower_bound = max(np.mean(prices[self.split:]), payoffs[0, 0])
+
+        # Upper bound: Construct martingale M
+        M = np.maximum(payoffs, continuation_value)
+
+        # Compute upper bound on evaluation set
+        eval_payoffs = payoffs[self.split:]
+        eval_M = M[self.split:]
+        payoff_minus_M = eval_payoffs - eval_M
+        max_diff = np.max(payoff_minus_M, axis=1)
+        upper_bound = np.mean(max_diff + eval_M[:, 0])
+
+        return lower_bound, upper_bound, time_path_gen
+
     def _evaluate_bases_all(self, stock_paths, nb_dates):
         """
         Evaluate basis functions for all paths and times.

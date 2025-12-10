@@ -84,7 +84,7 @@ flags.DEFINE_bool("print_errors", False, "Set to True to print errors if any.")
 flags.DEFINE_integer("nb_jobs", NB_JOBS, "Number of CPUs to use parallelly")
 flags.DEFINE_bool("generate_pdf", False, "Whether to generate latex tables")
 flags.DEFINE_integer("path_gen_seed", None, "Seed for path generation")
-flags.DEFINE_bool("compute_upper_bound", True,
+flags.DEFINE_bool("compute_upper_bound", False,
                   "Whether to additionally compute upper bound for price")
 flags.DEFINE_bool("compute_greeks", False,
                   "Whether to compute greeks (not available for all settings)")

@@ -132,6 +132,92 @@ class LeastSquaresPricer:
 
         return price, time_path_gen
 
+    def price_upper_lower_bound(self, train_eval_split=2):
+        """
+        Compute both lower and upper bounds using LSM.
+
+        Lower bound: Regular LSM pricing
+        Upper bound: Dual formulation
+
+        Args:
+            train_eval_split: Ratio for splitting paths
+
+        Returns:
+            tuple: (lower_bound, upper_bound, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Compute payoffs
+        payoffs = self.payoff(stock_paths)
+
+        # Split
+        self.split = len(stock_paths) // train_eval_split
+
+        nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
+        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
+
+        # Initialize with terminal payoff
+        values = payoffs[:, -1].copy()
+
+        # Initialize martingale M for upper bound
+        M = np.zeros((nb_paths, self.model.nb_dates + 1))
+        M[:, -1] = values.copy()
+
+        # Clear previous learned policy
+        self._learned_coefficients = {}
+
+        # Backward induction
+        for date in range(self.model.nb_dates - 1, 0, -1):
+            immediate_exercise = payoffs[:, date]
+            current_state = stock_paths[:, :, date]
+
+            if self.use_payoff_as_input:
+                current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
+
+            if self.use_var and var_paths is not None:
+                current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            discounted_values = values * disc_factor
+
+            continuation_values, coefficients = self._learn_continuation(
+                current_state, discounted_values, immediate_exercise
+            )
+
+            self._learned_coefficients[date] = coefficients
+
+            # Lower bound: update values
+            exercise_now = immediate_exercise > continuation_values
+            values = np.where(exercise_now, immediate_exercise, discounted_values)
+
+            # Upper bound: update martingale M
+            M[:, date] = np.maximum(immediate_exercise, continuation_values)
+
+        # Lower bound
+        lower_bound = np.mean(values[self.split:])
+
+        # Upper bound
+        eval_payoffs = payoffs[self.split:]
+        eval_M = M[self.split:]
+        payoff_minus_M = eval_payoffs - eval_M
+        max_diff = np.max(payoff_minus_M, axis=1)
+        upper_bound = np.mean(max_diff + eval_M[:, 0])
+
+        return lower_bound, upper_bound, time_path_gen
+
     def _learn_continuation(self, current_state, future_values, immediate_exercise):
         """
         Learn continuation value using least squares regression on polynomial basis.
