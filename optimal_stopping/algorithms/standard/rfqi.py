@@ -330,3 +330,116 @@ class RFQI:
         price = max(np.mean(prices[self.split:]), payoffs[0, 0])
 
         return price, time_path_gen
+
+    def price_upper_lower_bound(self, train_eval_split=2):
+        """
+        Compute both lower and upper bounds using Fitted Q-Iteration.
+
+        Lower bound: Regular FQI pricing
+        Upper bound: Dual formulation using learned Q-function
+
+        Args:
+            train_eval_split: Ratio for splitting paths
+
+        Returns:
+            tuple: (lower_bound, upper_bound, time_for_path_generation)
+        """
+        t_start = time.time()
+
+        # Generate paths
+        if configs.path_gen_seed.get_seed() is not None:
+            np.random.seed(configs.path_gen_seed.get_seed())
+
+        path_result = self.model.generate_paths()
+        if isinstance(path_result, tuple):
+            stock_paths, var_paths = path_result
+        else:
+            stock_paths = path_result
+            var_paths = None
+
+        time_path_gen = time.time() - t_start
+        print(f"time path gen: {time_path_gen:.4f} ", end="")
+
+        # Compute payoffs
+        payoffs = self.payoff(stock_paths)
+
+        if self.use_payoff_as_input:
+            stock_paths = np.concatenate(
+                [stock_paths, np.expand_dims(payoffs, axis=1)], axis=1
+            )
+
+        if self.use_var and var_paths is not None:
+            stock_paths = np.concatenate([stock_paths, var_paths], axis=1)
+
+        # Split
+        self.split = len(stock_paths) // train_eval_split
+
+        # Setup
+        nb_paths, _, nb_dates_plus_one = stock_paths.shape
+        nb_dates = self.model.nb_dates
+        deltaT = self.model.maturity / nb_dates
+        discount_factor = math.exp(-self.model.rate * deltaT)
+
+        # Evaluate basis functions
+        eval_bases = self.evaluate_bases_all(stock_paths)
+
+        # Initialize Q-function weights
+        weights = np.zeros(self.nb_base_fcts, dtype=float)
+
+        # Fitted Q-iteration (same as price())
+        for epoch in range(self.nb_epochs):
+            continuation_value = np.dot(eval_bases[:self.split, 1:, :], weights)
+            continuation_value = np.maximum(0, continuation_value)
+            indicator_stop = np.maximum(payoffs[:self.split, 1:], continuation_value)
+
+            matrixU = np.tensordot(
+                eval_bases[:self.split, :-1, :],
+                eval_bases[:self.split, :-1, :],
+                axes=([0, 1], [0, 1])
+            )
+
+            vectorV = np.sum(
+                eval_bases[:self.split, :-1, :] * discount_factor * np.repeat(
+                    np.expand_dims(indicator_stop, axis=2),
+                    self.nb_base_fcts,
+                    axis=2
+                ),
+                axis=(0, 1)
+            )
+
+            weights = np.linalg.solve(matrixU, vectorV)
+
+        self.weights = weights
+
+        # Compute continuation values for all paths
+        continuation_value = np.dot(eval_bases, weights)
+        continuation_value = np.maximum(0, continuation_value)
+
+        # Lower bound: Regular FQI pricing
+        which = (payoffs > continuation_value) * 1
+        which[:, -1] = 1
+        which[:, 0] = 0
+        ex_dates = np.argmax(which, axis=1)
+
+        prices = np.take_along_axis(
+            payoffs,
+            np.expand_dims(ex_dates, axis=1),
+            axis=1
+        ).reshape(-1) * (discount_factor ** ex_dates)
+
+        lower_bound = max(np.mean(prices[self.split:]), payoffs[0, 0])
+
+        # Upper bound: Construct martingale M
+        # M[t] = max(payoff[t], continuation_value[t])
+        M = np.maximum(payoffs, continuation_value)
+
+        # Compute upper bound on evaluation set
+        eval_payoffs = payoffs[self.split:]
+        eval_M = M[self.split:]
+
+        # Upper bound = E[max_t (payoff[t] - M[t] + M[0])]
+        payoff_minus_M = eval_payoffs - eval_M
+        max_diff = np.max(payoff_minus_M, axis=1)
+        upper_bound = np.mean(max_diff + eval_M[:, 0])
+
+        return lower_bound, upper_bound, time_path_gen
