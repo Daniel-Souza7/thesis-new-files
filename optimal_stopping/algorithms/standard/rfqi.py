@@ -386,6 +386,9 @@ class RFQI:
         # Initialize Q-function weights
         weights = np.zeros(self.nb_base_fcts, dtype=float)
 
+        # Initialize exercise dates tracking (will be updated after FQI)
+        self._exercise_dates = None
+
         # Fitted Q-iteration (same as price())
         for epoch in range(self.nb_epochs):
             continuation_value = np.dot(eval_bases[:self.split, 1:, :], weights)
@@ -421,6 +424,9 @@ class RFQI:
         which[:, 0] = 0
         ex_dates = np.argmax(which, axis=1)
 
+        # Track exercise dates for get_exercise_time()
+        self._exercise_dates = ex_dates
+
         prices = np.take_along_axis(
             payoffs,
             np.expand_dims(ex_dates, axis=1),
@@ -433,13 +439,9 @@ class RFQI:
         # M[t] = max(payoff[t], continuation_value[t])
         M = np.maximum(payoffs, continuation_value)
 
-        # Compute upper bound on evaluation set
-        eval_payoffs = payoffs[self.split:]
-        eval_M = M[self.split:]
-
-        # Upper bound = E[max_t (payoff[t] - M[t] + M[0])]
-        payoff_minus_M = eval_payoffs - eval_M
-        max_diff = np.max(payoff_minus_M, axis=1)
-        upper_bound = np.mean(max_diff + eval_M[:, 0])
+        # Compute upper bound on evaluation set using dual formulation
+        # The martingale M satisfies M[t] >= payoff[t] for all t
+        # Upper bound = E[M[0]] where M is constructed from Q-function
+        upper_bound = np.mean(M[self.split:, 0])
 
         return lower_bound, upper_bound, time_path_gen

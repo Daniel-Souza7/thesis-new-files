@@ -233,6 +233,9 @@ class DeepOptimalStopping:
         # Clear previous learned networks
         self._learned_networks = {}
 
+        # Initialize exercise dates tracking (for get_exercise_time)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
+
         # Backward induction
         for date in range(self.model.nb_dates - 1, 0, -1):
             immediate_exercise = payoffs[:, date]
@@ -278,18 +281,19 @@ class DeepOptimalStopping:
             exercise_now = stopping_rule > 0.5
             values = np.where(exercise_now, immediate_exercise, discounted_values)
 
+            # Track exercise dates
+            self._exercise_dates[exercise_now] = date
+
             # Upper bound: update martingale M
             M[:, date] = np.maximum(immediate_exercise, continuation_estimate)
 
         # Lower bound
         lower_bound = np.mean(values[self.split:])
 
-        # Upper bound
-        eval_payoffs = payoffs[self.split:]
-        eval_M = M[self.split:]
-        payoff_minus_M = eval_payoffs - eval_M
-        max_diff = np.max(payoff_minus_M, axis=1)
-        upper_bound = np.mean(max_diff + eval_M[:, 0])
+        # Upper bound using dual formulation
+        # The martingale M satisfies M[t] >= payoff[t] for all t
+        # Upper bound = E[M[0]] where M is constructed via backward induction
+        upper_bound = np.mean(M[self.split:, 0])
 
         return lower_bound, upper_bound, time_path_gen
 

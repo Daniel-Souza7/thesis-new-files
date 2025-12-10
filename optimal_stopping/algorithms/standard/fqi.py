@@ -206,6 +206,9 @@ class FQIFast:
         # Evaluate basis functions
         eval_bases = self._evaluate_bases_all(paths, nb_dates_from_shape)
 
+        # Initialize exercise dates tracking (will be updated after FQI)
+        self._exercise_dates = None
+
         # FQI iterations
         for epoch in range(self.nb_epochs):
             q_values = self._predict(eval_bases[:self.split, 1:, :])
@@ -239,6 +242,9 @@ class FQIFast:
         exercise[:, 0] = 0
         ex_dates = np.argmax(exercise, axis=1)
 
+        # Track exercise dates for get_exercise_time()
+        self._exercise_dates = ex_dates
+
         prices = np.take_along_axis(
             payoffs, np.expand_dims(ex_dates, axis=1), axis=1
         ).reshape(-1) * disc_factor ** ex_dates
@@ -248,12 +254,10 @@ class FQIFast:
         # Upper bound: Construct martingale M
         M = np.maximum(payoffs, continuation_value)
 
-        # Compute upper bound on evaluation set
-        eval_payoffs = payoffs[self.split:]
-        eval_M = M[self.split:]
-        payoff_minus_M = eval_payoffs - eval_M
-        max_diff = np.max(payoff_minus_M, axis=1)
-        upper_bound = np.mean(max_diff + eval_M[:, 0])
+        # Compute upper bound on evaluation set using dual formulation
+        # The martingale M satisfies M[t] >= payoff[t] for all t
+        # Upper bound = E[M[0]] where M is constructed from Q-function
+        upper_bound = np.mean(M[self.split:, 0])
 
         return lower_bound, upper_bound, time_path_gen
 

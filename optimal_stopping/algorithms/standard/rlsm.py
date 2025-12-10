@@ -230,6 +230,9 @@ class RLSM:
         # Clear previous learned policy
         self._learned_coefficients = {}
 
+        # Initialize exercise dates tracking (for get_exercise_time)
+        self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
+
         # Backward induction from T-1 to 1
         for date in range(self.model.nb_dates - 1, 0, -1):
             # Current immediate exercise value
@@ -259,6 +262,9 @@ class RLSM:
             values[exercise_now] = immediate_exercise[exercise_now]
             values[~exercise_now] *= disc_factor
 
+            # Track exercise dates
+            self._exercise_dates[exercise_now] = date
+
             # Update martingale M for upper bound
             # M[t] = max(payoff[t], continuation_value[t])
             M[:, date] = np.maximum(immediate_exercise, continuation_values)
@@ -268,16 +274,9 @@ class RLSM:
         lower_bound = max(payoff_0[0], np.mean(values[self.split:]) * disc_factor)
 
         # Compute upper bound on evaluation set using dual formulation
-        # Upper bound = E[max_t (payoff[t] - M[t] + M[0])]
-        eval_payoffs = payoffs[self.split:]
-        eval_M = M[self.split:]
-
-        # Compute max_t (payoff[t] - M[t]) for each path
-        payoff_minus_M = eval_payoffs - eval_M
-        max_diff = np.max(payoff_minus_M, axis=1)
-
-        # Add M[0] back (martingale starting value)
-        upper_bound = np.mean(max_diff + eval_M[:, 0])
+        # The martingale M satisfies M[t] >= payoff[t] for all t
+        # Upper bound = E[M[0]] where M is constructed via backward induction
+        upper_bound = np.mean(M[self.split:, 0])
 
         return lower_bound, upper_bound, time_path_gen
 
