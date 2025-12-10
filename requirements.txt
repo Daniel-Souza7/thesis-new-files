@@ -11,7 +11,8 @@ psutil
 absl-py
 xlrd
 openpyxl
-git+https://github.com/FlorianKrach/Telegram-Bot-Install@v2.1.0
 fbm
 yfinance
 h5py
+gpytorch
+#git+https://github.com/FlorianKrach/Telegram-Bot-Install@v2.1.0
