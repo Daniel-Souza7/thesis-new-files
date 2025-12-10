@@ -2000,13 +2000,13 @@ test_bug4_real_data_init2 = _DefaultConfig(
 # Test Bug 6 Fix: create_video parameters (risk_free_rate, dividend)
 # Config suitable for create_video.py testing
 test_bug6_create_video = _DefaultConfig(
-    algos=['RLSM', 'Trinomial', 'LR', 'CRR'],
+    algos=['RLSM', 'LSM', 'DKL', 'ZAPQ', 'RDKL', 'RZAPQ'],
     stock_models=['BlackScholes'],
-    nb_stocks=[1],
-    nb_paths=[1000],
-    nb_dates=[10],
-    nb_runs=1,
-    payoffs=['BasketPut'],
+    nb_stocks=[1, 2, 3],
+    nb_paths=[50000],
+    nb_dates=[20],
+    nb_runs=3,
+    payoffs=['BasketPut', 'BasketCall', 'GeometricPut'],
     spots=[100],
     strikes=[100],
     volatilities=[0.2],
@@ -2015,6 +2015,7 @@ test_bug6_create_video = _DefaultConfig(
     dividends=[0.02],  # Should be passed to model
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
+    correlation=[0]
 )
 
 # Test Bug 7 Fix: K parameter validation
@@ -2290,3 +2291,35 @@ presentation = _DefaultConfig( nb_runs=1,
     barriers_down = (65,))
     #nb_epochs=[5, 10, 15, 20, 30, 50, 100],
     #hidden_size=[50],)
+
+# In configs.py or create a new config
+test_mesh = _DefaultConfig(
+    algos=['RLSM'],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[3],
+    nb_paths=[25000],
+    nb_dates=[10],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[-0.2, 0, 0.4, 0.8],
+    nb_runs=5,
+    risk_free_rate=[0.08],
+    drift=[0.08],)
+
+# In configs.py or create a new config
+test_deepnn = _DefaultConfig(
+    algos=['NLSM', 'DOS'],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[500],
+    nb_paths=[5000],
+    nb_dates=[10],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=2,
+    risk_free_rate=[0.08],
+    drift=[0.08],)

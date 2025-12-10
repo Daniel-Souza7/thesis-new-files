@@ -50,6 +50,9 @@ from optimal_stopping.algorithms.testing.stochastic_mesh import StochasticMesh
 from optimal_stopping.algorithms.testing.randomized_stochastic_mesh1 import RandomizedStochasticMesh1
 from optimal_stopping.algorithms.testing.randomized_stochastic_mesh2 import RandomizedStochasticMesh2
 
+from optimal_stopping.algorithms.deep_neural_networks.DOS import DeepOptimalStopping
+from optimal_stopping.algorithms.deep_neural_networks.NLSM import NeuralLSM
+
 # GLOBAL CLASSES
 class SendBotMessage:
     def __init__(self):
@@ -151,7 +154,7 @@ _ALGOS = {
     "FQIDeg1": FQIFastDeg1,
     "FQILaguerre": FQIFastLaguerre,
 
-    "NLSM": NeuralNetworkPricer,
+    "NLSM": NeuralLSM,
     "DOS": DeepOptimalStopping,
     "EOP": EuropeanOptionPrice,  # European option (exercise only at maturity)
 }

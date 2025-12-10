@@ -1,11 +1,11 @@
 """
-Randomized Stochastic Mesh Method - Version 1
+Randomized Stochastic Mesh Method - Version 1 - FIXED v2
 Neural Network for Continuation Value Approximation
 
-Uses stochastic mesh to generate training samples (state, continuation_value)
-and trains a randomized neural network to approximate Q(t,x).
-
-Similar to RLSM but with mesh-based targets instead of regression.
+FIXES:
+1. Use log-space computation for multi-asset density weights
+2. Normalize input features for neural network stability
+3. Handle None timing from model.generate_paths()
 """
 
 import time
@@ -15,27 +15,6 @@ import numpy as np
 class RandomizedStochasticMesh1:
     """
     RSM1: Use neural network to approximate continuation values from mesh samples.
-
-    Training:
-    - Generate mesh and compute weighted continuation values
-    - Train RNN to map (t, state) -> continuation_value
-    - Use NN predictions for pricing instead of mesh weights
-
-    Parameters:
-    -----------
-    model : StockModel
-        The underlying asset model
-    payoff : Payoff
-        The option payoff function
-    hidden_size : int, optional
-        Number of hidden units in randomized neural network (default: 20)
-    nb_paths : int, optional
-        Number of paths for training mesh (default: 1000)
-        Note: Mesh complexity is O(b²T), use smaller values than Monte Carlo!
-    use_payoff_as_input : bool, optional
-        Include current payoff in NN input (default: False)
-    **kwargs : dict
-        Additional arguments (ignored)
     """
 
     def __init__(self, model, payoff, hidden_size=20, nb_paths=1000,
@@ -55,246 +34,244 @@ class RandomizedStochasticMesh1:
         self.sigma = np.array(model.volatility).flatten()
         self.S0 = np.array(model.spot).flatten()
 
-        # Replicate scalar to all assets if needed
         if len(self.S0) == 1 and self.nb_stocks > 1:
             self.S0 = np.full(self.nb_stocks, self.S0[0])
         if len(self.sigma) == 1 and self.nb_stocks > 1:
             self.sigma = np.full(self.nb_stocks, self.sigma[0])
 
-        # Randomized neural network weights (initialized once)
+        # Feature normalization parameters (set during training)
+        self.feature_mean = None
+        self.feature_std = None
+
         self._initialize_network()
+
+    def _generate_paths_timed(self, nb_paths):
+        """Generate paths with explicit timing (handles None from model)."""
+        start_time = time.time()
+        result = self.model.generate_paths(nb_paths=nb_paths)
+        elapsed = time.time() - start_time
+
+        if isinstance(result, tuple):
+            paths = result[0]
+        else:
+            paths = result
+
+        return paths, elapsed
 
     def _initialize_network(self):
         """Initialize random weights for RNN (fixed, not trained)."""
-        # Input dimension: d assets + 1 (time) + (optionally) 1 (current payoff)
-        input_dim = self.nb_stocks + 1
+        input_dim = self.nb_stocks + 1  # normalized prices + time
         if self.use_payoff_as_input:
             input_dim += 1
 
-        # Random input-to-hidden weights (fixed)
-        self.W_in = np.random.randn(input_dim, self.hidden_size) / np.sqrt(input_dim)
-        self.b_in = np.random.randn(self.hidden_size)
-
-        # Output weights (trained via least squares)
-        self.W_out = None  # Computed during training
+        # Random input-to-hidden weights (fixed) - use smaller initialization
+        self.W_in = np.random.randn(input_dim, self.hidden_size) * 0.5
+        self.b_in = np.random.randn(self.hidden_size) * 0.1
+        self.W_out = None
 
     def _activation(self, x):
         """ReLU activation function."""
         return np.maximum(0, x)
 
-    def _forward(self, states, time_idx):
+    def _normalize_features(self, states, time_idx, payoffs=None, fit=False):
         """
-        Forward pass through randomized neural network.
+        Build and normalize input features for neural network.
 
-        Parameters:
-        -----------
-        states : array, shape (n, d)
-            State variables
-        time_idx : int
-            Time index (normalized to [0, 1])
-
-        Returns:
-        --------
-        predictions : array, shape (n,)
-            Predicted continuation values
+        Args:
+            states: (n, d) array of stock prices
+            time_idx: time index
+            payoffs: optional (n,) array of payoff values
+            fit: if True, compute normalization parameters
         """
         n = states.shape[0]
-
-        # Normalize time to [0, 1]
         t_normalized = time_idx / self.nb_dates
 
-        # Build input features
+        # Use log-prices for better scaling (prices are always positive)
+        log_states = np.log(states / self.S0[np.newaxis, :])  # Normalize by initial price
+
         features = np.column_stack([
-            states,  # Asset prices
-            np.full(n, t_normalized),  # Time
+            log_states,  # Log-normalized prices
+            np.full(n, t_normalized),
         ])
 
-        if self.use_payoff_as_input:
-            # Need to add time dimension for payoff: (n, d) -> (n, d, 1)
-            states_3d = states[:, :, np.newaxis]
-            payoffs = self.payoff(states_3d)  # Returns (n, 1)
-            payoffs_1d = payoffs[:, 0]  # Extract to (n,)
-            features = np.column_stack([features, payoffs_1d])
+        if self.use_payoff_as_input and payoffs is not None:
+            # Normalize payoffs by strike
+            norm_payoffs = payoffs / self.payoff.strike
+            features = np.column_stack([features, norm_payoffs])
 
-        # Hidden layer: h = activation(W_in @ x + b_in)
+        if fit:
+            self.feature_mean = np.mean(features, axis=0)
+            self.feature_std = np.std(features, axis=0) + 1e-8
+
+        if self.feature_mean is not None:
+            features = (features - self.feature_mean) / self.feature_std
+
+        return features
+
+    def _forward(self, states, time_idx, payoffs=None):
+        """Forward pass through randomized neural network."""
+        features = self._normalize_features(states, time_idx, payoffs, fit=False)
+
+        # Hidden layer
         hidden = self._activation(features @ self.W_in + self.b_in)
 
-        # Output layer: y = W_out @ h
         if self.W_out is None:
-            return np.zeros(n)  # Not trained yet
+            return np.zeros(states.shape[0])
 
         predictions = hidden @ self.W_out
 
+        # Ensure non-negative predictions (continuation values must be >= 0)
+        predictions = np.maximum(0, predictions)
+
         return predictions
 
-    def _transition_density(self, S_from, S_to, asset_idx=0):
-        """
-        Compute transition density for geometric Brownian motion.
-        Same as in StochasticMesh.
-        """
-        sigma = self.sigma[asset_idx] if self.nb_stocks > 1 else self.sigma[0]
-
-        S_from = np.atleast_1d(S_from)
-        S_to = np.atleast_1d(S_to)
-
-        mean = (self.r - 0.5 * sigma**2) * self.dt
-        var = sigma**2 * self.dt
-        std = np.sqrt(var)
-
-        log_ratio = np.log(S_to / S_from)
-        density = (1.0 / (S_to * std * np.sqrt(2 * np.pi))) * \
-                  np.exp(-0.5 * ((log_ratio - mean) / std)**2)
-
-        return density
-
     def _compute_mesh_weights(self, paths_prev, paths_curr, t):
-        """Compute stratified average density weights (same as SM)."""
-        b = self.nb_paths
-        weights = np.ones((b, b), dtype=np.float32)
+        """
+        Compute stratified average density weights using LOG-SPACE arithmetic.
+        Same as in StochasticMesh - prevents overflow for multi-asset.
+        """
+        b = paths_prev.shape[0]
+        weights = np.zeros((b, b), dtype=np.float64)
 
-        for asset_idx in range(self.nb_stocks):
-            asset_weights = np.zeros((b, b), dtype=np.float32)
+        for j in range(b):
+            log_densities = np.zeros(b, dtype=np.float64)
 
-            for j in range(b):
-                densities = np.array([
-                    self._transition_density(
-                        paths_prev[k, asset_idx],
-                        paths_curr[j, asset_idx],
-                        asset_idx
-                    )
-                    for k in range(b)
-                ])
+            for asset_idx in range(self.nb_stocks):
+                sigma = self.sigma[asset_idx] if len(self.sigma) > 1 else self.sigma[0]
 
-                avg_density = np.mean(densities)
+                mean = (self.r - 0.5 * sigma ** 2) * self.dt
+                var = sigma ** 2 * self.dt
+                std = np.sqrt(var)
 
-                for i in range(b):
-                    asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
+                S_from = paths_prev[:, asset_idx]
+                S_to = paths_curr[j, asset_idx]
 
-            # Clip individual asset weights to prevent extreme values
-            asset_weights = np.clip(asset_weights, 1e-6, 100)
+                log_ratio = np.log(S_to / S_from)
+                log_density = -np.log(S_to * std * np.sqrt(2 * np.pi)) \
+                              - 0.5 * ((log_ratio - mean) / std) ** 2
 
-            weights *= asset_weights
+                log_densities += log_density
 
-            # CRITICAL: Clip after each multiplication to prevent overflow
-            weights = np.clip(weights, 1e-6, 1e6)
+            max_log = np.max(log_densities)
+            densities = np.exp(log_densities - max_log)
 
-        return weights
+            avg_density = np.mean(densities)
+            if avg_density > 0:
+                weights[:, j] = densities / avg_density
+            else:
+                weights[:, j] = 1.0
+
+        weights = np.clip(weights, 0.01, 100.0)
+        return weights.astype(np.float32)
 
     def _train_network(self, paths):
-        """
-        Train neural network using mesh-generated continuation values.
-
-        For each mesh node at each time, compute target continuation value
-        using mesh weights, then train NN via least squares.
-
-        Parameters:
-        -----------
-        paths : array, shape (b, d, T+1)
-            Forward-simulated mesh paths
-        """
+        """Train neural network using mesh-generated continuation values."""
         b = self.nb_paths
         T = self.nb_dates
 
-        # Compute all payoffs upfront
-        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+        payoffs = self.payoff(paths)
 
-        # Collect training samples across all times and nodes
         all_features = []
         all_targets = []
 
-        # Initialize value function at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b, T + 1), dtype=np.float32)
+        Q = np.zeros((b, T + 1), dtype=np.float64)
         Q[:, T] = payoffs[:, T]
 
-        # Backward induction to generate training data
+        # First pass: collect all features to fit normalization
+        all_states = []
+        all_times = []
+        all_payoff_vals = []
+
+        for t in range(T - 1, -1, -1):
+            all_states.append(paths[:, :, t])
+            all_times.extend([t] * b)
+            if self.use_payoff_as_input:
+                all_payoff_vals.extend(payoffs[:, t])
+
+        # Fit normalization on all training data
+        all_states_arr = np.vstack(all_states)
+        dummy_features = self._normalize_features(
+            all_states_arr,
+            T // 2,  # Use middle time for fitting
+            fit=True
+        )
+
+        # Second pass: backward induction with normalized features
         for t in range(T - 1, -1, -1):
             paths_t = paths[:, :, t]
             paths_t1 = paths[:, :, t + 1]
 
             weights = self._compute_mesh_weights(paths_t, paths_t1, t)
 
-            # For each mesh node, compute target continuation value
             for i in range(b):
-                # Target: weighted continuation value from mesh
+                # Discounted continuation value from mesh
                 continuation_target = np.sum(Q[:, t + 1] * weights[i, :]) / b
+                continuation_target *= self.model.df  # Discount factor
 
-                # Handle NaN/inf from numerical issues
                 if not np.isfinite(continuation_target):
                     continuation_target = 0.0
 
-                # Store (state, time) -> continuation_value for training
-                t_normalized = t / self.nb_dates
-                features = np.concatenate([
-                    paths_t[i],  # State
-                    [t_normalized],  # Time
-                ])
+                # Build normalized features
+                payoff_val = payoffs[i, t] if self.use_payoff_as_input else None
+                features = self._normalize_features(
+                    paths_t[i:i + 1], t,
+                    np.array([payoff_val]) if payoff_val is not None else None,
+                    fit=False
+                )
 
-                if self.use_payoff_as_input:
-                    features = np.concatenate([features, [payoffs[i, t]]])
-
-                all_features.append(features)
+                all_features.append(features[0])
                 all_targets.append(continuation_target)
 
-                # Update Q for this node
                 exercise_value = payoffs[i, t]
                 Q[i, t] = max(exercise_value, continuation_target)
 
-        # Convert to arrays
-        X = np.array(all_features)  # (b*T, input_dim)
-        y = np.array(all_targets)  # (b*T,)
+        X = np.array(all_features)
+        y = np.array(all_targets)
 
         # Compute hidden layer activations
-        H = self._activation(X @ self.W_in + self.b_in)  # (b*T, hidden_size)
+        H = self._activation(X @ self.W_in + self.b_in)
 
-        # Train output weights via least squares: W_out = (H^T H)^{-1} H^T y
-        self.W_out = np.linalg.lstsq(H, y, rcond=None)[0]
+        # Ridge regression for stability
+        ridge_lambda = 0.01
+        HtH = H.T @ H + ridge_lambda * np.eye(H.shape[1])
+        Hty = H.T @ y
+        self.W_out = np.linalg.solve(HtH, Hty)
 
     def price(self, train_eval_split=None):
-        """
-        Price American option using randomized mesh with neural network.
-
-        Returns:
-        --------
-        price : float
-            Estimated option value
-        path_gen_time : float
-            Time spent generating paths (for run_algo.py to compute comp_time)
-        """
+        """Price American option using randomized mesh with neural network."""
         # Generate training mesh
-        train_paths, path_gen_time_train = self.model.generate_paths(nb_paths=self.nb_paths)
+        train_paths, path_gen_time_train = self._generate_paths_timed(nb_paths=self.nb_paths)
 
         # Train neural network on mesh samples
         self._train_network(train_paths)
 
-        # Price using neural network predictions (backward induction)
-        eval_paths, path_gen_time_eval = self.model.generate_paths(nb_paths=1000)
+        # Price using neural network predictions
+        eval_paths, path_gen_time_eval = self._generate_paths_timed(nb_paths=1000)
 
         b_eval = 1000
         T = self.nb_dates
 
-        # Compute all payoffs upfront
-        eval_payoffs = self.payoff(eval_paths)  # Shape: (b_eval, T+1)
+        eval_payoffs = self.payoff(eval_paths)
 
-        # Initialize at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b_eval, T + 1), dtype=np.float32)
+        Q = np.zeros((b_eval, T + 1), dtype=np.float64)
         Q[:, T] = eval_payoffs[:, T]
 
         # Backward induction using NN predictions
         for t in range(T - 1, -1, -1):
             states = eval_paths[:, :, t]
+            payoff_vals = eval_payoffs[:, t] if self.use_payoff_as_input else None
 
             # Predict continuation values using NN
-            continuation_values = self._forward(states, t)
+            continuation_values = self._forward(states, t, payoff_vals)
 
-            # Optimal decision
+            # Apply discount factor
+            continuation_values *= self.model.df
+
             for i in range(b_eval):
                 exercise_value = eval_payoffs[i, t]
                 Q[i, t] = max(exercise_value, continuation_values[i])
 
-        # Return average over all paths starting from S0
         price = np.mean(Q[:, 0])
-
-        # Return total path generation time
         total_path_gen_time = path_gen_time_train + path_gen_time_eval
 
         return float(price), float(total_path_gen_time)

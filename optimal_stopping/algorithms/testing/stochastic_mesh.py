@@ -1,12 +1,11 @@
 """
-Stochastic Mesh Method for American Option Pricing
+Stochastic Mesh Method for American Option Pricing - FIXED v2
 Based on Broadie & Glasserman (2004)
 
-Implementation of the classic mesh algorithm with:
-- Stratified average density method (variance reduction)
-- High-biased mesh estimator
-- Low-biased path estimator
-- Control variates (optional)
+FIXES:
+1. Use log-space computation for multi-asset density weights (prevents overflow)
+2. Proper row normalization of weights
+3. Handle None timing from model.generate_paths()
 """
 
 import time
@@ -17,34 +16,14 @@ import math
 class StochasticMesh:
     """
     Stochastic Mesh Method (Broadie & Glasserman 2004).
-
-    Generates a mesh of forward paths and prices American options using
-    weighted backward induction. Provides both high-biased mesh estimate
-    and low-biased path estimate for confidence intervals.
-
-    Parameters:
-    -----------
-    model : StockModel
-        The underlying asset model (must be BlackScholes for transition densities)
-    payoff : Payoff
-        The option payoff function
-    nb_paths : int, optional
-        Number of paths in mesh (denoted 'b' in paper, default: 500)
-        Note: Mesh complexity is O(b²T), so use smaller values than Monte Carlo!
-    nb_path_estimates : int, optional
-        Number of independent paths for lower bound estimator (default: nb_paths)
-    use_control_variates : bool, optional
-        Whether to use European value as control variate (default: True)
-    **kwargs : dict
-        Ignored (for compatibility with other algorithms)
     """
 
     def __init__(self, model, payoff, nb_paths=500, nb_path_estimates=None,
                  use_control_variates=True, **kwargs):
         self.model = model
         self.payoff = payoff
-        self.b = nb_paths  # Mesh size
-        self.nb_path_estimates = nb_path_estimates or nb_paths
+        self.b = nb_paths
+        self.nb_path_estimates = nb_path_estimates or min(nb_paths, 100)  # Limit for speed
         self.use_control_variates = use_control_variates
 
         # Extract model parameters
@@ -56,323 +35,173 @@ class StochasticMesh:
         self.sigma = np.array(model.volatility).flatten()
         self.S0 = np.array(model.spot).flatten()
 
-        # Replicate scalar to all assets if needed
         if len(self.S0) == 1 and self.nb_stocks > 1:
             self.S0 = np.full(self.nb_stocks, self.S0[0])
         if len(self.sigma) == 1 and self.nb_stocks > 1:
             self.sigma = np.full(self.nb_stocks, self.sigma[0])
 
-        # Check model compatibility
         model_name = type(model).__name__
         if model_name not in ['BlackScholes', 'BlackScholesModel']:
             import warnings
             warnings.warn(
-                f"Stochastic Mesh is designed for Black-Scholes models with known "
-                f"transition densities. Your model is {model_name}. "
-                f"Results may be inaccurate.",
+                f"Stochastic Mesh is designed for Black-Scholes models. "
+                f"Your model is {model_name}. Results may be inaccurate.",
                 UserWarning
             )
 
-    def _transition_density(self, S_from, S_to, asset_idx=0):
-        """
-        Compute transition density f(t, x, y) for geometric Brownian motion.
+    def _generate_paths_timed(self, nb_paths):
+        """Generate paths with explicit timing (handles None from model)."""
+        start_time = time.time()
+        result = self.model.generate_paths(nb_paths=nb_paths)
+        elapsed = time.time() - start_time
 
-        For Black-Scholes: log(S_{t+1}/S_t) ~ N((r - σ²/2)Δt, σ²Δt)
+        if isinstance(result, tuple):
+            paths = result[0]
+        else:
+            paths = result
 
-        Parameters:
-        -----------
-        S_from : float or array
-            Current state value(s)
-        S_to : float or array
-            Next state value(s)
-        asset_idx : int
-            Which asset (for multi-dimensional case)
-
-        Returns:
-        --------
-        density : float or array
-            Transition probability density
-        """
-        sigma = self.sigma[asset_idx] if self.nb_stocks > 1 else self.sigma[0]
-
-        # Handle scalar or array inputs
-        S_from = np.atleast_1d(S_from)
-        S_to = np.atleast_1d(S_to)
-
-        # Mean and variance of log(S_{t+1}/S_t)
-        mean = (self.r - 0.5 * sigma**2) * self.dt
-        var = sigma**2 * self.dt
-        std = np.sqrt(var)
-
-        # Lognormal density
-        log_ratio = np.log(S_to / S_from)
-        density = (1.0 / (S_to * std * np.sqrt(2 * np.pi))) * \
-                  np.exp(-0.5 * ((log_ratio - mean) / std)**2)
-
-        return density
+        return paths, elapsed
 
     def _compute_mesh_weights(self, paths_prev, paths_curr, t):
         """
-        Compute stratified average density weights.
+        Compute stratified average density weights using LOG-SPACE arithmetic.
 
-        Weight from node i at time t-1 to node j at time t:
-        w(i,j) = f(t-1, X_{t-1}(i), X_t(j)) / [(1/b) * sum_k f(t-1, X_{t-1}(k), X_t(j))]
+        This prevents numerical overflow when multiplying densities across assets.
 
-        This is the stratified implementation of average density method.
+        Weight formula: w(i,j) = f(x_i, y_j) / [(1/b) * sum_k f(x_k, y_j)]
 
-        Parameters:
-        -----------
-        paths_prev : array, shape (b, d)
-            Mesh points at time t-1
-        paths_curr : array, shape (b, d)
-            Mesh points at time t
-        t : int
-            Current time index
-
-        Returns:
-        --------
-        weights : array, shape (b, b)
-            weights[i,j] = weight from node i to node j
+        For multi-asset with independent GBM:
+        f(x, y) = prod_d f_d(x^d, y^d)
+        log f(x, y) = sum_d log f_d(x^d, y^d)
         """
-        b = self.b
-        weights = np.ones((b, b), dtype=np.float32)
+        b = paths_prev.shape[0]
+        weights = np.zeros((b, b), dtype=np.float64)
 
-        # For multi-asset, compute product of marginal densities
-        # (assumes independence under GBM, which holds for our case)
-        for asset_idx in range(self.nb_stocks):
-            asset_weights = np.zeros((b, b), dtype=np.float32)
+        for j in range(b):
+            # Compute log of joint density for all source nodes i to target node j
+            log_densities = np.zeros(b, dtype=np.float64)
 
-            for j in range(b):
-                # Compute f(t-1, X_{t-1}(k), X_t(j)) for all k
-                densities = np.array([
-                    self._transition_density(
-                        paths_prev[k, asset_idx],
-                        paths_curr[j, asset_idx],
-                        asset_idx
-                    )
-                    for k in range(b)
-                ])
+            for asset_idx in range(self.nb_stocks):
+                sigma = self.sigma[asset_idx] if len(self.sigma) > 1 else self.sigma[0]
 
-                # Average density: g(t, X_t(j)) = (1/b) * sum_k f(...)
-                avg_density = np.mean(densities)
+                mean = (self.r - 0.5 * sigma**2) * self.dt
+                var = sigma**2 * self.dt
+                std = np.sqrt(var)
 
-                # Stratified weights
-                for i in range(b):
-                    asset_weights[i, j] = densities[i] / (avg_density + 1e-10)
+                S_from = paths_prev[:, asset_idx]  # Shape: (b,)
+                S_to = paths_curr[j, asset_idx]    # Scalar
 
-            # Clip individual asset weights to prevent extreme values
-            asset_weights = np.clip(asset_weights, 1e-6, 100)
+                # Log of lognormal density: log f(S_from -> S_to)
+                log_ratio = np.log(S_to / S_from)
+                log_density = -np.log(S_to * std * np.sqrt(2 * np.pi)) \
+                             - 0.5 * ((log_ratio - mean) / std)**2
 
-            # Multiply across assets (independence assumption)
-            weights *= asset_weights
+                log_densities += log_density  # Sum in log space = product in linear space
 
-            # CRITICAL: Clip after each multiplication to prevent overflow
-            # With d=15, even 100^15 would overflow, so clip aggressively
-            weights = np.clip(weights, 1e-6, 1e6)
+            # Convert to linear space using log-sum-exp trick for stability
+            max_log = np.max(log_densities)
+            densities = np.exp(log_densities - max_log)
 
-        return weights
+            # Stratified weight: f(x_i, y_j) / avg_k f(x_k, y_j)
+            avg_density = np.mean(densities)
+            if avg_density > 0:
+                weights[:, j] = densities / avg_density
+            else:
+                weights[:, j] = 1.0  # Fallback to uniform
+
+        # Clip to prevent extreme values (should be centered around 1.0 now)
+        weights = np.clip(weights, 0.01, 100.0)
+
+        return weights.astype(np.float32)
 
     def _mesh_estimator(self, paths):
-        """
-        Compute high-biased mesh estimator using backward induction.
-
-        Q(t, X_t(i)) = max(h(t, X_t(i)), (1/b) * sum_j Q(t+1, X_{t+1}(j)) * w(i,j))
-
-        Parameters:
-        -----------
-        paths : array, shape (b, d, T+1)
-            Forward-simulated mesh paths
-
-        Returns:
-        --------
-        mesh_estimate : float
-            High-biased estimate of option value
-        Q_values : array, shape (b, T+1)
-            Estimated continuation values at all mesh nodes (for path estimator)
-        """
+        """Compute high-biased mesh estimator using backward induction."""
         b = self.b
         T = self.nb_dates
 
-        # Compute all payoffs upfront
         payoffs = self.payoff(paths)  # Shape: (b, T+1)
 
-        # DEBUG: Check payoffs at maturity
-        try:
-            with open('mesh_debug.log', 'a') as f:
-                f.write(f"\n{'='*60}\n")
-                f.write(f"SM _mesh_estimator\n")
-                f.write(f"paths shape: {paths.shape}\n")
-                f.write(f"payoffs shape: {payoffs.shape}\n")
-                f.write(f"Sample paths[0, :, T]: {paths[0, :, T]}\n")
-                f.write(f"Sample payoffs[0, T]: {payoffs[0, T]}\n")
-                f.write(f"payoffs[:5, T]: {payoffs[:5, T]}\n")
-                f.write(f"payoffs at T - mean: {np.mean(payoffs[:, T])}, max: {np.max(payoffs[:, T])}\n")
-        except Exception as e:
-            print(f"SM DEBUG ERROR: {e}")
-
-        # Initialize value function at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b, T + 1), dtype=np.float32)
+        Q = np.zeros((b, T + 1), dtype=np.float64)
         Q[:, T] = payoffs[:, T]
 
-        # Backward induction
         for t in range(T - 1, -1, -1):
-            # Compute weights from time t to time t+1
-            paths_t = paths[:, :, t]  # (b, d)
-            paths_t1 = paths[:, :, t + 1]  # (b, d)
+            paths_t = paths[:, :, t]
+            paths_t1 = paths[:, :, t + 1]
 
             weights = self._compute_mesh_weights(paths_t, paths_t1, t)
 
-            # For each mesh node at time t
             for i in range(b):
-                # Immediate exercise value
                 exercise_value = payoffs[i, t]
 
-                # Continuation value: weighted average over next time step
+                # Continuation value: weighted average with discount
+                # weights are normalized so we divide by b
                 continuation_value = np.sum(Q[:, t + 1] * weights[i, :]) / b
 
-                # Handle NaN/inf from numerical issues
+                # Discount factor
+                continuation_value *= self.model.df
+
                 if not np.isfinite(continuation_value):
                     continuation_value = 0.0
 
-                # Optimal value
                 Q[i, t] = max(exercise_value, continuation_value)
 
-            # DEBUG: Log first time step
-            if t == 0:
-                try:
-                    with open('mesh_debug.log', 'a') as f:
-                        f.write(f"At t=0:\n")
-                        f.write(f"  Q[:5, 0] = {Q[:5, 0]}\n")
-                        f.write(f"  weights[0, :5] = {weights[0, :5]}\n")
-                        f.write(f"  exercise_value[0] = {payoffs[0, 0]}\n")
-                        f.write(f"  Q[0, 1] values: {Q[:5, 1]}\n")
-                except Exception as e:
-                    print(f"SM t=0 DEBUG ERROR: {e}")
-
-        # Mesh estimate is value at initial node
         return Q[0, 0], Q
 
     def _path_estimator(self, Q_values, mesh_paths):
-        """
-        Compute low-biased path estimator using mesh stopping rule.
-
-        Simulates independent paths and stops at τ = min{t : h(t,S_t) >= Q(t,S_t)}
-
-        Parameters:
-        -----------
-        Q_values : array, shape (b, T+1)
-            Mesh continuation values
-        mesh_paths : array, shape (b, d, T+1)
-            Original mesh paths (for interpolation)
-
-        Returns:
-        --------
-        path_estimate : float
-            Low-biased estimate (average over multiple paths)
-        """
+        """Compute low-biased path estimator using mesh stopping rule."""
         path_payoffs = []
 
         for _ in range(self.nb_path_estimates):
-            # Generate independent path
-            path, _ = self.model.generate_paths(nb_paths=1)
-            # path shape: (1, d, T+1)
+            path, _ = self._generate_paths_timed(nb_paths=1)
+            path_payoffs_all = self.payoff(path)
 
-            # Compute payoffs for this path
-            path_payoffs_all = self.payoff(path)  # Shape: (1, T+1)
-
-            # Determine stopping time using mesh estimate
+            stopped = False
             for t in range(self.nb_dates):
                 exercise_value = path_payoffs_all[0, t]
 
-                # Estimate Q(t, S_t) by finding nearest mesh node
-                # and using its continuation value
-                S_t = path[0, :, t]  # Shape: (d,)
-                mesh_states = mesh_paths[:, :, t]  # Shape: (b, d)
+                S_t = path[0, :, t]
+                mesh_states = mesh_paths[:, :, t]
 
-                # Find nearest neighbor in mesh (simple approach)
                 distances = np.linalg.norm(mesh_states - S_t[np.newaxis, :], axis=1)
                 nearest_idx = np.argmin(distances)
                 estimated_Q = Q_values[nearest_idx, t]
 
-                # Stop if exercise >= continuation
-                if exercise_value >= estimated_Q:
+                if exercise_value >= estimated_Q and exercise_value > 0:
                     path_payoffs.append(exercise_value)
+                    stopped = True
                     break
-            else:
-                # Reached maturity without exercising
+
+            if not stopped:
                 path_payoffs.append(path_payoffs_all[0, self.nb_dates])
 
-        return np.mean(path_payoffs)
+        return np.mean(path_payoffs) if path_payoffs else 0.0
 
     def _european_control(self, paths):
-        """
-        Compute European option value as control variate.
-
-        European value = E[h(T, S_T)] = (1/b) * sum_i h(T, X_T(i))
-
-        Parameters:
-        -----------
-        paths : array, shape (b, d, T+1)
-            Forward-simulated paths
-
-        Returns:
-        --------
-        european_value : float
-            European option value (known/analytical if available)
-        mesh_european : float
-            Mesh estimate of European value
-        """
-        # Mesh estimate: average terminal payoffs
-        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+        """Compute European option value as control variate."""
+        payoffs = self.payoff(paths)
         mesh_european = np.mean(payoffs[:, -1])
 
-        # For simple payoffs, could compute analytical European value
-        # For now, use Monte Carlo estimate as "known" value
-        eur_paths, _ = self.model.generate_paths(nb_paths=10000)
-        eur_payoffs = self.payoff(eur_paths)  # Shape: (10000, T+1)
+        eur_paths, _ = self._generate_paths_timed(nb_paths=10000)
+        eur_payoffs = self.payoff(eur_paths)
         european_value = np.mean(eur_payoffs[:, -1])
 
         return european_value, mesh_european
 
     def price(self, train_eval_split=None):
-        """
-        Price American option using stochastic mesh method.
+        """Price American option using stochastic mesh method."""
+        mesh_paths, path_gen_time = self._generate_paths_timed(nb_paths=self.b)
 
-        Returns both high-biased mesh estimate and low-biased path estimate.
-
-        Parameters:
-        -----------
-        train_eval_split : ignored (for compatibility)
-
-        Returns:
-        --------
-        price : float
-            Midpoint of [path_estimate, mesh_estimate] interval
-        path_gen_time : float
-            Time spent generating paths (for run_algo.py to compute comp_time)
-        """
-        # Generate mesh: b independent forward paths
-        mesh_paths, path_gen_time = self.model.generate_paths(nb_paths=self.b)
-        # mesh_paths shape: (b, d, T+1)
-
-        # Compute high-biased mesh estimator
         mesh_estimate, Q_values = self._mesh_estimator(mesh_paths)
-
-        # Compute low-biased path estimator
         path_estimate = self._path_estimator(Q_values, mesh_paths)
 
-        # Apply control variates if requested
         if self.use_control_variates:
             european_value, mesh_european = self._european_control(mesh_paths)
             control_adjustment = european_value - mesh_european
             mesh_estimate += control_adjustment
 
-        # Return midpoint of confidence interval as price estimate
         price = (mesh_estimate + path_estimate) / 2.0
 
-        # Store estimates for diagnostics
         self.mesh_estimate = mesh_estimate
         self.path_estimate = path_estimate
 
-        # Return path_gen_time so run_algo.py can compute comp_time = total - path_gen
         return float(price), float(path_gen_time)

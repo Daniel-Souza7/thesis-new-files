@@ -1,11 +1,12 @@
 """
-Randomized Stochastic Mesh Method - Version 2
+Randomized Stochastic Mesh Method - Version 2 - FIXED v2
 Neural Network for Optimal Weight Learning
 
-Uses randomized neural network to learn the optimal weighting function w(t,x,y)
-instead of using analytical transition densities.
-
-Meta-learning approach: train NN to minimize pricing error on known options (European).
+FIXES:
+1. Use log-space computation for multi-asset density weights
+2. Normalize input features for neural network stability
+3. Handle None timing from model.generate_paths()
+4. Proper weight normalization in learned weights
 """
 
 import time
@@ -15,28 +16,6 @@ import numpy as np
 class RandomizedStochasticMesh2:
     """
     RSM2: Use neural network to learn optimal mesh weighting function.
-
-    Training:
-    - Generate multiple meshes
-    - For each, compute European value using different weight functions
-    - Train RNN to predict weights that minimize pricing error vs analytical European
-    - Use learned weights for American option pricing
-
-    Parameters:
-    -----------
-    model : StockModel
-        The underlying asset model
-    payoff : Payoff
-        The option payoff function
-    hidden_size : int, optional
-        Number of hidden units in randomized neural network (default: 20)
-    nb_paths : int, optional
-        Number of paths in mesh (default: 500)
-        Note: Mesh complexity is O(b²T), use smaller values than Monte Carlo!
-    use_payoff_as_input : bool, optional
-        Include payoff features in NN input (default: False)
-    **kwargs : dict
-        Additional arguments (ignored)
     """
 
     def __init__(self, model, payoff, hidden_size=20, nb_paths=500,
@@ -56,152 +35,109 @@ class RandomizedStochasticMesh2:
         self.sigma = np.array(model.volatility).flatten()
         self.S0 = np.array(model.spot).flatten()
 
-        # Replicate scalar to all assets if needed
         if len(self.S0) == 1 and self.nb_stocks > 1:
             self.S0 = np.full(self.nb_stocks, self.S0[0])
         if len(self.sigma) == 1 and self.nb_stocks > 1:
             self.sigma = np.full(self.nb_stocks, self.sigma[0])
 
-        # Initialize neural network for weight prediction
+        # Feature normalization parameters
+        self.feature_mean = None
+        self.feature_std = None
+
         self._initialize_network()
 
-    def _initialize_network(self):
-        """
-        Initialize randomized neural network for weight function.
+    def _generate_paths_timed(self, nb_paths):
+        """Generate paths with explicit timing (handles None from model)."""
+        start_time = time.time()
+        result = self.model.generate_paths(nb_paths=nb_paths)
+        elapsed = time.time() - start_time
 
-        Input: (time, S_from, S_to, distance, payoff_diff, ...)
-        Output: weight w(t, x, y)
-        """
-        # Input features: time + S_from (d) + S_to (d) + derived features
-        # Derived: distance, payoff difference, etc.
-        base_dim = 1 + 2 * self.nb_stocks  # time + from + to
-        derived_dim = 2  # distance, payoff_diff
+        if isinstance(result, tuple):
+            paths = result[0]
+        else:
+            paths = result
+
+        return paths, elapsed
+
+    def _initialize_network(self):
+        """Initialize randomized neural network for weight function."""
+        # Input: time + log(S_from/S0) + log(S_to/S0) + derived features
+        base_dim = 1 + 2 * self.nb_stocks  # time + from + to (log-normalized)
+        derived_dim = 2  # log_distance, payoff_diff_normalized
         input_dim = base_dim + derived_dim
 
         if self.use_payoff_as_input:
-            input_dim += 2  # payoff(from), payoff(to)
+            input_dim += 2
 
-        # Random frozen weights
-        self.W_in = np.random.randn(input_dim, self.hidden_size) / np.sqrt(input_dim)
-        self.b_in = np.random.randn(self.hidden_size)
-
-        # Output weights (trained)
+        self.W_in = np.random.randn(input_dim, self.hidden_size) * 0.5
+        self.b_in = np.random.randn(self.hidden_size) * 0.1
         self.W_out = None
 
     def _activation(self, x):
         """ReLU activation."""
         return np.maximum(0, x)
 
-    def _build_weight_features(self, S_from, S_to, t):
+    def _build_weight_features(self, S_from, S_to, t, fit=False):
         """
-        Build input features for weight prediction network.
-
-        Parameters:
-        -----------
-        S_from : array, shape (d,)
-            Current state
-        S_to : array, shape (d,)
-            Next state
-        t : int
-            Time index
-
-        Returns:
-        --------
-        features : array
-            Feature vector for NN input
+        Build normalized input features for weight prediction network.
         """
         t_normalized = t / self.nb_dates
 
-        # Base features
-        features = np.concatenate([
-            [t_normalized],
-            S_from,
-            S_to,
-        ])
+        # Use log-normalized prices for stability
+        log_from = np.log(S_from / self.S0)
+        log_to = np.log(S_to / self.S0)
 
-        # Derived features
-        distance = np.linalg.norm(S_to - S_from)
+        # Log distance (more stable than linear distance)
+        log_distance = np.log(1 + np.linalg.norm(S_to - S_from) / np.mean(self.S0))
 
-        # For payoff, we need to call it properly
-        # Reshape to (1, d) for single state payoff computation
-        S_from_2d = S_from.reshape(1, -1)
-        S_to_2d = S_to.reshape(1, -1)
-
-        # Create dummy time dimension for payoff
-        # Shape needs to be (1, d, 1) for payoff to work
-        S_from_3d = S_from_2d[:, :, np.newaxis]
-        S_to_3d = S_to_2d[:, :, np.newaxis]
+        # Payoff difference normalized by strike
+        S_from_3d = S_from.reshape(1, -1, 1)
+        S_to_3d = S_to.reshape(1, -1, 1)
 
         payoff_from = self.payoff(S_from_3d)[0, 0]
         payoff_to = self.payoff(S_to_3d)[0, 0]
-        payoff_diff = payoff_to - payoff_from
+        payoff_diff = (payoff_to - payoff_from) / self.payoff.strike
 
         features = np.concatenate([
-            features,
-            [distance, payoff_diff],
+            [t_normalized],
+            log_from,
+            log_to,
+            [log_distance, payoff_diff],
         ])
 
         if self.use_payoff_as_input:
-            features = np.concatenate([features, [payoff_from, payoff_to]])
+            norm_payoff_from = payoff_from / self.payoff.strike
+            norm_payoff_to = payoff_to / self.payoff.strike
+            features = np.concatenate([features, [norm_payoff_from, norm_payoff_to]])
 
         return features
 
     def _predict_weight(self, S_from, S_to, t):
-        """
-        Predict weight using neural network.
-
-        Parameters:
-        -----------
-        S_from : array
-            Current state
-        S_to : array
-            Next state
-        t : int
-            Time index
-
-        Returns:
-        --------
-        weight : float
-            Predicted weight (>= 0)
-        """
+        """Predict weight using neural network."""
         features = self._build_weight_features(S_from, S_to, t)
 
-        # Forward pass
+        if self.feature_mean is not None:
+            features = (features - self.feature_mean) / self.feature_std
+
         hidden = self._activation(features @ self.W_in + self.b_in)
 
         if self.W_out is None:
-            # Not trained: use uniform weights
             return 1.0
 
-        raw_weight = hidden @ self.W_out
+        # Output is log-weight for numerical stability
+        log_weight = hidden @ self.W_out
 
-        # Ensure non-negative weights
-        weight = np.exp(raw_weight)  # Always positive
+        # Clip log-weight to prevent extreme values
+        log_weight = np.clip(log_weight, -5, 5)
+        weight = np.exp(log_weight)
 
         return weight
 
     def _compute_learned_weights(self, paths_prev, paths_curr, t):
-        """
-        Compute weights using learned neural network.
+        """Compute weights using learned neural network."""
+        b = paths_prev.shape[0]
+        weights = np.zeros((b, b), dtype=np.float64)
 
-        Parameters:
-        -----------
-        paths_prev : array, shape (b, d)
-            States at time t-1
-        paths_curr : array, shape (b, d)
-            States at time t
-        t : int
-            Time index
-
-        Returns:
-        --------
-        weights : array, shape (b, b)
-            Normalized weights[i,j] from node i to node j
-        """
-        b = self.nb_paths
-        weights = np.zeros((b, b), dtype=np.float32)
-
-        # Predict weights using NN
         for i in range(b):
             for j in range(b):
                 weights[i, j] = self._predict_weight(
@@ -210,116 +146,117 @@ class RandomizedStochasticMesh2:
                     t
                 )
 
-            # Normalize weights for each row (from node i)
+            # Normalize each row to sum to b (so dividing by b gives probability)
             row_sum = np.sum(weights[i, :])
             if row_sum > 0:
-                weights[i, :] /= row_sum
+                weights[i, :] = weights[i, :] * b / row_sum
             else:
-                weights[i, :] = 1.0 / b  # Uniform if all zero
+                weights[i, :] = 1.0
 
+        return weights.astype(np.float32)
+
+    def _compute_analytical_weights(self, paths_prev, paths_curr, t):
+        """
+        Compute stratified average density weights using LOG-SPACE arithmetic.
+        Used as training target.
+        """
+        b = paths_prev.shape[0]
+        weights = np.zeros((b, b), dtype=np.float64)
+
+        for j in range(b):
+            log_densities = np.zeros(b, dtype=np.float64)
+
+            for asset_idx in range(self.nb_stocks):
+                sigma = self.sigma[asset_idx] if len(self.sigma) > 1 else self.sigma[0]
+
+                mean = (self.r - 0.5 * sigma ** 2) * self.dt
+                var = sigma ** 2 * self.dt
+                std = np.sqrt(var)
+
+                S_from = paths_prev[:, asset_idx]
+                S_to = paths_curr[j, asset_idx]
+
+                log_ratio = np.log(S_to / S_from)
+                log_density = -np.log(S_to * std * np.sqrt(2 * np.pi)) \
+                              - 0.5 * ((log_ratio - mean) / std) ** 2
+
+                log_densities += log_density
+
+            max_log = np.max(log_densities)
+            densities = np.exp(log_densities - max_log)
+
+            avg_density = np.mean(densities)
+            if avg_density > 0:
+                weights[:, j] = densities / avg_density
+            else:
+                weights[:, j] = 1.0
+
+        weights = np.clip(weights, 0.01, 100.0)
         return weights
 
     def _train_network_on_european(self, num_training_meshes=10):
-        """
-        Train weight network to minimize European option pricing error.
-
-        Strategy:
-        1. Generate multiple meshes
-        2. For each mesh, compute European value using NN weights
-        3. Compare to analytical/Monte Carlo European value
-        4. Minimize squared error via least squares on output weights
-
-        Parameters:
-        -----------
-        num_training_meshes : int
-            Number of meshes for training
-        """
-        try:
-            # Compute "true" European value via high-quality Monte Carlo
-            eur_paths, _ = self.model.generate_paths(nb_paths=50000)
-            eur_payoffs = self.payoff(eur_paths)  # Shape: (50000, T+1)
-            true_european = np.mean(eur_payoffs[:, -1])
-        except Exception as e:
-            print(f"WARNING: RSM2 training failed during European value computation: {e}")
-            # Use smaller sample as fallback
-            eur_paths, _ = self.model.generate_paths(nb_paths=5000)
-            eur_payoffs = self.payoff(eur_paths)
-            true_european = np.mean(eur_payoffs[:, -1])
-
-        # Collect training samples
+        """Train weight network using analytical weights as targets."""
         all_features = []
-        all_weights = []  # Target: contribution to European value
+        all_log_weights = []
 
         for mesh_idx in range(num_training_meshes):
-            # Generate mesh
-            paths, _ = self.model.generate_paths(nb_paths=self.nb_paths)
+            paths, _ = self._generate_paths_timed(nb_paths=self.nb_paths)
             b = self.nb_paths
             T = self.nb_dates
 
-            # For European option, value at time 0 should be:
-            # (1/b) * sum_j h(T, X_T(j)) * L(T,j)
-            # where L(T,j) is product of likelihood ratios along path to j
-
-            # We want to learn weights that make this accurate
-            # Simplification: focus on final time step weights
-            for t in range(T - 1, T):  # Just last transition for simplicity
+            # Use analytical weights as training targets
+            for t in range(T - 1, T):
                 paths_t = paths[:, :, t]
-                paths_T = paths[:, :, T]
+                paths_t1 = paths[:, :, t + 1]
+
+                # Get analytical weights
+                analytical_weights = self._compute_analytical_weights(paths_t, paths_t1, t)
 
                 for i in range(b):
                     for j in range(b):
-                        # Build features
                         features = self._build_weight_features(
                             paths_t[i],
-                            paths_T[j],
+                            paths_t1[j],
                             t
                         )
                         all_features.append(features)
 
-                        # Target weight: should upweight paths that contribute
-                        # correctly to European value
-                        # For now, use uniform as target (simplified training)
-                        target_weight = 1.0 / b
-                        all_weights.append(target_weight)
+                        # Target: log of analytical weight
+                        target_log_weight = np.log(analytical_weights[i, j] + 1e-10)
+                        all_log_weights.append(target_log_weight)
 
-        # Convert to arrays
         X = np.array(all_features)
-        y = np.array(all_weights)
+        y = np.array(all_log_weights)
+
+        # Fit normalization
+        self.feature_mean = np.mean(X, axis=0)
+        self.feature_std = np.std(X, axis=0) + 1e-8
+        X_norm = (X - self.feature_mean) / self.feature_std
 
         # Compute hidden layer
-        H = self._activation(X @ self.W_in + self.b_in)
+        H = self._activation(X_norm @ self.W_in + self.b_in)
 
-        # Train output via least squares
-        # Since weights must be positive, train to predict log(weight)
-        y_log = np.log(y + 1e-10)
-        self.W_out = np.linalg.lstsq(H, y_log, rcond=None)[0]
+        # Ridge regression for stability
+        ridge_lambda = 0.1
+        HtH = H.T @ H + ridge_lambda * np.eye(H.shape[1])
+        Hty = H.T @ y
+        self.W_out = np.linalg.solve(HtH, Hty)
 
     def price(self, train_eval_split=None):
-        """
-        Price American option using learned weight function.
-
-        Returns:
-        --------
-        price : float
-            Estimated option value
-        path_gen_time : float
-            Time spent generating paths (for run_algo.py to compute comp_time)
-        """
-        # Train weight network (if not already trained)
+        """Price American option using learned weight function."""
+        # Train weight network
         if self.W_out is None:
             self._train_network_on_european(num_training_meshes=5)
 
         # Generate mesh for pricing
-        paths, path_gen_time = self.model.generate_paths(nb_paths=self.nb_paths)
+        paths, path_gen_time = self._generate_paths_timed(nb_paths=self.nb_paths)
 
         b = self.nb_paths
         T = self.nb_dates
 
-        # Compute all payoffs upfront
-        payoffs = self.payoff(paths)  # Shape: (b, T+1)
+        payoffs = self.payoff(paths)
 
-        # Initialize at maturity (use float32 for memory efficiency)
-        Q = np.zeros((b, T + 1), dtype=np.float32)
+        Q = np.zeros((b, T + 1), dtype=np.float64)
         Q[:, T] = payoffs[:, T]
 
         # Backward induction using learned weights
@@ -327,20 +264,21 @@ class RandomizedStochasticMesh2:
             paths_t = paths[:, :, t]
             paths_t1 = paths[:, :, t + 1]
 
-            # Compute weights using learned NN
             weights = self._compute_learned_weights(paths_t, paths_t1, t)
 
             for i in range(b):
                 exercise_value = payoffs[i, t]
-                continuation_value = np.sum(Q[:, t + 1] * weights[i, :])
 
-                # Handle NaN/inf from numerical issues
+                # Weighted continuation value
+                continuation_value = np.sum(Q[:, t + 1] * weights[i, :]) / b
+                continuation_value *= self.model.df  # Discount
+
                 if not np.isfinite(continuation_value):
                     continuation_value = 0.0
 
                 Q[i, t] = max(exercise_value, continuation_value)
 
-        # Price is value at initial node
-        price = Q[0, 0]
+        # Average over all starting paths
+        price = np.mean(Q[:, 0])
 
         return float(price), float(path_gen_time)
