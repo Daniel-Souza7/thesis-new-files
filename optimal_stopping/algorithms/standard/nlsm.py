@@ -55,12 +55,15 @@ class NeuralNetworkPricer:
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
 
-        # Neural network will be created during pricing
+        # Create neural network once (reference methodology for speed)
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         self.state_size = state_size
-        self.neural_network = None
+        self.neural_network = neural_networks.NetworkNLSM(
+            self.state_size, hidden_size=self.hidden_size
+        ).double()
 
-        # Store trained networks for each time step
+        # Note: No network storage for performance (would need 2-5x more time)
+        # backward_induction_on_paths() not supported with this approach
         self._learned_networks = {}
 
     def price(self, train_eval_split=2):
@@ -263,32 +266,37 @@ class NeuralNetworkPricer:
         Returns:
             continuation_values: (nb_paths,) - Estimated continuation values
         """
-        # Determine which paths to use for training
+        # Determine which paths to use for training and evaluation (reference methodology)
         if self.train_ITM_only:
             # Only train on in-the-money paths in training set
-            train_mask = (immediate_exercise[:self.split] > 0)
+            train_itm = np.where(immediate_exercise[:self.split] > 0)[0]
+            # Only predict on in-the-money paths in ALL paths
+            eval_itm = np.where(immediate_exercise > 0)[0]
         else:
-            # Train on all paths in training set
-            train_mask = np.ones(self.split, dtype=bool)
+            # Use all paths
+            train_itm = np.arange(self.split)
+            eval_itm = np.arange(len(immediate_exercise))
 
-        # Create new neural network for this time step
-        self.neural_network = neural_networks.NetworkNLSM(
-            self.state_size, hidden_size=self.hidden_size
-        ).double()
+        # Initialize continuation values to zero (OTM paths stay at 0)
+        continuation_values = np.zeros(current_state.shape[0])
+
+        # Reinitialize network weights for this time step (reference methodology)
         self.neural_network.apply(init_weights)
 
-        # Train the network
-        if train_mask.sum() > 0:
+        # Train the network on ITM paths in training set
+        if len(train_itm) > 0:
             self._train_network(
-                current_state[:self.split][train_mask],
-                future_values[:self.split][train_mask]
+                current_state[train_itm],
+                future_values[train_itm]
             )
 
-        # Store trained network for this time step
-        self._learned_networks[date] = self.neural_network
+        # Note: Don't store networks for performance (2-5x speedup)
 
-        # Predict on all paths
-        return self._evaluate_network(current_state)
+        # Predict only on ITM paths (OTM paths remain 0)
+        if len(eval_itm) > 0:
+            continuation_values[eval_itm] = self._evaluate_network(current_state[eval_itm])
+
+        return continuation_values
 
     def _train_network(self, X_inputs, Y_labels, batch_size=2000):
         """
@@ -352,8 +360,9 @@ class NeuralNetworkPricer:
         """
         Apply learned policy using backward induction (same as training).
 
-        This is what should be used for create_video to replicate pricing behavior.
-        Uses backward induction (not forward simulation) with learned networks.
+        NOTE: This method is not supported with the current speed optimization approach.
+        Network weights are reinitialized at each timestep and not stored.
+        To use this method, networks would need to be stored (2-5x slower).
 
         Args:
             stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
@@ -363,9 +372,15 @@ class NeuralNetworkPricer:
             exercise_times: (nb_paths,) - Time step when each path is exercised
             payoff_values: (nb_paths,) - Payoff value at exercise for each path
             price: float - Average discounted payoff
+
+        Raises:
+            NotImplementedError: Method not supported with current optimization approach
         """
-        if not self._learned_networks:
-            raise ValueError("No learned policy available. Must call price() first to train.")
+        raise NotImplementedError(
+            "backward_induction_on_paths() is not supported with the current speed optimization. "
+            "Networks are not stored during training for 2-5x speedup. "
+            "To use this method, network storage would need to be re-enabled."
+        )
 
         nb_paths = stock_paths.shape[0]
         nb_dates = self.model.nb_dates

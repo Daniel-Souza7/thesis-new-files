@@ -283,18 +283,30 @@ class RFQI:
             # Optimal stopping decision: max(immediate payoff, continuation)
             indicator_stop = np.maximum(payoffs[:self.split, 1:], continuation_value)
 
+            # Filter to ITM paths if train_ITM_only is enabled (reference methodology)
+            if self.train_ITM_only:
+                # Create mask for ITM (path, time) pairs: payoff > 0
+                itm_mask = payoffs[:self.split, :-1] > 0
+
+                # Apply mask to training data
+                train_bases = eval_bases[:self.split, :-1, :] * itm_mask[:, :, np.newaxis]
+                train_targets = indicator_stop * itm_mask
+            else:
+                train_bases = eval_bases[:self.split, :-1, :]
+                train_targets = indicator_stop
+
             # Build regression matrices
             # U = sum over paths and dates: basis(t) * basis(t)^T
             matrixU = np.tensordot(
-                eval_bases[:self.split, :-1, :],
-                eval_bases[:self.split, :-1, :],
+                train_bases,
+                train_bases,
                 axes=([0, 1], [0, 1])
             )
 
             # V = sum over paths and dates: basis(t) * discounted_optimal_value(t+1)
             vectorV = np.sum(
-                eval_bases[:self.split, :-1, :] * discount_factor * np.repeat(
-                    np.expand_dims(indicator_stop, axis=2),
+                train_bases * discount_factor * np.repeat(
+                    np.expand_dims(train_targets, axis=2),
                     self.nb_base_fcts,
                     axis=2
                 ),
@@ -400,15 +412,27 @@ class RFQI:
             continuation_value = np.maximum(0, continuation_value)
             indicator_stop = np.maximum(payoffs[:self.split, 1:], continuation_value)
 
+            # Filter to ITM paths if train_ITM_only is enabled (reference methodology)
+            if self.train_ITM_only:
+                # Create mask for ITM (path, time) pairs: payoff > 0
+                itm_mask = payoffs[:self.split, :-1] > 0
+
+                # Apply mask to training data
+                train_bases = eval_bases[:self.split, :-1, :] * itm_mask[:, :, np.newaxis]
+                train_targets = indicator_stop * itm_mask
+            else:
+                train_bases = eval_bases[:self.split, :-1, :]
+                train_targets = indicator_stop
+
             matrixU = np.tensordot(
-                eval_bases[:self.split, :-1, :],
-                eval_bases[:self.split, :-1, :],
+                train_bases,
+                train_bases,
                 axes=([0, 1], [0, 1])
             )
 
             vectorV = np.sum(
-                eval_bases[:self.split, :-1, :] * discount_factor * np.repeat(
-                    np.expand_dims(indicator_stop, axis=2),
+                train_bases * discount_factor * np.repeat(
+                    np.expand_dims(train_targets, axis=2),
                     self.nb_base_fcts,
                     axis=2
                 ),

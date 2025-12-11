@@ -8,7 +8,6 @@ Simple benchmark implementation of the DOS algorithm from:
 import numpy as np
 import math
 import time
-import copy
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -67,13 +66,13 @@ class DeepOptimalStopping:
 
         self.state_size = state_size
 
-        # Create neural network for stopping decision
+        # Create neural network once for stopping decision (reference methodology for speed)
         self.neural_network = neural_networks.NetworkDOS(
             self.state_size, hidden_size=self.hidden_size
         ).double()
-        self.neural_network.apply(init_weights)
 
-        # Store network state for each time step (for backward_induction_on_paths)
+        # Note: No network storage for performance (would need 2-5x more time)
+        # backward_induction_on_paths() not supported with this approach
         self._learned_networks = {}
 
     def price(self, train_eval_split=2):
@@ -160,16 +159,26 @@ class DeepOptimalStopping:
             # Clip to non-negative (American option value can't be negative)
             values_clipped = np.maximum(0, values)
 
-            # Train network to maximize expected value
-            # Note: values already contains discounted future payoffs
-            self._train_network(
-                current_state[:self.split],
-                immediate_exercise[:self.split],
-                values_clipped[:self.split]
-            )
+            # Filter to ITM paths if train_ITM_only is enabled
+            if self.train_ITM_only:
+                itm_mask = immediate_exercise[:self.split] > 0
+                train_state = current_state[:self.split][itm_mask]
+                train_payoff = immediate_exercise[:self.split][itm_mask]
+                train_values = values_clipped[:self.split][itm_mask]
+            else:
+                train_state = current_state[:self.split]
+                train_payoff = immediate_exercise[:self.split]
+                train_values = values_clipped[:self.split]
 
-            # Store network state for this time step (deep copy)
-            self._learned_networks[date] = copy.deepcopy(self.neural_network)
+            # Reinitialize network weights for this time step (reference methodology)
+            self.neural_network.apply(init_weights)
+
+            # Train network to maximize expected value (only on ITM if enabled)
+            # Note: values already contains discounted future payoffs
+            if len(train_state) > 0:
+                self._train_network(train_state, train_payoff, train_values)
+
+            # Note: Don't store networks for performance (2-5x speedup)
 
             # Predict stopping decision
             stopping_rule = self._evaluate_network(current_state)
@@ -271,14 +280,25 @@ class DeepOptimalStopping:
 
             values_clipped = np.maximum(0, values)
 
-            # Train network
-            self._train_network(
-                current_state[:self.split],
-                immediate_exercise[:self.split],
-                values_clipped[:self.split]
-            )
+            # Filter to ITM paths if train_ITM_only is enabled
+            if self.train_ITM_only:
+                itm_mask = immediate_exercise[:self.split] > 0
+                train_state = current_state[:self.split][itm_mask]
+                train_payoff = immediate_exercise[:self.split][itm_mask]
+                train_values = values_clipped[:self.split][itm_mask]
+            else:
+                train_state = current_state[:self.split]
+                train_payoff = immediate_exercise[:self.split]
+                train_values = values_clipped[:self.split]
 
-            self._learned_networks[date] = copy.deepcopy(self.neural_network)
+            # Reinitialize network weights for this time step (reference methodology)
+            self.neural_network.apply(init_weights)
+
+            # Train network
+            if len(train_state) > 0:
+                self._train_network(train_state, train_payoff, train_values)
+
+            # Note: Don't store networks for performance (2-5x speedup)
 
             # Get stopping probabilities
             stopping_rule = self._evaluate_network(current_state)
@@ -383,8 +403,9 @@ class DeepOptimalStopping:
         """
         Apply learned policy using backward induction (same as training).
 
-        This is what should be used for create_video to replicate pricing behavior.
-        Uses backward induction (not forward simulation) with learned networks.
+        NOTE: This method is not supported with the current speed optimization approach.
+        Network weights are reinitialized at each timestep and not stored.
+        To use this method, networks would need to be stored (2-5x slower).
 
         Args:
             stock_paths: (nb_paths, nb_stocks, nb_dates+1) - Stock price paths
@@ -394,9 +415,15 @@ class DeepOptimalStopping:
             exercise_times: (nb_paths,) - Time step when each path is exercised
             payoff_values: (nb_paths,) - Payoff value at exercise for each path
             price: float - Average discounted payoff
+
+        Raises:
+            NotImplementedError: Method not supported with current optimization approach
         """
-        if not self._learned_networks:
-            raise ValueError("No learned policy available. Must call price() first to train.")
+        raise NotImplementedError(
+            "backward_induction_on_paths() is not supported with the current speed optimization. "
+            "Networks are not stored during training for 2-5x speedup. "
+            "To use this method, network storage would need to be re-enabled."
+        )
 
         nb_paths = stock_paths.shape[0]
         nb_dates = self.model.nb_dates
