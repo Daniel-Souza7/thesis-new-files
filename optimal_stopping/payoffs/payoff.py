@@ -50,7 +50,7 @@ class Payoff:
             payoffs: Array of shape (nb_paths, nb_dates+1)
         """
         nb_paths, nb_stocks, nb_dates = stock_paths.shape
-        payoffs = np.zeros((nb_paths, nb_dates))
+        payoffs = np.zeros((nb_paths, nb_dates), dtype=np.float32)
 
         for date in range(nb_dates):
             if self.is_path_dependent:
