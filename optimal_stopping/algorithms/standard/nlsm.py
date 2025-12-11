@@ -223,6 +223,10 @@ class NeuralNetworkPricer:
         # Lower bound
         lower_bound = np.mean(values[self.split:])
 
+        # Set M[0] based on time-0 payoff and continuation value
+        payoff_0 = payoffs[:, 0]
+        M[:, 0] = np.maximum(payoff_0, values)
+
         # Upper bound using dual formulation
         # The martingale M satisfies M[t] >= payoff[t] for all t
         # Upper bound = E[M[0]] where M is constructed via backward induction

@@ -193,7 +193,7 @@ class BlackScholes(Model):
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
         total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
-        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1))
+        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=np.float32)
 
         spot_paths[:, :, 0] = self.spot
         random_numbers = np.random.normal(
@@ -231,7 +231,7 @@ class BlackScholes(Model):
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
         total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
-        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1))
+        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=np.float32)
 
         spot_paths[:, :, 0] = self.spot
         random_numbers = np.random.normal(
@@ -284,8 +284,8 @@ class FractionalBlackScholes(Model):
 
     def generate_one_path(self):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
-        path = np.empty((self.nb_stocks, self.nb_dates + 1))
-        fracBM_noise = np.empty((self.nb_stocks, self.nb_dates))
+        path = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        fracBM_noise = np.empty((self.nb_stocks, self.nb_dates), dtype=np.float32)
 
         path[:, 0] = self.spot
 
@@ -334,7 +334,7 @@ class FractionalBrownianMotion(Model):
 
     def _generate_one_path(self):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
-        path = np.empty((self._nb_stocks, self.nb_dates + 1))
+        path = np.empty((self._nb_stocks, self.nb_dates + 1), dtype=np.float32)
         for stock in range(self._nb_stocks):
             path[stock, :] = self.fBM.fbm() + self.spot
         return path
@@ -363,7 +363,7 @@ class FractionalBrownianMotionPathDep(FractionalBrownianMotion):
     def generate_one_path(self):
         """Returns path-dependent representation (nb_stocks=nb_dates+1, nb_dates+1)"""
         _path = self._generate_one_path()
-        path = np.zeros((self.nb_stocks, self.nb_dates + 1))
+        path = np.zeros((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
         for i in range(self.nb_dates + 1):
             path[:i + 1, i] = np.flip(_path[0, :i + 1])
         return path, None
@@ -425,8 +425,8 @@ class Heston(Model):
 
     def generate_paths(self, start_X=None):
         """Generate paths using Euler-Maruyama scheme."""
-        paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1))
-        var_paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1))
+        paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        var_paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
 
         dt = self.maturity / self.nb_dates
 
@@ -566,9 +566,9 @@ class RoughHeston(Model):
     def _generate_one_path(
             self, mu, la, thet, vol, start_X, nb_steps, v0=None):
         """Generate single path for one stock"""
-        spot_path = np.empty((nb_steps + 1))
+        spot_path = np.empty((nb_steps + 1), dtype=np.float32)
         spot_path[0] = start_X
-        var_path = np.empty((nb_steps + 1))
+        var_path = np.empty((nb_steps + 1), dtype=np.float32)
         if v0 is None:
             var_path[0] = self.v0
         else:
@@ -598,9 +598,9 @@ class RoughHeston(Model):
     def _generate_paths(
             self, mu, la, thet, vol, start_X, nb_steps, v0=None, nb_stocks=1):
         """Generate multiple paths simultaneously (vectorized over stocks)"""
-        spot_path = np.empty((nb_steps + 1, nb_stocks))
+        spot_path = np.empty((nb_steps + 1, nb_stocks), dtype=np.float32)
         spot_path[0] = start_X
-        var_path = np.empty((nb_steps + 1, nb_stocks))
+        var_path = np.empty((nb_steps + 1, nb_stocks), dtype=np.float32)
         if v0 is None:
             var_path[0] = self.v0
         else:
@@ -630,7 +630,7 @@ class RoughHeston(Model):
         Generate paths under P measure for each dimension (stock).
         Uses fine time discretization (nb_dates * nb_steps_mult steps).
         """
-        spot_paths = np.empty((self.nb_stocks, self.nb_dates + 1))
+        spot_paths = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
         for i in range(self.nb_stocks):
             spot_path, var_path = self._generate_one_path(
                 self.drift, self.speed, self.mean, self.volatility,

@@ -273,6 +273,9 @@ class RLSM:
         payoff_0 = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, 0])
         lower_bound = max(payoff_0[0], np.mean(values[self.split:]) * disc_factor)
 
+        # Set M[0] based on time-0 payoff and continuation value
+        M[:, 0] = np.maximum(payoff_0, values)
+
         # Compute upper bound on evaluation set using dual formulation
         # The martingale M satisfies M[t] >= payoff[t] for all t
         # Upper bound = E[M[0]] where M is constructed via backward induction
