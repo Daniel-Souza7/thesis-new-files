@@ -70,8 +70,13 @@ class RFQI:
             )
 
         # Initialize randomized neural network
+        # Handle hidden size based on reference methodology
         if hidden_size < 0:
+            # Negative: use as multiplier of nb_stocks
             hidden_size = max(model.nb_stocks * abs(hidden_size), 5)
+        else:
+            # Positive: cap at nb_stocks (min 1)
+            hidden_size = max(min(hidden_size, model.nb_stocks), 1)
 
         self.dim_out = hidden_size
         self.nb_base_fcts = self.dim_out + 1
