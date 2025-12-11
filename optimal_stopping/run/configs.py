@@ -2323,3 +2323,109 @@ test_deepnn = _DefaultConfig(
     nb_runs=2,
     risk_free_rate=[0.08],
     drift=[0.08],)
+# In configs.py or create a new config
+test_upperbound = _DefaultConfig(
+    nb_stocks=[2],
+    nb_paths=[10000],  # Small for speed
+    nb_dates=[9],  # Quick
+    dividends=[0.1],
+algos = [
+    # Randomized (core algorithms)
+    "RLSM",
+    "RFQI",
+    "SRLSM",
+    "SRFQI",
+
+    # Classical benchmarks
+    "LSM",
+    "FQI",
+
+    # Deep learning
+    "NLSM",
+    "DOS",
+],
+
+nb_runs=10,
+train_ITM_only=[False],
+    payoffs=['BasketCall', 'UO-BskCall'],
+)
+
+
+thesis_table1_1 = _DefaultConfig(
+    algos=['RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS', 'EOP'],  # Compare mesh vs RLSM
+    stock_models= ['BlackScholes'], #['BlackScholesStored1765400339212'],
+    nb_stocks=[2, 7, 20, 50, 250, 1000],
+    nb_paths=[50000],
+    nb_dates=[100],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],)
+
+thesis_table1_2 = _DefaultConfig(
+    algos=['SM', 'RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS',],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[7],
+    nb_paths=[25000],
+    nb_dates=[10],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],)
+
+thesis_table1_3 = _DefaultConfig(
+    algos=['SM', 'RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS',],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[20],
+    nb_paths=[25000],
+    nb_dates=[10],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    use_payoff_as_input=[False])
+
+thesis_table1_4 = _DefaultConfig(
+    algos=['EOP'],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[2, 7, 20],
+    nb_paths=[200000],
+    nb_dates=[100],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    use_payoff_as_input=[False])
+
+thesis_table1_5 = _DefaultConfig(
+    algos=['EOP'],  # Compare mesh vs RLSM
+    stock_models=['BlackScholes'],
+    nb_stocks=[250, 1000],
+    nb_paths=[15000],
+    nb_dates=[100],
+    payoffs=['BasketCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    use_payoff_as_input=[False])
+
