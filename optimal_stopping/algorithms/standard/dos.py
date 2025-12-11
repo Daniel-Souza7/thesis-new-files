@@ -106,14 +106,22 @@ class DeepOptimalStopping:
         # Compute payoffs for all paths
         payoffs = self.payoff(stock_paths)
 
+        # Discount all payoffs upfront (reference methodology)
+        power = np.arange(0, self.model.nb_dates + 1)
+        disc_factors = np.exp(
+            (-self.model.rate) * self.model.maturity / self.model.nb_dates * power
+        )
+        disc_factors = np.repeat(
+            np.expand_dims(disc_factors, axis=0), repeats=payoffs.shape[0], axis=0
+        )
+        payoffs = payoffs * disc_factors
+
         # Split into training and evaluation sets
         self.split = len(stock_paths) // train_eval_split
 
         nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
-        # Use model's nb_dates (actual time steps) for consistency across all algorithms
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
-        # Initialize with terminal payoff
+        # Initialize with terminal payoff (already discounted)
         values = payoffs[:, -1].copy()
 
         # Track exercise dates (initialize to maturity = nb_dates, not nb_dates-1)
@@ -121,7 +129,7 @@ class DeepOptimalStopping:
 
         # Backward induction from T-1 to 1
         for date in range(self.model.nb_dates - 1, 0, -1):
-            # Current immediate exercise value
+            # Current immediate exercise value (already discounted)
             immediate_exercise = payoffs[:, date]
 
             # Prepare state
@@ -149,17 +157,15 @@ class DeepOptimalStopping:
                 if self.use_var and var_paths is not None:
                     current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
 
-            # Discount future values
-            discounted_values = values * disc_factor
-
             # Clip to non-negative (American option value can't be negative)
-            discounted_values = np.maximum(0, discounted_values)
+            values_clipped = np.maximum(0, values)
 
             # Train network to maximize expected value
+            # Note: values already contains discounted future payoffs
             self._train_network(
                 current_state[:self.split],
                 immediate_exercise[:self.split],
-                discounted_values[:self.split]
+                values_clipped[:self.split]
             )
 
             # Store network state for this time step (deep copy)
@@ -170,17 +176,15 @@ class DeepOptimalStopping:
 
             # Update values: exercise if stopping_rule > 0.5, else continue
             exercise_now = stopping_rule > 0.5
-            values = np.where(
-                exercise_now,
-                immediate_exercise,
-                discounted_values
-            )
+            values[exercise_now] = immediate_exercise[exercise_now]
+            # Don't discount values[~exercise_now] - already discounted
 
             # Track exercise dates - only update if exercising earlier
             self._exercise_dates[exercise_now] = date
 
         # Final price: average over evaluation paths
-        price = np.mean(values[self.split:])
+        payoff_0 = payoffs[0, 0]
+        price = max(payoff_0, np.mean(values[self.split:]))
 
         return price, time_path_gen
 
@@ -189,7 +193,7 @@ class DeepOptimalStopping:
         Compute both lower and upper bounds using DOS.
 
         Lower bound: Regular DOS pricing
-        Upper bound: Dual formulation (approximation for binary stopping rule)
+        Upper bound: Dual formulation (Haugh-Kogan method)
 
         Args:
             train_eval_split: Ratio for splitting paths
@@ -217,18 +221,23 @@ class DeepOptimalStopping:
         # Compute payoffs
         payoffs = self.payoff(stock_paths)
 
+        # Discount all payoffs upfront (reference methodology)
+        power = np.arange(0, self.model.nb_dates + 1)
+        disc_factors = np.exp(
+            (-self.model.rate) * self.model.maturity / self.model.nb_dates * power
+        )
+        disc_factors = np.repeat(
+            np.expand_dims(disc_factors, axis=0), repeats=payoffs.shape[0], axis=0
+        )
+        payoffs = payoffs * disc_factors
+
         # Split
         self.split = len(stock_paths) // train_eval_split
 
         nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
-        disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
-        # Initialize with terminal payoff
-        values = payoffs[:, -1].copy()
-
-        # Initialize martingale M for upper bound
-        M = np.zeros((nb_paths, self.model.nb_dates + 1))
-        M[:, -1] = values.copy()
+        # Initialize M_diff for upper bound tracking
+        M_diff = np.zeros((nb_paths, self.model.nb_dates + 1))
 
         # Clear previous learned networks
         self._learned_networks = {}
@@ -236,8 +245,12 @@ class DeepOptimalStopping:
         # Initialize exercise dates tracking (for get_exercise_time)
         self._exercise_dates = np.full(nb_paths, self.model.nb_dates, dtype=int)
 
-        # Backward induction
-        for date in range(self.model.nb_dates - 1, 0, -1):
+        # Initialize with terminal payoff (already discounted)
+        values = payoffs[:, -1].copy()
+        prev_cont_val = np.zeros_like(values)
+
+        # Backward induction from T-1 down to 0
+        for date in range(self.model.nb_dates - 1, -1, -1):
             immediate_exercise = payoffs[:, date]
 
             # Prepare state
@@ -256,14 +269,13 @@ class DeepOptimalStopping:
                 if self.use_var and var_paths is not None:
                     current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
 
-            discounted_values = values * disc_factor
-            discounted_values = np.maximum(0, discounted_values)
+            values_clipped = np.maximum(0, values)
 
             # Train network
             self._train_network(
                 current_state[:self.split],
                 immediate_exercise[:self.split],
-                discounted_values[:self.split]
+                values_clipped[:self.split]
             )
 
             self._learned_networks[date] = copy.deepcopy(self.neural_network)
@@ -271,33 +283,31 @@ class DeepOptimalStopping:
             # Get stopping probabilities
             stopping_rule = self._evaluate_network(current_state)
 
-            # DOS uses binary decision, but for upper bound we use expected value
-            # continuation_value ≈ (1 - stopping_prob) * discounted_value + stopping_prob * payoff
-            # For upper bound martingale: M[t] = max(payoff, continuation_estimate)
-            # Since DOS doesn't explicitly compute continuation, we use: stopping_prob * payoff + (1-p) * disc_val
-            continuation_estimate = stopping_rule * immediate_exercise + (1 - stopping_rule) * discounted_values
+            # Compute continuation value estimate for upper bound
+            continuation_estimate = stopping_rule * immediate_exercise + (1 - stopping_rule) * values_clipped
+
+            # Update M_diff for upper bound (reference methodology)
+            if date < self.model.nb_dates - 1:
+                M_diff[:, date + 1] = np.maximum(
+                    payoffs[:, date + 1], prev_cont_val
+                ) - continuation_estimate
 
             # Lower bound: update values
-            exercise_now = stopping_rule > 0.5
-            values = np.where(exercise_now, immediate_exercise, discounted_values)
+            if date > 0:
+                exercise_now = stopping_rule > 0.5
+                values[exercise_now] = immediate_exercise[exercise_now]
+                # Track exercise dates
+                self._exercise_dates[exercise_now] = date
 
-            # Track exercise dates
-            self._exercise_dates[exercise_now] = date
+            prev_cont_val = continuation_estimate.copy()
 
-            # Upper bound: update martingale M
-            M[:, date] = np.maximum(immediate_exercise, continuation_estimate)
+        # Compute lower bound
+        payoff_0 = payoffs[0, 0]
+        lower_bound = max(payoff_0, np.mean(values[self.split:]))
 
-        # Lower bound
-        lower_bound = np.mean(values[self.split:])
-
-        # Set M[0] based on time-0 payoff and continuation value
-        payoff_0 = payoffs[:, 0]
-        M[:, 0] = np.maximum(payoff_0, values)
-
-        # Upper bound using dual formulation
-        # The martingale M satisfies M[t] >= payoff[t] for all t
-        # Upper bound = E[M[0]] where M is constructed via backward induction
-        upper_bound = np.mean(M[self.split:, 0])
+        # Compute upper bound using dual formulation (reference methodology)
+        M = np.cumsum(M_diff, axis=1)
+        upper_bound = np.mean(np.max(payoffs[self.split:] - M[self.split:], axis=1))
 
         return lower_bound, upper_bound, time_path_gen
 
