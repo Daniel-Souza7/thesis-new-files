@@ -97,7 +97,7 @@ def setup_simple_problem():
     )
 
     # Get barrier payoff from registry
-    DownAndOutPut = get_payoff_class('PutDO')
+    DownAndOutPut = get_payoff_class('DO-Put')
     payoff = DownAndOutPut(
         strike=100.0,
         barrier=80.0
@@ -113,18 +113,17 @@ def setup_complex_problem():
     Highly path-dependent with stochastic volatility.
     """
     model = Heston(
-        spot=100.0,
-        v0=0.04,  # Initial variance
-        drift=0.05,
-        dividend=0.0,
-        kappa=2.0,  # Mean reversion speed
-        theta=0.04,  # Long-term variance
-        sigma=0.3,  # Vol of vol
-        rho=-0.7,  # Correlation
-        maturity=1.0,
+        drift=0.05,           # Stock drift
+        volatility=0.3,       # Vol-of-vol (xi)
+        mean=0.04,           # Long-term variance mean (v_bar, also initial variance)
+        speed=2.0,           # Mean reversion speed (kappa)
+        correlation=-0.7,    # Correlation (rho)
         nb_stocks=1,
         nb_paths=10000,
         nb_dates=50,
+        spot=100.0,          # Initial stock price
+        maturity=1.0,
+        dividend=0.0,
         seed=42
     )
 
