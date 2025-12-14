@@ -464,13 +464,27 @@ class RFQI:
 
         lower_bound = max(np.mean(prices[self.split:]), payoffs[0, 0])
 
-        # Upper bound: Construct martingale M
-        # M[t] = max(payoff[t], continuation_value[t])
-        M = np.maximum(payoffs, continuation_value)
+        # Upper bound: Construct martingale M via backward induction
+        # Initialize M_diff for Haugh-Kogan dual formulation
+        M_diff = np.zeros((nb_paths, nb_dates + 1))
 
-        # Compute upper bound on evaluation set using dual formulation
-        # The martingale M satisfies M[t] >= payoff[t] for all t
-        # Upper bound = E[M[0]] where M is constructed from Q-function
-        upper_bound = np.mean(M[self.split:, 0])
+        # Track previous continuation value for M_diff computation
+        prev_cont_val = np.zeros(nb_paths)
+
+        # Backward pass to construct M_diff
+        for date in range(nb_dates, 0, -1):
+            # Get continuation value at this date from learned Q-function
+            curr_cont_val = continuation_value[:, date]
+
+            # M_diff[t] = max(payoff[t], prev_cont_val) - curr_cont_val
+            M_diff[:, date] = np.maximum(payoffs[:, date], prev_cont_val) - curr_cont_val
+
+            prev_cont_val = curr_cont_val
+
+        # Compute martingale M via cumulative sum
+        M = np.cumsum(M_diff, axis=1)
+
+        # Upper bound using dual formulation: E[max_t (payoff[t] - M[t])]
+        upper_bound = np.mean(np.max(payoffs[self.split:] - M[self.split:], axis=1))
 
         return lower_bound, upper_bound, time_path_gen
