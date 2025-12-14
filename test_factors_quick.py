@@ -34,15 +34,24 @@ def quick_test():
         spot=100.0, drift=0.05, dividend=0.0, volatility=0.2, maturity=1.0,
         nb_stocks=1, nb_paths=5000, nb_dates=30, seed=42
     )
-    DownAndOutPut = get_payoff_class('PutDO')
+    DownAndOutPut = get_payoff_class('DO-Put')
     payoff_simple = DownAndOutPut(strike=100.0, barrier=80.0)
 
     # Complex problem: Lookback with Heston
     print("Setting up Complex Problem (Lookback Put with Heston)...")
     model_complex = Heston(
-        spot=100.0, v0=0.04, drift=0.05, dividend=0.0, kappa=2.0, theta=0.04,
-        sigma=0.3, rho=-0.7, maturity=1.0,
-        nb_stocks=1, nb_paths=5000, nb_dates=30, seed=42
+        drift=0.05,           # Stock drift
+        volatility=0.3,       # Vol-of-vol (xi)
+        mean=0.04,           # Long-term variance mean (v_bar, also initial variance)
+        speed=2.0,           # Mean reversion speed (kappa)
+        correlation=-0.7,    # Correlation (rho)
+        nb_stocks=1,
+        nb_paths=5000,
+        nb_dates=30,
+        spot=100.0,          # Initial stock price
+        maturity=1.0,
+        dividend=0.0,
+        seed=42
     )
     payoff_complex = LookbackFixedPut(strike=100.0)
 
