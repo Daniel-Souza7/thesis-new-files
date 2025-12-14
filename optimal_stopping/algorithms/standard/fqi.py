@@ -22,7 +22,8 @@ class FQIFast:
     """
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
+                 use_barrier_as_input=False):
         """
         Initialize FQI pricer.
 
@@ -34,18 +35,32 @@ class FQIFast:
             factors: Ignored (for API compatibility)
             train_ITM_only: If True, only train on in-the-money paths
             use_payoff_as_input: If True, include payoff as feature
+            use_barrier_as_input: If True, include barrier values as input hint
         """
         self.model = model
         self.payoff = payoff
         self.nb_epochs = nb_epochs
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
+        self.use_barrier_as_input = use_barrier_as_input
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
 
+        # Extract barrier values from payoff if available (for use as input hint)
+        self.barrier_values = []
+        if self.use_barrier_as_input:
+            if hasattr(payoff, 'barrier') and payoff.barrier is not None:
+                self.barrier_values.append(payoff.barrier)
+            if hasattr(payoff, 'barrier_up') and payoff.barrier_up is not None:
+                self.barrier_values.append(payoff.barrier_up)
+            if hasattr(payoff, 'barrier_down') and payoff.barrier_down is not None:
+                self.barrier_values.append(payoff.barrier_down)
+
+        self.nb_barriers = len(self.barrier_values)
+
         # Initialize basis functions (degree 2 polynomials + time features)
-        state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1
+        state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
         self.basis = basis_functions.BasisFunctions(state_size)
         self.nb_base_fcts = self.basis.nb_base_fcts
 
@@ -306,6 +321,13 @@ class FQIFast:
         # Concatenate stock prices and time features
         paths_with_time = np.concatenate([stock_paths, time_features], axis=1)  # (nb_paths, nb_stocks+2, nb_dates)
 
+        # Add barrier values as input hint (if enabled)
+        if self.nb_barriers > 0:
+            spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+            barrier_features = np.array([[[b / spot] for b in self.barrier_values]])  # (1, nb_barriers, 1)
+            barrier_features = np.tile(barrier_features, (nb_paths, 1, nb_dates))  # (nb_paths, nb_barriers, nb_dates)
+            paths_with_time = np.concatenate([paths_with_time, barrier_features], axis=1)
+
         # Transpose for easier iteration
         paths_transposed = np.transpose(paths_with_time, (1, 0, 2))  # (features, nb_paths, nb_dates)
 
@@ -459,6 +481,13 @@ class FQIFastLaguerre(FQIFast):
 
         # Concatenate stock prices and time
         paths_with_time = np.concatenate([stock_paths, time_features], axis=1)
+
+        # Add barrier values as input hint (if enabled)
+        if self.nb_barriers > 0:
+            spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+            barrier_features = np.array([[[b / spot] for b in self.barrier_values]])  # (1, nb_barriers, 1)
+            barrier_features = np.tile(barrier_features, (nb_paths, 1, nb_dates))  # (nb_paths, nb_barriers, nb_dates)
+            paths_with_time = np.concatenate([paths_with_time, barrier_features], axis=1)
 
         # Transpose for easier iteration
         paths_transposed = np.transpose(paths_with_time, (1, 0, 2))

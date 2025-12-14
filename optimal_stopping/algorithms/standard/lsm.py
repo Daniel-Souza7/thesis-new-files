@@ -21,7 +21,8 @@ class LeastSquaresPricer:
     """
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
+                 use_barrier_as_input=False):
         """
         Initialize LSM pricer.
 
@@ -33,17 +34,31 @@ class LeastSquaresPricer:
             factors: Ignored (for API compatibility)
             train_ITM_only: If True, only train on in-the-money paths
             use_payoff_as_input: If True, include payoff as feature
+            use_barrier_as_input: If True, include barrier values as input hint
         """
         self.model = model
         self.payoff = payoff
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
+        self.use_barrier_as_input = use_barrier_as_input
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
 
+        # Extract barrier values from payoff if available (for use as input hint)
+        self.barrier_values = []
+        if self.use_barrier_as_input:
+            if hasattr(payoff, 'barrier') and payoff.barrier is not None:
+                self.barrier_values.append(payoff.barrier)
+            if hasattr(payoff, 'barrier_up') and payoff.barrier_up is not None:
+                self.barrier_values.append(payoff.barrier_up)
+            if hasattr(payoff, 'barrier_down') and payoff.barrier_down is not None:
+                self.barrier_values.append(payoff.barrier_down)
+
+        self.nb_barriers = len(self.barrier_values)
+
         # Initialize basis functions (degree 2 polynomials)
-        state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
+        state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1 + self.nb_barriers
         self.basis = basis_functions.BasisFunctions(state_size)
         self.nb_base_fcts = self.basis.nb_base_fcts
 
@@ -108,6 +123,13 @@ class LeastSquaresPricer:
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            # Add barrier values as input hint (if enabled)
+            if self.nb_barriers > 0:
+                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
+                current_state = np.concatenate([current_state, barrier_features], axis=1)
 
             # Discount future values
             discounted_values = values * disc_factor
@@ -193,6 +215,13 @@ class LeastSquaresPricer:
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            # Add barrier values as input hint (if enabled)
+            if self.nb_barriers > 0:
+                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
+                current_state = np.concatenate([current_state, barrier_features], axis=1)
 
             discounted_values = values * disc_factor
 
@@ -348,6 +377,13 @@ class LeastSquaresPricer:
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[active_mask, :, date]], axis=1)
 
+            # Add barrier values as input hint (if enabled)
+            if self.nb_barriers > 0:
+                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
+                current_state = np.concatenate([current_state, barrier_features], axis=1)
+
             # Predict continuation value using learned coefficients
             coefficients = self._learned_coefficients[date]
             nb_active = active_mask.sum()
@@ -428,6 +464,13 @@ class LeastSquaresPricer:
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
+
+            # Add barrier values as input hint (if enabled)
+            if self.nb_barriers > 0:
+                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
+                current_state = np.concatenate([current_state, barrier_features], axis=1)
 
             # Get learned coefficients for this time step
             coefficients = self._learned_coefficients[date]

@@ -61,6 +61,7 @@ class _DefaultConfig:
   train_ITM_only: Iterable[bool] = (True,)
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
+  use_barrier_as_input: Iterable[bool] = (False,)  # If True, include barrier values as input to algorithms
   barriers: Iterable[float] = (100000,)  # Barrier level (100000 = standard payoff, lower values activate barriers)
   barriers_up: Iterable[float] = (100000,)  # Upper barrier level for double barriers
   barriers_down: Iterable[float] = (1,)  # Lower barrier level for double barriers
@@ -2323,109 +2324,127 @@ test_deepnn = _DefaultConfig(
     nb_runs=2,
     risk_free_rate=[0.08],
     drift=[0.08],)
-# In configs.py or create a new config
-test_upperbound = _DefaultConfig(
-    nb_stocks=[2],
-    nb_paths=[10000],  # Small for speed
-    nb_dates=[9],  # Quick
-    dividends=[0.1],
-algos = [
-    # Randomized (core algorithms)
-    "RLSM",
-    "RFQI",
-    "SRLSM",
-    "SRFQI",
 
-    # Classical benchmarks
-    "LSM",
-    "FQI",
-
-    # Deep learning
-    "NLSM",
-    "DOS",
-],
-
-nb_runs=10,
-train_ITM_only=[False],
-    payoffs=['BasketCall', 'UO-BskCall'],
-)
-
-
-thesis_table1_1 = _DefaultConfig(
-    algos=['RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS', 'EOP'],  # Compare mesh vs RLSM
-    stock_models= ['BlackScholes'], #['BlackScholesStored1765400339212'],
-    nb_stocks=[2, 7, 20, 50, 250, 1000],
+ruben_test = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5],
     nb_paths=[50000],
     nb_dates=[100],
-    payoffs=['BasketCall'],
+    payoffs=['UO-BskPut'],
     spots=[100],
     strikes=[100],
-    volatilities=[0.2],
-    correlation=[0],
-    nb_runs=10,
-    risk_free_rate=[0.08],
-    drift=[0.08],)
-
-thesis_table1_2 = _DefaultConfig(
-    algos=['SM', 'RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS',],  # Compare mesh vs RLSM
-    stock_models=['BlackScholes'],
-    nb_stocks=[7],
-    nb_paths=[25000],
-    nb_dates=[10],
-    payoffs=['BasketCall'],
-    spots=[100],
-    strikes=[100],
-    volatilities=[0.2],
-    correlation=[0],
-    nb_runs=10,
-    risk_free_rate=[0.08],
-    drift=[0.08],)
-
-thesis_table1_3 = _DefaultConfig(
-    algos=['SM', 'RLSM', 'NLSM', 'DOS', 'LSM', 'FQI', 'RFQI', 'DOS',],  # Compare mesh vs RLSM
-    stock_models=['BlackScholes'],
-    nb_stocks=[20],
-    nb_paths=[25000],
-    nb_dates=[10],
-    payoffs=['BasketCall'],
-    spots=[100],
-    strikes=[100],
-    volatilities=[0.2],
+    volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
     risk_free_rate=[0.08],
     drift=[0.08],
-    use_payoff_as_input=[False])
+    barriers=[250],
+    hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
 
-thesis_table1_4 = _DefaultConfig(
-    algos=['EOP'],  # Compare mesh vs RLSM
+ruben_test2 = _DefaultConfig(
+    algos=['SRFQI'],
     stock_models=['BlackScholes'],
-    nb_stocks=[2, 7, 20],
-    nb_paths=[200000],
+    nb_stocks=[50],
+    nb_paths=[20000],
     nb_dates=[100],
-    payoffs=['BasketCall'],
+    payoffs=['UO-BskPut'],
     spots=[100],
     strikes=[100],
-    volatilities=[0.2],
+    volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
     risk_free_rate=[0.08],
     drift=[0.08],
-    use_payoff_as_input=[False])
+    barriers=[250],
+    #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
+    hidden_size=[20],
+    nb_epochs=[2, 4, 8, 15, 20, 25, 30, 50])
 
-thesis_table1_5 = _DefaultConfig(
-    algos=['EOP'],  # Compare mesh vs RLSM
+ruben_test3 = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
     stock_models=['BlackScholes'],
-    nb_stocks=[250, 1000],
+    nb_stocks=[50],
+    nb_paths=[20000],
+    nb_dates=[100],
+    payoffs=['UO-BskPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.5],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    barriers=[250],
+    hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
+
+ruben_test4 = _DefaultConfig(
+    algos=['SRFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5],
+    nb_paths=[20000],
+    nb_dates=[100],
+    payoffs=['UO-BskPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.5],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    barriers=[250],
+    #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
+    nb_epochs=[2, 4, 8, 15, 20, 25, 30, 50])
+
+ruben_test5 = _DefaultConfig(
+    algos=['SRFQI', 'SRLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[500],
     nb_paths=[15000],
     nb_dates=[100],
-    payoffs=['BasketCall'],
+    payoffs=['UO-MinPut'],
     spots=[100],
     strikes=[100],
-    volatilities=[0.2],
+    volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
     risk_free_rate=[0.08],
     drift=[0.08],
-    use_payoff_as_input=[False])
+    barriers=[250],
+    hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
 
+ruben_test6 = _DefaultConfig(
+    algos=['SRFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[500],
+    nb_paths=[15000],
+    nb_dates=[100],
+    payoffs=['UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.5],
+    correlation=[0],
+    nb_runs=10,
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    barriers=[250],
+    #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
+    nb_epochs=[2, 4, 8, 15, 20, 25, 30, 50])
+
+rfqi_to_fqi2 = _DefaultConfig(
+    algos=['SRFQI', 'FQI', 'LSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[5000, 15000, 30000, 50000],
+    nb_dates=[30],
+    payoffs=['UO-BskCall', 'UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[110],
+    train_ITM_only=[False],
+    risk_free_rate=[0.08],
+    drift=[0.08],
+    use_payoff_as_input=[False])

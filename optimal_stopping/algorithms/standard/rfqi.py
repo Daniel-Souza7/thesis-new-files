@@ -36,7 +36,8 @@ class RFQI:
     """
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
-                 factors=(1.,), train_ITM_only=True, use_payoff_as_input=False, **kwargs):
+                 factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
+                 use_barrier_as_input=False, **kwargs):
         """
         Initialize RFQI pricer.
 
@@ -48,6 +49,7 @@ class RFQI:
             factors: Tuple of (activation_slope, weight_scale, ...)
             train_ITM_only: If True, only consider ITM paths in final pricing
             use_payoff_as_input: If True, include payoff in state
+            use_barrier_as_input: If True, include barrier values as input hint
 
         Raises:
             ValueError: If payoff is path-dependent
@@ -57,6 +59,7 @@ class RFQI:
         self.nb_epochs = nb_epochs
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
+        self.use_barrier_as_input = use_barrier_as_input
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -69,20 +72,25 @@ class RFQI:
                 f"Use SRFQI for path-dependent options (barriers, lookbacks)."
             )
 
-        # Initialize randomized neural network
-        # Handle hidden size based on reference methodology
-        if hidden_size < 0:
-            # Negative: use as multiplier of nb_stocks
-            hidden_size = max(model.nb_stocks * abs(hidden_size), 5)
-        else:
-            # Positive: min between nb_stocks and 20, but at least 5
-            hidden_size = max(min(model.nb_stocks, 20), 5)
+        # Extract barrier values from payoff if available (for use as input hint)
+        self.barrier_values = []
+        if self.use_barrier_as_input:
+            if hasattr(payoff, 'barrier') and payoff.barrier is not None:
+                self.barrier_values.append(payoff.barrier)
+            if hasattr(payoff, 'barrier_up') and payoff.barrier_up is not None:
+                self.barrier_values.append(payoff.barrier_up)
+            if hasattr(payoff, 'barrier_down') and payoff.barrier_down is not None:
+                self.barrier_values.append(payoff.barrier_down)
 
+        self.nb_barriers = len(self.barrier_values)
+
+        # Initialize randomized neural network
+        # Use exact hidden_size from config (no modifications)
         self.dim_out = hidden_size
         self.nb_base_fcts = self.dim_out + 1
 
-        # State includes: stocks + time + time_to_maturity (+ optionally payoff)
-        self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1
+        # State includes: stocks + time + time_to_maturity (+ optionally payoff + barriers)
+        self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
 
         self._init_reservoir(factors)
 
@@ -112,6 +120,16 @@ class RFQI:
         time = torch.linspace(0, 1, stocks.shape[1]).unsqueeze(0).repeat(
             (stocks.shape[0], 1)).unsqueeze(2)
         stocks = torch.cat([stocks, time, 1 - time], dim=-1)
+
+        # Add barrier values as input hint (if enabled)
+        if self.nb_barriers > 0:
+            # Normalize barriers by spot price and add as features
+            spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+            barrier_features = torch.tensor(
+                [[b / spot for b in self.barrier_values]],
+                dtype=torch.float32
+            ).repeat(stocks.shape[0], stocks.shape[1], 1)
+            stocks = torch.cat([stocks, barrier_features], dim=-1)
 
         # Evaluate reservoir
         random_base = self.reservoir2(stocks)

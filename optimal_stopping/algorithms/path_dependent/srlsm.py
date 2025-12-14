@@ -34,7 +34,8 @@ class SRLSM:
     """
 
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
-                 train_ITM_only=True, use_payoff_as_input=False, **kwargs):
+                 train_ITM_only=True, use_payoff_as_input=False,
+                 use_barrier_as_input=False, **kwargs):
         """
         Initialize SRLSM pricer.
 
@@ -45,6 +46,7 @@ class SRLSM:
             factors: Tuple of (activation_slope, weight_scale, ...)
             train_ITM_only: If True, only use in-the-money paths for training
             use_payoff_as_input: Not typically used for barriers
+            use_barrier_as_input: If True, include barrier values as input hint
 
         Raises:
             ValueError: If payoff is NOT path-dependent
@@ -55,6 +57,7 @@ class SRLSM:
         self.factors = factors
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
+        self.use_barrier_as_input = use_barrier_as_input
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -67,11 +70,21 @@ class SRLSM:
                 f"Use RLSM for standard options."
             )
 
-        # Initialize randomized neural network (same as RLSM)
-        if hidden_size < 0:
-            hidden_size = 50 + abs(hidden_size) * model.nb_stocks
+        # Extract barrier values from payoff if available (for use as input hint)
+        self.barrier_values = []
+        if self.use_barrier_as_input:
+            if hasattr(payoff, 'barrier') and payoff.barrier is not None:
+                self.barrier_values.append(payoff.barrier)
+            if hasattr(payoff, 'barrier_up') and payoff.barrier_up is not None:
+                self.barrier_values.append(payoff.barrier_up)
+            if hasattr(payoff, 'barrier_down') and payoff.barrier_down is not None:
+                self.barrier_values.append(payoff.barrier_down)
 
-        state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
+        self.nb_barriers = len(self.barrier_values)
+
+        # Initialize randomized neural network (same as RLSM)
+        # Use exact hidden_size from config (no modifications)
+        state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1 + self.nb_barriers
         self._init_reservoir(state_size, hidden_size, factors)
 
         # Storage for learned policy (coefficients at each time step)
@@ -244,6 +257,13 @@ class SRLSM:
                     current_state,
                     immediate_exercise.reshape(-1, 1)
                 ], axis=1)
+
+            # Add barrier values as input hint (if enabled)
+            if self.nb_barriers > 0:
+                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
+                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
+                current_state = np.concatenate([current_state, barrier_features], axis=1)
 
             # Learn continuation value
             continuation_values, coefficients = self._learn_continuation(
