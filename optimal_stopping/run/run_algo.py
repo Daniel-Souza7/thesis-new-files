@@ -104,7 +104,7 @@ flags.DEFINE_bool("DEBUG", False, "Turn on debug mode")
 flags.DEFINE_integer("train_eval_split", 2,
                      "divisor for the train/eval split")
 
-_CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'risk_free_rate', 'volatility', 'mean',
+_CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'speed', 'correlation', 'hurst', 'nb_stocks',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
                 'barrier', 'barriers_up', 'barriers_down',
@@ -189,7 +189,6 @@ def _run_algos():
         combinations = list(itertools.product(
             config.algos, config.dividends, config.maturities, config.nb_dates,
             config.nb_paths, config.nb_stocks, config.payoffs, config.drift,
-            config.risk_free_rate,
             config.spots, config.stock_models, config.strikes, config.barriers,
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
@@ -261,7 +260,7 @@ def _run_algos():
 
 def _run_algo(
         metrics_fpath, algo, dividend, maturity, nb_dates, nb_paths,
-        nb_stocks, payoff_name, drift, risk_free_rate, spot, stock_model_name, strike, barrier,
+        nb_stocks, payoff_name, drift, spot, stock_model_name, strike, barrier,
         volatility, mean, speed, correlation, hurst, nb_epochs, hidden_size=10,
         factors=(1., 1., 1.), ridge_coeff=1.,
         train_ITM_only=True, use_payoff_as_input=False, use_barrier_as_input=False,
@@ -314,7 +313,7 @@ def _run_algo(
         step_param2=step_param2,
         step_param3=step_param3,
         step_param4=step_param4,
-        rate=risk_free_rate,  # For step barrier growth
+        rate=drift,  # For step barrier growth (drift = risk-free rate)
         maturity=maturity  # For step barrier growth
     )
 
@@ -345,7 +344,7 @@ def _run_algo(
 
         # Instantiate stock model
     stock_model_obj = _STOCK_MODELS[stock_model_name](
-        drift=drift, risk_free_rate=risk_free_rate, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
+        drift=drift, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=paths_to_load,  # <--- CHANGED THIS
         nb_dates=nb_dates,
@@ -354,17 +353,16 @@ def _run_algo(
     # Instantiate stock model
     # Note: Don't pass 'name' - each model sets its own name internally
     stock_model_obj = _STOCK_MODELS[stock_model_name](
-        drift=drift, risk_free_rate=risk_free_rate, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
+        drift=drift, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=nb_paths, nb_dates=nb_dates,
         spot=spot, dividend=dividend,
         maturity=maturity, user_data_file=user_data_file)
 
     # Capture actual parameter values used by the model for CSV output
-    # (important when drift/volatility/risk_free_rate are None and model uses empirical/default values)
+    # (important when drift/volatility are None and model uses empirical/default values)
     actual_drift = drift
     actual_volatility = volatility
-    actual_risk_free_rate = risk_free_rate
 
     # Extract actual values from the created model object
     # Special handling for RealData which stores actual empirical values separately
@@ -381,10 +379,6 @@ def _run_algo(
 
         if hasattr(stock_model_obj, 'volatility'):
             actual_volatility = stock_model_obj.volatility
-
-    # Get actual risk_free_rate from model (applies to all models)
-    if hasattr(stock_model_obj, 'rate'):
-        actual_risk_free_rate = stock_model_obj.rate
 
     # Start timing BEFORE creating pricer (to capture __init__ time for trees)
     t_begin = time.time()
@@ -574,7 +568,6 @@ def _run_algo(
         'model': stock_model_name,
         'payoff': payoff_name,
         'drift': actual_drift,
-        'risk_free_rate': actual_risk_free_rate,
         'volatility': actual_volatility,
         'mean': mean,
         'speed': speed,

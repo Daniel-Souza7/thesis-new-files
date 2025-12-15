@@ -182,13 +182,6 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
     hidden_size = extract_single_value(exp_config.hidden_size)
     nb_epochs = extract_single_value(exp_config.nb_epochs)
 
-    risk_free_rate = extract_single_value(exp_config.risk_free_rate)
-    if risk_free_rate is None:
-        if drift is not None:
-            risk_free_rate = drift - 0.04
-        else:
-            # When drift is None (RealData empirical), use default
-            risk_free_rate = 0.02
     dividend = extract_single_value(exp_config.dividends)
 
     factors = extract_single_value(exp_config.factors)
@@ -218,7 +211,7 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
 
     # Pass rate and maturity for step barriers
     if 'step_param1' in payoff_params:
-        payoff_params['rate'] = risk_free_rate
+        payoff_params['rate'] = drift  # drift = risk-free rate
         payoff_params['maturity'] = maturity
 
     payoff = PayoffClass(strike=strike, **payoff_params)
@@ -231,7 +224,6 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
         # Build kwargs for model
         model_kwargs = {
             'drift': drift,
-            'risk_free_rate': risk_free_rate,
             'volatility': volatility,
             'nb_stocks': nb_stocks,
             'nb_paths': nb_paths,

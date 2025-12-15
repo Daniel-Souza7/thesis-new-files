@@ -9,7 +9,7 @@ from optimal_stopping.utilities import filtering
 # INDEX must match CSV columns for multi-index creation
 # Based on actual CSV structure from output
 INDEX = [
-    "algo", "model", "payoff", "drift", "risk_free_rate", "volatility",
+    "algo", "model", "payoff", "drift", "volatility",
     "mean", "speed", "correlation", "hurst",
     "nb_stocks", "nb_paths", "nb_dates", "spot", "strike",
     "dividend", "barrier", "maturity",

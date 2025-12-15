@@ -19,7 +19,7 @@ Usage:
         --nb_dates=100 \
         --maturity=0.5 \
         --spot=100 \
-        --risk_free_rate=0.0 \
+        --drift=0.05 \
         --volatility=0.2 \
         --mean=0.04 \
         --speed=2.0 \
@@ -92,8 +92,6 @@ def main():
                         help='Initial spot price (default: 100)')
     parser.add_argument('--custom_id', type=str,
                         help='Custom storage ID (default: auto-generated timestamp)')
-    parser.add_argument('--risk_free_rate', type=float, default=0.0,
-                        help='Risk free rate (r)')
 
     # Model-specific parameters
     parser.add_argument('--drift', type=str,
@@ -157,8 +155,7 @@ def main():
 
     # Build model parameters
     model_params = {
-        'dividend': args.dividend,
-        'risk_free_rate': args.risk_free_rate
+        'dividend': args.dividend
     }
 
     # Add optional parameters if provided

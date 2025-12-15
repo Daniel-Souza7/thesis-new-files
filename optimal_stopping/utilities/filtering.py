@@ -18,7 +18,6 @@ FILTERS = [
     ("nb_dates", "nb_dates"),
     ("nb_stocks", "nb_stocks"),
     ("drift", "drift"),
-    ("risk_free_rate", "risk_free_rate"),
     ("stock_models", "model"),
     ("strikes", "strike"),
     ("barriers", "barrier"),

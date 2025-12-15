@@ -22,7 +22,7 @@ NB_JOBS_PATH_GEN = 1
 
 class Model:
     def __init__(self, drift, dividend, volatility, spot, nb_stocks,
-                 nb_paths, nb_dates, maturity, name, risk_free_rate=None, **keywords):
+                 nb_paths, nb_dates, maturity, name, **keywords):
         self.name = name
 
         # Handle drift=None (for RealData empirical drift)
@@ -32,11 +32,9 @@ class Model:
         self.drift = drift - dividend  # Drift for path generation (real-world or risk-neutral)
         self.dividend = dividend
 
-        # Risk-free rate for discounting: default to drift - 0.04 if not provided
-        if risk_free_rate is None:
-            self.rate = drift - 0.04
-        else:
-            self.rate = risk_free_rate
+        # For derivatives pricing under risk-neutral measure:
+        # drift = risk-free rate, so use drift for discounting
+        self.rate = drift
 
         self.volatility = volatility
         self.spot = spot
@@ -45,13 +43,13 @@ class Model:
         self.nb_dates = nb_dates
         self.maturity = maturity
         self.dt = self.maturity / self.nb_dates
-        self.df = math.exp(-self.rate * self.dt)  # Discount factor using risk-free rate
+        self.df = math.exp(-self.rate * self.dt)  # Discount factor using drift (= risk-free rate)
         self.return_var = False
 
     def disc_factor(self, date_begin, date_end):
         """Compute discount factor between two dates."""
         time = (date_end - date_begin) * self.dt
-        return math.exp(-self.rate * time)  # FIX: Use self.rate, not self.drift
+        return math.exp(-self.rate * time)  # Use self.rate (which equals drift)
 
     def drift_fct(self, x, t):
         """Drift function for SDE."""

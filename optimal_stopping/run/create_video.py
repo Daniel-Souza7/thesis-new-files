@@ -115,10 +115,7 @@ def run_algorithm_for_video(config, nb_paths_to_display):
     use_payoff_as_input = config.use_payoff_as_input[0] if isinstance(config.use_payoff_as_input, (list, tuple)) else config.use_payoff_as_input
     train_ITM_only = config.train_ITM_only[0] if isinstance(config.train_ITM_only, (list, tuple)) else config.train_ITM_only
 
-    # Extract risk_free_rate and dividend
-    risk_free_rate = config.risk_free_rate[0] if isinstance(config.risk_free_rate, (list, tuple)) else config.risk_free_rate
-    if risk_free_rate is None:
-        risk_free_rate = drift - 0.04  # Default: drift - 0.04
+    # Extract dividend
     dividend = config.dividends[0] if isinstance(config.dividends, (list, tuple)) else config.dividends
 
     # Create payoff with all optional parameters
@@ -159,7 +156,6 @@ def run_algorithm_for_video(config, nb_paths_to_display):
 
     train_model = BlackScholes(
         drift=drift,
-        risk_free_rate=risk_free_rate,
         volatility=volatility,
         nb_stocks=nb_stocks,
         nb_paths=nb_training_paths,
@@ -198,7 +194,6 @@ def run_algorithm_for_video(config, nb_paths_to_display):
     nb_paths_total = config.nb_paths[0] if isinstance(config.nb_paths, (list, tuple)) else config.nb_paths
     video_model = BlackScholes(
         drift=drift,
-        risk_free_rate=risk_free_rate,
         volatility=volatility,
         nb_stocks=nb_stocks,
         nb_paths=nb_paths_total,

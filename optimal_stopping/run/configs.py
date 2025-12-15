@@ -39,8 +39,7 @@ class _DefaultConfig:
                           'RLSM', 'SRFQI', 'SRLSM')
   dividends: Iterable[float] = (0.0,)
   nb_dates: Iterable[int] = (10,)
-  drift: Iterable[float] = (0.06,)
-  risk_free_rate: Iterable[float] = (None,)  # Risk-free rate for discounting (None = drift - 0.04 = 0.02)
+  drift: Iterable[float] = (0.06,)  # Drift = risk-free rate for derivatives pricing
   mean: Iterable[float] = (0.01,)
   speed: Iterable[float] = (2,)
   correlation: Iterable[float] = (-0.3,)
@@ -78,12 +77,12 @@ class _DefaultConfig:
 
 
 '''
-Test config for risk_free_rate functionality
+Test config for drift functionality (drift = risk-free rate in derivatives pricing)
 '''
 
-test_risk_free_rate = _DefaultConfig(
+test_drift = _DefaultConfig(
     algos=('RLSM', 'RFQI'), payoffs=('BasketCall',), nb_stocks=(50,),
-    drift=(0.05,), risk_free_rate=(None, 0.05, 0.1, 0.2, 0.3,),
+    drift=(0.05, 0.1, 0.2, 0.3,),
     nb_paths=(50000,), nb_dates=(10,), nb_runs=3
 )
 
@@ -1651,7 +1650,6 @@ test_stored = _DefaultConfig(
     nb_runs=10,
     barriers=[150],
     drift=[0.5],
-    risk_free_rate=[0.5],
     volatilities=[0.2],
 )
 # Example stored paths config - UPDATE THE STORAGE ID!
@@ -1667,7 +1665,6 @@ test_stored2 = _DefaultConfig(
     nb_runs=10,
     barriers=[150],
     drift=[0.5],
-    risk_free_rate=[0.5],
     volatilities=[0.2],
 )
 
@@ -1903,7 +1900,6 @@ test_article = _DefaultConfig(
     strikes=[100],
     volatilities=[0.2],
     drift=[0.05],
-    risk_free_rate=[0.05],
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
@@ -1998,7 +1994,6 @@ test_bug4_real_data_init2 = _DefaultConfig(
     hurst=[0.1],
 )
 
-# Test Bug 6 Fix: create_video parameters (risk_free_rate, dividend)
 # Config suitable for create_video.py testing
 test_bug6_create_video = _DefaultConfig(
     algos=['RLSM', 'LSM', 'DKL', 'ZAPQ', 'RDKL', 'RZAPQ'],
@@ -2012,7 +2007,6 @@ test_bug6_create_video = _DefaultConfig(
     strikes=[100],
     volatilities=[0.2],
     drift=[0.08],
-    risk_free_rate=[0.08],  # Set equal to drift
     dividends=[0.02],  # Should be passed to model
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
@@ -2087,7 +2081,6 @@ test_bug9_step_barriers = _DefaultConfig(
     # step_param1-4 = None means use risk-free rate growth (Bug 9 fix)
     volatilities=[0.2],
     drift=[0.05],
-    risk_free_rate=[0.04],  # Should be used for barrier growth
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
 )
@@ -2148,7 +2141,6 @@ test_all_bug_fixes = _DefaultConfig(
     hurst=[0.7],  # For FractionalBlackScholes (Bug 3)
     volatilities=[0.2],
     drift=[0.05],
-    risk_free_rate=[0.04],
     # For RealData (Bug 4): drift and volatilities will be overridden
     use_payoff_as_input=[True],
     representations=['TablePriceDuration'],
@@ -2286,7 +2278,6 @@ presentation = _DefaultConfig( nb_runs=1,
     stock_models=['RoughHeston'],
     drift = [0.05],
     volatilities=[0.3,],
-    risk_free_rate=[0.05],
     nb_dates = [50],
     barriers_up = (140,),  # Upper barrier level for double barriers
     barriers_down = (65,))
@@ -2306,7 +2297,6 @@ test_mesh = _DefaultConfig(
     volatilities=[0.2],
     correlation=[-0.2, 0, 0.4, 0.8],
     nb_runs=5,
-    risk_free_rate=[0.08],
     drift=[0.08],)
 
 # In configs.py or create a new config
@@ -2322,7 +2312,6 @@ test_deepnn = _DefaultConfig(
     volatilities=[0.2],
     correlation=[0],
     nb_runs=2,
-    risk_free_rate=[0.08],
     drift=[0.08],)
 
 ruben_test = _DefaultConfig(
@@ -2337,7 +2326,6 @@ ruben_test = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
@@ -2354,7 +2342,6 @@ ruben_test2 = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
@@ -2373,7 +2360,6 @@ ruben_test3 = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
@@ -2390,7 +2376,6 @@ ruben_test4 = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
@@ -2408,7 +2393,6 @@ ruben_test5 = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],)
@@ -2425,7 +2409,6 @@ ruben_test6 = _DefaultConfig(
     volatilities=[0.5],
     correlation=[0],
     nb_runs=10,
-    risk_free_rate=[0.08],
     drift=[0.08],
     barriers=[250],
     #hidden_size=[10, 15, 20, 30, 50, 100, 200, 300, 500, 1000],
@@ -2445,6 +2428,5 @@ rfqi_to_fqi2 = _DefaultConfig(
     nb_runs=25,
     barriers=[110],
     train_ITM_only=[False],
-    risk_free_rate=[0.08],
     drift=[0.08],
     use_payoff_as_input=[False])
