@@ -111,7 +111,7 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'risk_free_rate', 'volatilit
                 'k', 'weights', 'step_param1', 'step_param2', 'step_param3', 'step_param4',
                 'user_data_file',
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
-                'ridge_coeff', 'use_payoff_as_input',
+                'ridge_coeff', 'use_payoff_as_input', 'use_barrier_as_input',
                 'train_ITM_only',
                 'price', 'duration', 'time_path_gen', 'comp_time',
                 'delta', 'gamma', 'theta', 'rho', 'vega', 'greeks_method',
@@ -194,6 +194,7 @@ def _run_algos():
             config.volatilities, config.mean, config.speed, config.correlation,
             config.hurst, config.nb_epochs, config.hidden_size, config.factors,
             config.ridge_coeff, config.train_ITM_only, config.use_payoff_as_input,
+            config.use_barrier_as_input,
             config.barriers_up, config.barriers_down,
             config.k, config.weights,
             config.step_param1, config.step_param2, config.step_param3, config.step_param4))
@@ -263,7 +264,7 @@ def _run_algo(
         nb_stocks, payoff_name, drift, risk_free_rate, spot, stock_model_name, strike, barrier,
         volatility, mean, speed, correlation, hurst, nb_epochs, hidden_size=10,
         factors=(1., 1., 1.), ridge_coeff=1.,
-        train_ITM_only=True, use_payoff_as_input=False,
+        train_ITM_only=True, use_payoff_as_input=False, use_barrier_as_input=False,
         barrier_up=None, barrier_down=None,
         k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
@@ -404,6 +405,7 @@ def _run_algo(
                 factors=factors,
                 train_ITM_only=train_ITM_only,
                 use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input,
                 nb_epochs=nb_epochs if algo == "RFQI" else None
             )
 
@@ -421,6 +423,7 @@ def _run_algo(
                 factors=factors,
                 train_ITM_only=train_ITM_only,
                 use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input,
                 nb_epochs=nb_epochs if algo == "SRFQI" else None
             )
 
@@ -432,7 +435,8 @@ def _run_algo(
                 hidden_size=hidden_size,
                 factors=factors,
                 train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         elif algo in ["DOS"]:
@@ -443,7 +447,8 @@ def _run_algo(
                 factors=factors,
                 use_path=False,
                 train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
 
@@ -455,7 +460,8 @@ def _run_algo(
                 hidden_size=hidden_size,
                 factors=factors,
                 train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         elif algo in ["LSM", "LSMDeg1", "LSMLaguerre", "ZAPQ", "RZAPQ", "DKL", "RDKL", "SRFQI_RBF"]:
@@ -465,7 +471,8 @@ def _run_algo(
                 hidden_size=hidden_size,
                 factors=factors,
                 train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         elif algo in ["FQI", "FQIDeg1", "FQILaguerre"]:
@@ -475,7 +482,8 @@ def _run_algo(
                 hidden_size=hidden_size,
                 factors=factors,
                 train_ITM_only=train_ITM_only,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         elif algo == "EOP":
@@ -493,7 +501,8 @@ def _run_algo(
                 stock_model_obj, payoff_obj,
                 nb_paths=nb_paths,
                 hidden_size=hidden_size,
-                use_payoff_as_input=use_payoff_as_input
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         else:
@@ -598,6 +607,7 @@ def _run_algo(
         'nb_epochs': nb_epochs,
         'train_ITM_only': train_ITM_only,
         'use_payoff_as_input': use_payoff_as_input,
+        'use_barrier_as_input': use_barrier_as_input,
         'delta': delta,
         'gamma': gamma,
         'theta': theta,
