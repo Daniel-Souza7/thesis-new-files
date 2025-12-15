@@ -27,6 +27,7 @@ FILTERS = [
     ("factors", "factors"),
     ("ridge_coeff", "ridge_coeff"),
     ("use_payoff_as_input", "use_payoff_as_input"),
+    ("use_barrier_as_input", "use_barrier_as_input"),
     ("barriers_up", "barriers_up"),
     ("barriers_down", "barriers_down"),
     ("k", "k"),
