@@ -2430,3 +2430,155 @@ rfqi_to_fqi2 = _DefaultConfig(
     train_ITM_only=[False],
     drift=[0.08],
     use_payoff_as_input=[False])
+
+# Barrier input experiments
+rfqi_to_fqi3 = _DefaultConfig(
+    algos=['SRLSM', 'LSM', 'RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[100000],
+    hidden_size=[10, 50, 200],
+    nb_epochs=[4, 15, 30],
+    nb_dates=[30],
+    payoffs=['UO-BskCall', 'UO-MinPut', 'BskCall', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[110],
+    train_ITM_only=[False, True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[False, True],
+    use_barrier_as_input=[False, True])
+
+barrier_as_input = _DefaultConfig(
+    algos=['SRFQI', 'FQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[40000],
+    hidden_size=[10, 50, 80],
+    nb_epochs=[4, 15, 30],
+    nb_dates=[10],
+    payoffs=['UO-BskCall', 'UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    barriers=[110],
+    train_ITM_only=[False, True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[False, True],
+    use_barrier_as_input=[False, True])
+
+barrier_as_input2 = _DefaultConfig(
+    algos=['SRLSM', 'LSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[40000],
+    hidden_size=[10, 50, 80],
+    nb_epochs=[4, 15, 30],
+    nb_dates=[10],
+    payoffs=['UO-BskCall', 'UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=10,
+    barriers=[110],
+    train_ITM_only=[False, True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[False, True],
+    use_barrier_as_input=[False, True])
+
+rfqi_to_fqi4 = _DefaultConfig(
+    algos=['SRLSM', 'LSM', 'RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2, 7],
+    nb_paths=[80000],
+    hidden_size=[5, 20, 40],
+    nb_dates=[25],
+    payoffs=['UO-BskPut', 'UO-MaxCall', 'BskPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[120],
+    train_ITM_only=[True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[True])
+
+rfqi_to_fqi5 = _DefaultConfig(
+    algos=['SRFQI', 'FQI', 'RFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2, 7],
+    nb_paths=[60000],
+    nb_epochs=[3, 4, 8],
+    hidden_size=[5, 15, 30],
+    nb_dates=[25],
+    payoffs=['UO-BskPut', 'UO-MaxCall', 'BskPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[120],
+    train_ITM_only=[False],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[True, False])
+
+rfqi_to_fqi7 = _DefaultConfig(
+    algos=['SRLSM', 'LSM', 'RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[80000],
+    hidden_size=[15, 25, 35],
+    nb_dates=[25],
+    payoffs=['UO-BskPut', 'UO-MaxCall', 'BskPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[120],
+    train_ITM_only=[True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[True])
+
+rfqi_to_fqi8 = _DefaultConfig(
+    algos=['SRLSM', 'LSM', 'RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[7],
+    nb_paths=[80000],
+    hidden_size=[15, 25, 35],
+    nb_dates=[25],
+    payoffs=['UO-BskPut', 'UO-MaxCall', 'BskPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[120],
+    train_ITM_only=[True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[True])
+
+rfqi_to_fqi9 = _DefaultConfig(
+    algos=['SRLSM', 'LSM', 'RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[20, 50],
+    nb_paths=[80000],
+    hidden_size=[10, 20, 50],
+    nb_dates=[25],
+    payoffs=['UO-BskPut', 'UO-MaxCall', 'BskPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    nb_runs=25,
+    barriers=[120],
+    train_ITM_only=[True],
+    drift=[0.08],  # drift = risk-free rate
+    use_payoff_as_input=[True])
