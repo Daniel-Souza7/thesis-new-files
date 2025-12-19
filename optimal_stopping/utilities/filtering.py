@@ -35,7 +35,8 @@ FILTERS = [
     ("step_param2", "step_param2"),
     ("step_param3", "step_param3"),
     ("step_param4", "step_param4"),
-    ("user_data_file", "user_data_file")
+    ("user_data_file", "user_data_file"),
+    ("dtype", "dtype")
 ]
 
 FLAGS = flags.FLAGS

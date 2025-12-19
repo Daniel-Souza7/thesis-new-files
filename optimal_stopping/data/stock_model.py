@@ -22,8 +22,16 @@ NB_JOBS_PATH_GEN = 1
 
 class Model:
     def __init__(self, drift, dividend, volatility, spot, nb_stocks,
-                 nb_paths, nb_dates, maturity, name, **keywords):
+                 nb_paths, nb_dates, maturity, name, dtype='float32', **keywords):
         self.name = name
+
+        # Set numpy dtype for precision control
+        if dtype == 'float32':
+            self.dtype = np.float32
+        elif dtype == 'float64':
+            self.dtype = np.float64
+        else:
+            raise ValueError(f"Invalid dtype: {dtype}. Must be 'float32' or 'float64'")
 
         # Handle drift=None (for RealData empirical drift)
         if drift is None:
@@ -91,14 +99,14 @@ class BlackScholes(Model):
         # Handle correlation matrix for multi-asset models
         if correlation is None:
             # Default: independent assets (identity matrix)
-            self.correlation_matrix = np.eye(nb_stocks, dtype=np.float32)
+            self.correlation_matrix = np.eye(nb_stocks, dtype=self.dtype)
         elif np.isscalar(correlation):
             # Single scalar: use for all off-diagonal elements
-            self.correlation_matrix = np.full((nb_stocks, nb_stocks), correlation, dtype=np.float32)
+            self.correlation_matrix = np.full((nb_stocks, nb_stocks), correlation, dtype=self.dtype)
             np.fill_diagonal(self.correlation_matrix, 1.0)
         else:
             # Full matrix provided
-            self.correlation_matrix = np.array(correlation, dtype=np.float32)
+            self.correlation_matrix = np.array(correlation, dtype=self.dtype)
 
         # Validate correlation matrix
         if self.correlation_matrix.shape != (nb_stocks, nb_stocks):
@@ -130,10 +138,8 @@ class BlackScholes(Model):
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
 
-        # FIX 1: Use float32 to cut memory usage in half (15GB -> 7.5GB)
-        dtype = np.float32
-
-        spot_paths = np.empty((nb_paths, self.nb_stocks, nb_dates + 1), dtype=dtype)
+        # Use configurable dtype for precision/memory tradeoff
+        spot_paths = np.empty((nb_paths, self.nb_stocks, nb_dates + 1), dtype=self.dtype)
 
         # Set initial values
         if X0 is None:
@@ -142,10 +148,9 @@ class BlackScholes(Model):
             spot_paths[:, :, 0] = X0
 
         # Generate Brownian increments
-        # FIX 2: Generate directly in float32
         if dW is None:
-            # Generate independent standard normals
-            Z = np.random.normal(0, 1, (nb_paths, self.nb_stocks, nb_dates)).astype(dtype)
+            # Generate independent standard normals with configurable precision
+            Z = np.random.normal(0, 1, (nb_paths, self.nb_stocks, nb_dates)).astype(self.dtype)
 
             # Apply correlation via Cholesky decomposition
             # For single asset or identity correlation, this is a no-op
@@ -191,7 +196,7 @@ class BlackScholes(Model):
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
         total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
-        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=np.float32)
+        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=self.dtype)
 
         spot_paths[:, :, 0] = self.spot
         random_numbers = np.random.normal(
@@ -229,7 +234,7 @@ class BlackScholes(Model):
         nb_paths = nb_paths or self.nb_paths
         nb_dates = nb_dates or self.nb_dates
         total_nb_paths = nb_paths + nb_paths * nb_alternatives * nb_dates
-        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=np.float32)
+        spot_paths = np.empty((total_nb_paths, self.nb_stocks, nb_dates + 1), dtype=self.dtype)
 
         spot_paths[:, :, 0] = self.spot
         random_numbers = np.random.normal(
@@ -282,8 +287,8 @@ class FractionalBlackScholes(Model):
 
     def generate_one_path(self):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
-        path = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
-        fracBM_noise = np.empty((self.nb_stocks, self.nb_dates), dtype=np.float32)
+        path = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=self.dtype)
+        fracBM_noise = np.empty((self.nb_stocks, self.nb_dates), dtype=self.dtype)
 
         path[:, 0] = self.spot
 
@@ -332,7 +337,7 @@ class FractionalBrownianMotion(Model):
 
     def _generate_one_path(self):
         """Returns a nparray (nb_stocks * nb_dates+1) with prices."""
-        path = np.empty((self._nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        path = np.empty((self._nb_stocks, self.nb_dates + 1), dtype=self.dtype)
         for stock in range(self._nb_stocks):
             path[stock, :] = self.fBM.fbm() + self.spot
         return path
@@ -361,7 +366,7 @@ class FractionalBrownianMotionPathDep(FractionalBrownianMotion):
     def generate_one_path(self):
         """Returns path-dependent representation (nb_stocks=nb_dates+1, nb_dates+1)"""
         _path = self._generate_one_path()
-        path = np.zeros((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        path = np.zeros((self.nb_stocks, self.nb_dates + 1), dtype=self.dtype)
         for i in range(self.nb_dates + 1):
             path[:i + 1, i] = np.flip(_path[0, :i + 1])
         return path, None
@@ -423,8 +428,8 @@ class Heston(Model):
 
     def generate_paths(self, start_X=None):
         """Generate paths using Euler-Maruyama scheme."""
-        paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
-        var_paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=self.dtype)
+        var_paths = np.empty((self.nb_paths, self.nb_stocks, self.nb_dates + 1), dtype=self.dtype)
 
         dt = self.maturity / self.nb_dates
 
@@ -564,9 +569,9 @@ class RoughHeston(Model):
     def _generate_one_path(
             self, mu, la, thet, vol, start_X, nb_steps, v0=None):
         """Generate single path for one stock"""
-        spot_path = np.empty((nb_steps + 1), dtype=np.float32)
+        spot_path = np.empty((nb_steps + 1), dtype=self.dtype)
         spot_path[0] = start_X
-        var_path = np.empty((nb_steps + 1), dtype=np.float32)
+        var_path = np.empty((nb_steps + 1), dtype=self.dtype)
         if v0 is None:
             var_path[0] = self.v0
         else:
@@ -596,9 +601,9 @@ class RoughHeston(Model):
     def _generate_paths(
             self, mu, la, thet, vol, start_X, nb_steps, v0=None, nb_stocks=1):
         """Generate multiple paths simultaneously (vectorized over stocks)"""
-        spot_path = np.empty((nb_steps + 1, nb_stocks), dtype=np.float32)
+        spot_path = np.empty((nb_steps + 1, nb_stocks), dtype=self.dtype)
         spot_path[0] = start_X
-        var_path = np.empty((nb_steps + 1, nb_stocks), dtype=np.float32)
+        var_path = np.empty((nb_steps + 1, nb_stocks), dtype=self.dtype)
         if v0 is None:
             var_path[0] = self.v0
         else:
@@ -628,7 +633,7 @@ class RoughHeston(Model):
         Generate paths under P measure for each dimension (stock).
         Uses fine time discretization (nb_dates * nb_steps_mult steps).
         """
-        spot_paths = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=np.float32)
+        spot_paths = np.empty((self.nb_stocks, self.nb_dates + 1), dtype=self.dtype)
         for i in range(self.nb_stocks):
             spot_path, var_path = self._generate_one_path(
                 self.drift, self.speed, self.mean, self.volatility,

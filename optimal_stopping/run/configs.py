@@ -71,6 +71,7 @@ class _DefaultConfig:
   step_param3: Iterable[float] = (-1,)  # Lower bound for double step barrier
   step_param4: Iterable[float] = (1,)  # Upper bound for double step barrier
   user_data_file: str = None  # CSV filename for UserData model (in user_data/ folder)
+  dtype: Iterable[str] = ('float32',)  # Floating point precision: 'float32' or 'float64'
   representations: Iterable[str] = ('TablePriceDuration',)
 
   # When adding a filter here, also add to filtering.py and read_data.py

@@ -109,7 +109,7 @@ _CSV_HEADERS = ['algo', 'model', 'payoff', 'drift', 'volatility', 'mean',
                 'nb_paths', 'nb_dates', 'spot', 'strike', 'dividend',
                 'barrier', 'barriers_up', 'barriers_down',
                 'k', 'weights', 'step_param1', 'step_param2', 'step_param3', 'step_param4',
-                'user_data_file',
+                'user_data_file', 'dtype',
                 'maturity', 'nb_epochs', 'hidden_size', 'factors',
                 'ridge_coeff', 'use_payoff_as_input', 'use_barrier_as_input',
                 'train_ITM_only',
@@ -196,7 +196,8 @@ def _run_algos():
             config.use_barrier_as_input,
             config.barriers_up, config.barriers_down,
             config.k, config.weights,
-            config.step_param1, config.step_param2, config.step_param3, config.step_param4))
+            config.step_param1, config.step_param2, config.step_param3, config.step_param4,
+            config.dtype))
 
         for params in combinations:
             for i in range(config.nb_runs):
@@ -267,7 +268,7 @@ def _run_algo(
         barrier_up=None, barrier_down=None,
         k=2, weights=None,
         step_param1=-1, step_param2=1, step_param3=-1, step_param4=1,
-        user_data_file=None,
+        user_data_file=None, dtype='float32',
         run_idx=0,
         fail_on_error=False,
         compute_greeks=False, greeks_method=None, eps=None,
@@ -349,7 +350,7 @@ def _run_algo(
         nb_paths=paths_to_load,  # <--- CHANGED THIS
         nb_dates=nb_dates,
         spot=spot, dividend=dividend,
-        maturity=maturity, user_data_file=user_data_file)
+        maturity=maturity, user_data_file=user_data_file, dtype=dtype)
     # Instantiate stock model
     # Note: Don't pass 'name' - each model sets its own name internally
     stock_model_obj = _STOCK_MODELS[stock_model_name](
@@ -357,7 +358,7 @@ def _run_algo(
         correlation=correlation, nb_stocks=nb_stocks,
         nb_paths=nb_paths, nb_dates=nb_dates,
         spot=spot, dividend=dividend,
-        maturity=maturity, user_data_file=user_data_file)
+        maturity=maturity, user_data_file=user_data_file, dtype=dtype)
 
     # Capture actual parameter values used by the model for CSV output
     # (important when drift/volatility are None and model uses empirical/default values)
@@ -588,6 +589,7 @@ def _run_algo(
         'step_param3': step_param3,
         'step_param4': step_param4,
         'user_data_file': user_data_file,
+        'dtype': dtype,
         'dividend': dividend,
         'maturity': maturity,
         'price': price,
