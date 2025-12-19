@@ -183,6 +183,7 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
     nb_epochs = extract_single_value(exp_config.nb_epochs)
 
     dividend = extract_single_value(exp_config.dividends)
+    dtype = extract_single_value(exp_config.dtype) if hasattr(exp_config, 'dtype') else 'float32'
 
     factors = extract_single_value(exp_config.factors)
     use_payoff_as_input = extract_single_value(exp_config.use_payoff_as_input)
@@ -230,7 +231,8 @@ def run_single_experiment(config, algo_name, param_value, varying_param):
             'nb_dates': nb_dates,
             'spot': spot,
             'dividend': dividend,
-            'maturity': maturity
+            'maturity': maturity,
+            'dtype': dtype
         }
 
         # Add model-specific parameters

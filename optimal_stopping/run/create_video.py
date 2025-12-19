@@ -115,8 +115,9 @@ def run_algorithm_for_video(config, nb_paths_to_display):
     use_payoff_as_input = config.use_payoff_as_input[0] if isinstance(config.use_payoff_as_input, (list, tuple)) else config.use_payoff_as_input
     train_ITM_only = config.train_ITM_only[0] if isinstance(config.train_ITM_only, (list, tuple)) else config.train_ITM_only
 
-    # Extract dividend
+    # Extract dividend and dtype
     dividend = config.dividends[0] if isinstance(config.dividends, (list, tuple)) else config.dividends
+    dtype = config.dtype[0] if hasattr(config, 'dtype') and isinstance(config.dtype, (list, tuple)) else (config.dtype if hasattr(config, 'dtype') else 'float32')
 
     # Create payoff with all optional parameters
     payoff_params = {}
@@ -162,7 +163,8 @@ def run_algorithm_for_video(config, nb_paths_to_display):
         nb_dates=nb_dates,
         spot=spot,
         dividend=dividend,
-        maturity=maturity
+        maturity=maturity,
+        dtype=dtype
     )
 
     # Create and train the algorithm
@@ -200,7 +202,8 @@ def run_algorithm_for_video(config, nb_paths_to_display):
         nb_dates=nb_dates,
         spot=spot,
         dividend=dividend,
-        maturity=maturity
+        maturity=maturity,
+        dtype=dtype
     )
 
     # Generate ALL paths for visualization
