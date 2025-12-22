@@ -2680,3 +2680,66 @@ test_optimized = _DefaultConfig(
     dtype=['float64'],
 )
 
+
+'''
+Hyperparameter optimization for SRFQI with UpAndOut Basket Call
+Barrier option with upper barrier at 150
+'''
+hyperopt_srfqi_uo_basket = _DefaultConfig(
+    algos=['SRFQI'],  # Path-dependent RFQI
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],  # Basket option with 2 stocks
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['UpAndOutMaxCall'],  # UpAndOut barrier on MaxCall basket
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    barriers_up=[150],  # Upper barrier at 150 (knock-out level)
+    nb_runs=1,
+    # Hyperopt settings
+    enable_hyperopt=True,
+    hyperopt_method='tpe',  # Bayesian optimization
+    hyperopt_timeout=600,  # 10 minutes
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype=['float64'],
+)
+
+
+'''
+Test config with optimized SRFQI hyperparameters for UpAndOut Basket Call
+TEMPLATE: Fill in optimized values after running hyperopt_srfqi_uo_basket
+'''
+srfqi_uo_basket_optimized = _DefaultConfig(
+    algos=['SRFQI'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[50000],
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['UpAndOutMaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    barriers_up=[150],
+    nb_runs=5,  # Multiple runs to assess stability
+    # TEMPLATE: Replace these with your optimized hyperparameters from hyperopt
+    # Example from RLSM optimization: hidden_size=363, activation='elu', dropout=0.34, ridge_coeff=0.06
+    hidden_size=[100],  # TODO: Replace with optimized value
+    activation=['leakyrelu'],  # TODO: Replace with optimized value (e.g., 'elu', 'relu', 'tanh')
+    dropout=[0.0],  # TODO: Replace with optimized value (e.g., 0.34)
+    num_layers=[1],  # TODO: Replace with optimized value (1-4)
+    ridge_coeff=[1e-3],  # TODO: Replace with optimized value (e.g., 0.06)
+    dtype=['float64'],
+)
+
