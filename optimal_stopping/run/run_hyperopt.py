@@ -25,6 +25,7 @@ from optimal_stopping.payoffs import _PAYOFF_REGISTRY
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 from optimal_stopping.utilities import configs_getter
 
 FLAGS = flags.FLAGS
@@ -41,6 +42,7 @@ _ALGOS = {
     "RLSM": RLSM,
     "SRLSM": SRLSM,
     "RFQI": RFQI,
+    "SRFQI": SRFQI,
 }
 
 # Stock model mapping
@@ -93,6 +95,8 @@ def optimize_config(config_name, algo_override=None, output_dir_override=None):
     dividend = config.dividends[0]
     correlation = config.correlation[0]
     barrier = config.barriers[0]
+    barrier_up = config.barriers_up[0] if hasattr(config, 'barriers_up') else None
+    barrier_down = config.barriers_down[0] if hasattr(config, 'barriers_down') else None
     dtype = config.dtype[0]
     train_ITM_only = config.train_ITM_only[0]
     use_payoff_as_input = config.use_payoff_as_input[0]
@@ -114,8 +118,18 @@ def optimize_config(config_name, algo_override=None, output_dir_override=None):
     if payoff_class is None:
         raise ValueError(f"Payoff '{payoff_name}' not found")
 
-    # Create payoff instance
-    payoff = payoff_class(strike=strike, barrier=barrier, spot=spot)
+    # Create payoff instance with all barrier parameters
+    payoff_kwargs = {
+        'strike': strike,
+        'barrier': barrier,
+        'spot': spot,
+    }
+    if barrier_up is not None:
+        payoff_kwargs['barrier_up'] = barrier_up
+    if barrier_down is not None:
+        payoff_kwargs['barrier_down'] = barrier_down
+
+    payoff = payoff_class(**payoff_kwargs)
 
     # Build problem config
     model_params = {
