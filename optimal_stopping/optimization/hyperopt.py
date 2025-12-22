@@ -229,7 +229,7 @@ class HyperparameterOptimizer:
 
         # Save human-readable summary
         summary_path = self.output_dir / f"{self.study_name}_summary.txt"
-        with open(summary_path, 'w') as f:
+        with open(summary_path, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
             f.write("HYPERPARAMETER OPTIMIZATION SUMMARY\n")
             f.write("="*80 + "\n\n")
