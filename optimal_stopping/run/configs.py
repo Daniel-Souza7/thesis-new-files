@@ -56,7 +56,10 @@ class _DefaultConfig:
   hidden_size: Iterable[int] = (20,)
   nb_epochs: Iterable[int] = (30,)
   factors: Iterable[Iterable[float]] = ((1.,1.,1.),)
-  ridge_coeff: Iterable[float] = (1.,)
+  ridge_coeff: Iterable[float] = (1e-3,)  # Changed default from 1.0 to 1e-3
+  activation: Iterable[str] = ('leakyrelu',)  # Activation function: 'relu', 'tanh', 'elu', 'leakyrelu'
+  dropout: Iterable[float] = (0.0,)  # Dropout probability (0.0 = no dropout)
+  num_layers: Iterable[int] = (1,)  # Number of layers (RFQI only, others always use 1)
   train_ITM_only: Iterable[bool] = (True,)
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
@@ -2645,5 +2648,35 @@ test_hyperopt2 = _DefaultConfig(
     hyperopt_variance_penalty=0.1,
     hyperopt_output_dir='hyperopt_results',
     dtype = ['float64'],
+)
+
+
+'''
+Test config with optimized hyperparameters from hyperopt
+Using best parameters found: hidden_size=363, activation='elu', dropout=0.34, ridge_coeff=0.06
+Best objective value: 30.81
+'''
+test_optimized = _DefaultConfig(
+    algos=['RLSM'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[50000],
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=5,  # Multiple runs to assess stability
+    # Optimized hyperparameters from hyperopt
+    hidden_size=[363],
+    activation=['elu'],
+    dropout=[0.34],
+    ridge_coeff=[0.06],
+    num_layers=[1],  # RLSM always uses 1 layer
+    dtype=['float64'],
 )
 
