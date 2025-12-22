@@ -107,14 +107,17 @@ class SRFQI:
         if isinstance(activation, str):
             # New style: use string activation name
             act_function = activation
+            # Use default factors for input scaling (Reservoir2 needs at least one factor)
+            reservoir_factors = factors[1:] if len(factors) > 1 else (1.,)
         else:
             # Old style: activation comes from factors[0]
             act_function = torch.nn.LeakyReLU(factors[0] / 2)
+            reservoir_factors = factors[1:] if len(factors) > 1 else (1.,)
 
         self.reservoir2 = randomized_neural_networks.Reservoir2(
             self.dim_out,
             self.state_size,
-            factors=factors[1:] if len(factors) > 1 else (),
+            factors=reservoir_factors,
             activation=act_function,
             num_layers=num_layers,
             dropout=dropout
