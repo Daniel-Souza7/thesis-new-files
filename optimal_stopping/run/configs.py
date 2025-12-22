@@ -2602,7 +2602,7 @@ test_hyperopt = _DefaultConfig(
     nb_stocks=[2],
     nb_paths=[50000],  # Will use 50000/4=12500 during optimization
     nb_dates=[20],
-    maturity=[1.0],
+    maturities=[1.0],
     payoffs=['MaxCall'],
     spots=[100],
     strikes=[100],
@@ -2617,5 +2617,33 @@ test_hyperopt = _DefaultConfig(
     hyperopt_n_trials=None,  # Run until timeout
     hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
     hyperopt_variance_penalty=0.1,
-    hyperopt_output_dir='hyperopt_results'
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float64'],
 )
+
+
+test_hyperopt2 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[50],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=300,  # 2 minutes for quick test
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float64'],
+)
+

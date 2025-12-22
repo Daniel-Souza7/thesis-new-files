@@ -16,3 +16,5 @@ yfinance
 h5py
 gpytorch
 #git+https://github.com/FlorianKrach/Telegram-Bot-Install@v2.1.0
+optuna
+kaleido

@@ -25,7 +25,7 @@ from optimal_stopping.payoffs import _PAYOFF_REGISTRY
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
-from optimal_stopping.run import configs_getter
+from optimal_stopping.utilities import configs_getter
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "test_hyperopt",
