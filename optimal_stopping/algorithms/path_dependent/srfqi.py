@@ -339,6 +339,9 @@ class SRFQI:
         # Initialize Q-function weights
         weights = np.zeros(self.nb_base_fcts, dtype=float)
 
+        # Track actual epochs used (for early stopping)
+        epochs_used = self.nb_epochs
+
         # Fitted Q-iteration (IDENTICAL to RFQI)
         for epoch in range(self.nb_epochs):
             # Compute continuation values
@@ -391,11 +394,13 @@ class SRFQI:
                 val_score = np.mean(val_values)  # Higher is better
 
                 if self.early_stopping_callback(val_score, epoch):
-                    print(f"Early stopping at epoch {epoch+1}/{self.nb_epochs}")
+                    epochs_used = epoch + 1  # Track actual epochs used
+                    print(f"Early stopping at epoch {epochs_used}/{self.nb_epochs}")
                     break
 
-        # Store learned weights for later use
+        # Store learned weights and epochs used
         self.weights = weights
+        self._epochs_used = epochs_used  # Store for hyperopt metrics
 
         # Final evaluation on all paths
         continuation_value = np.dot(eval_bases, weights)

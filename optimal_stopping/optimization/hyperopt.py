@@ -143,6 +143,10 @@ class HyperparameterOptimizer:
             trial.set_user_attr('mean_time', metrics['mean_time'])
             trial.set_user_attr('nb_paths_used', metrics['nb_paths_used'])
 
+            # Log epochs used for RFQI/SRFQI
+            if 'nb_epochs_used' in metrics:
+                trial.set_user_attr('nb_epochs_used', metrics['nb_epochs_used'])
+
             return obj_value
 
         # Run optimization
@@ -162,6 +166,13 @@ class HyperparameterOptimizer:
         print(f"{'='*80}")
         print(f"Best hyperparameters: {self.best_params}")
         print(f"Best objective value: {self.best_value:.6f}")
+
+        # Print nb_epochs_used for RFQI/SRFQI
+        if hasattr(self.study.best_trial, 'user_attrs') and 'nb_epochs_used' in self.study.best_trial.user_attrs:
+            nb_epochs = self.study.best_trial.user_attrs['nb_epochs_used']
+            print(f"Epochs used (early stopping): {nb_epochs}")
+            print(f"  → Use nb_epochs={nb_epochs} for final runs")
+
         print(f"Number of trials completed: {len(self.study.trials)}")
         print(f"{'='*80}\n")
 
@@ -207,6 +218,10 @@ class HyperparameterOptimizer:
             'best_objective_value': self.best_value,
         }
 
+        # Add nb_epochs_used for RFQI/SRFQI if available
+        if hasattr(self.study.best_trial, 'user_attrs') and 'nb_epochs_used' in self.study.best_trial.user_attrs:
+            metadata['nb_epochs_used'] = self.study.best_trial.user_attrs['nb_epochs_used']
+
         # Save as JSON
         json_path = self.output_dir / f"{self.study_name}_summary.json"
         with open(json_path, 'w') as f:
@@ -246,6 +261,11 @@ class HyperparameterOptimizer:
             f.write("Best Hyperparameters:\n")
             for param, value in metadata['best_hyperparameters'].items():
                 f.write(f"  {param}: {value}\n")
+
+            # Add nb_epochs_used for RFQI/SRFQI
+            if 'nb_epochs_used' in metadata:
+                f.write(f"\nEpochs Used (with early stopping): {metadata['nb_epochs_used']}\n")
+                f.write(f"  → Use nb_epochs={metadata['nb_epochs_used']} for final runs\n")
 
             f.write("\n" + "="*80 + "\n")
 

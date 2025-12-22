@@ -2709,7 +2709,7 @@ hyperopt_srfqi_uo_basket = _DefaultConfig(
     hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
     hyperopt_variance_penalty=0.1,
     hyperopt_output_dir='hyperopt_results',
-    dtype=['float64'],
+    dtype=['float32'],  # Use float32 for 2x speedup vs float64
 )
 
 
@@ -2740,6 +2740,7 @@ srfqi_uo_basket_optimized = _DefaultConfig(
     dropout=[0.0],  # TODO: Replace with optimized value (e.g., 0.34)
     num_layers=[1],  # TODO: Replace with optimized value (1-4)
     ridge_coeff=[1e-3],  # TODO: Replace with optimized value (e.g., 0.06)
-    dtype=['float64'],
+    nb_epochs=[20],  # TODO: Replace with nb_epochs_used from hyperopt results
+    dtype=['float32'],  # Match hyperopt dtype for consistency
 )
 
