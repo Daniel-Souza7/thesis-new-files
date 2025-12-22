@@ -37,7 +37,8 @@ class RFQI:
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, **kwargs):
+                 use_barrier_as_input=False, activation='leakyrelu', num_layers=1,
+                 dropout=0.0, **kwargs):
         """
         Initialize RFQI pricer.
 
@@ -50,6 +51,9 @@ class RFQI:
             train_ITM_only: If True, only consider ITM paths in final pricing
             use_payoff_as_input: If True, include payoff in state
             use_barrier_as_input: If True, include barrier values as input hint
+            activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
+            num_layers: Number of hidden layers (1-4, RFQI can use multiple layers)
+            dropout: Dropout probability between layers (default: 0.0)
 
         Raises:
             ValueError: If payoff is path-dependent
@@ -60,6 +64,9 @@ class RFQI:
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
+        self.activation = activation
+        self.num_layers = num_layers
+        self.dropout = dropout
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -92,15 +99,18 @@ class RFQI:
         # State includes: stocks + time + time_to_maturity (+ optionally payoff + barriers)
         self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
 
-        self._init_reservoir(factors)
+        self._init_reservoir(factors, activation, num_layers, dropout)
 
-    def _init_reservoir(self, factors):
+    def _init_reservoir(self, factors, activation, num_layers, dropout):
         """Initialize randomized neural network."""
+        # RFQI can use multiple layers (1-4)
         self.reservoir2 = randomized_neural_networks.Reservoir2(
             self.dim_out,
             self.state_size,
             factors=factors[1:] if len(factors) > 1 else (),
-            activation=torch.nn.LeakyReLU(factors[0] / 2)
+            activation=activation,  # Configurable activation function
+            num_layers=num_layers,  # RFQI can have 1-4 layers
+            dropout=dropout  # Dropout probability between layers
         )
 
     def evaluate_bases_all(self, stock_price):

@@ -35,7 +35,8 @@ class SRLSM:
 
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, **kwargs):
+                 use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
+                 **kwargs):
         """
         Initialize SRLSM pricer.
 
@@ -47,6 +48,8 @@ class SRLSM:
             train_ITM_only: If True, only use in-the-money paths for training
             use_payoff_as_input: Not typically used for barriers
             use_barrier_as_input: If True, include barrier values as input hint
+            activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
+            dropout: Dropout probability (default: 0.0, SRLSM uses single layer so dropout has less effect)
 
         Raises:
             ValueError: If payoff is NOT path-dependent
@@ -58,6 +61,8 @@ class SRLSM:
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
+        self.activation = activation
+        self.dropout = dropout
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -85,18 +90,21 @@ class SRLSM:
         # Initialize randomized neural network (same as RLSM)
         # Use exact hidden_size from config (no modifications)
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1 + self.nb_barriers
-        self._init_reservoir(state_size, hidden_size, factors)
+        self._init_reservoir(state_size, hidden_size, factors, activation, dropout)
 
         # Storage for learned policy (coefficients at each time step)
         self._learned_coefficients = {}  # {time_step: coefficients}
 
-    def _init_reservoir(self, state_size, hidden_size, factors):
+    def _init_reservoir(self, state_size, hidden_size, factors, activation, dropout):
         """Initialize randomized neural network (reservoir)."""
+        # SRLSM uses single layer (num_layers=1 fixed)
         self.reservoir = randomized_neural_networks.Reservoir2(
             hidden_size,
             state_size,
             factors=factors[1:],  # Weight scaling factors
-            activation=torch.nn.LeakyReLU(factors[0] / 2)  # Activation slope
+            activation=activation,  # Configurable activation function
+            num_layers=1,  # SRLSM always uses 1 layer
+            dropout=dropout  # Dropout probability
         )
         self.nb_base_fcts = hidden_size + 1  # +1 for constant term
 

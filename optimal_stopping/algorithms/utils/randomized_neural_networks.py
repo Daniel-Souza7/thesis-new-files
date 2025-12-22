@@ -120,18 +120,21 @@ class Reservoir2(torch.nn.Module):
     """
     PyTorch-based randomized neural network (reservoir).
 
-    Architecture: Input → Linear(random) → Activation → Output
+    Architecture: Input → [Linear(random) → Activation → Dropout] × num_layers → Output
 
     The Linear layer weights are randomly initialized and frozen.
     Only used for feature extraction; actual regression happens externally.
 
     Args:
-        hidden_size: Number of random features
+        hidden_size: Number of random features per layer
         state_size: Dimension of input state
         factors: Tuple of scaling factors
             - If length 1: (input_scale,)
             - If length 8: (input_scale, ..., weight_init_params[5])
         activation: Activation function (default: LeakyReLU(0.5))
+            Can be a torch.nn.Module or string ('relu', 'tanh', 'elu')
+        num_layers: Number of hidden layers (default: 1)
+        dropout: Dropout probability between layers (default: 0.0)
 
     Example:
         >>> reservoir = Reservoir2(hidden_size=50, state_size=5, factors=(1.0,))
@@ -140,17 +143,54 @@ class Reservoir2(torch.nn.Module):
     """
 
     def __init__(self, hidden_size, state_size, factors=(1.,),
-                 activation=torch.nn.LeakyReLU(0.5)):
+                 activation=torch.nn.LeakyReLU(0.5), num_layers=1, dropout=0.0):
         super().__init__()
         self.factors = factors
         self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.dropout = dropout
 
-        layers = [
-            torch.nn.Linear(state_size, hidden_size, bias=True),
-            activation
-        ]
+        # Convert string activation to torch module
+        if isinstance(activation, str):
+            activation = self._get_activation_from_string(activation)
+
+        # Build multi-layer network
+        layers = []
+
+        # First layer: state_size -> hidden_size
+        layers.append(torch.nn.Linear(state_size, hidden_size, bias=True))
+        layers.append(activation)
+        if dropout > 0 and num_layers > 1:  # Only add dropout if there are more layers
+            layers.append(torch.nn.Dropout(p=dropout))
+
+        # Additional hidden layers: hidden_size -> hidden_size
+        for i in range(num_layers - 1):
+            layers.append(torch.nn.Linear(hidden_size, hidden_size, bias=True))
+            layers.append(activation)
+            # Add dropout between layers (except after last layer)
+            if dropout > 0 and i < num_layers - 2:
+                layers.append(torch.nn.Dropout(p=dropout))
+
         self.NN = torch.nn.Sequential(*layers)
         self._initialize_weights()
+
+    def _get_activation_from_string(self, activation_str):
+        """Convert activation string to torch.nn module."""
+        activation_map = {
+            'relu': torch.nn.ReLU(),
+            'tanh': torch.nn.Tanh(),
+            'elu': torch.nn.ELU(),
+            'leakyrelu': torch.nn.LeakyReLU(0.5),
+        }
+
+        activation_str_lower = activation_str.lower()
+        if activation_str_lower not in activation_map:
+            raise ValueError(
+                f"Invalid activation: {activation_str}. "
+                f"Must be one of: {list(activation_map.keys())}"
+            )
+
+        return activation_map[activation_str_lower]
 
     def _initialize_weights(self):
         """Initialize random weights (then freeze them)."""

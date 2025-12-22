@@ -74,6 +74,15 @@ class _DefaultConfig:
   dtype: Iterable[str] = ('float32',)  # Floating point precision: 'float32' or 'float64'
   representations: Iterable[str] = ('TablePriceDuration',)
 
+  # Hyperparameter Optimization Settings
+  enable_hyperopt: bool = False  # Enable hyperparameter optimization
+  hyperopt_method: str = 'tpe'  # Optimization method: 'tpe' (Bayesian) or 'random'
+  hyperopt_timeout: float = 1200  # Timeout in seconds (20 minutes default)
+  hyperopt_n_trials: int = None  # Number of trials (None = run until timeout)
+  hyperopt_fidelity_factor: int = 4  # Use nb_paths/4 during optimization for speed
+  hyperopt_variance_penalty: float = 0.1  # Penalty weight for price variance
+  hyperopt_output_dir: str = 'hyperopt_results'  # Directory for optimization results
+
   # When adding a filter here, also add to filtering.py and read_data.py
 
 
@@ -2583,3 +2592,30 @@ rfqi_to_fqi9 = _DefaultConfig(
     train_ITM_only=[True],
     drift=[0.08],  # drift = risk-free rate
     use_payoff_as_input=[True])
+
+'''
+Test config for hyperparameter optimization
+'''
+test_hyperopt = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[2],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturity=[1.0],
+    payoffs=['MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=120,  # 2 minutes for quick test
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results'
+)
