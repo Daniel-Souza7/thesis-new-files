@@ -36,7 +36,7 @@ class SRLSM:
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
-                 ridge_coeff=1.0, **kwargs):
+                 ridge_coeff=1e-3, **kwargs):
         """
         Initialize SRLSM pricer.
 
@@ -50,7 +50,7 @@ class SRLSM:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0, SRLSM uses single layer so dropout has less effect)
-            ridge_coeff: Ridge regularization coefficient (default: 1.0)
+            ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
 
         Raises:
             ValueError: If payoff is NOT path-dependent

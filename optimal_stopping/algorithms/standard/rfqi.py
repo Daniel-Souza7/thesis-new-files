@@ -38,7 +38,7 @@ class RFQI:
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu', num_layers=1,
-                 dropout=0.0, ridge_coeff=1.0, early_stopping_callback=None,
+                 dropout=0.0, ridge_coeff=1e-3, early_stopping_callback=None,
                  **kwargs):
         """
         Initialize RFQI pricer.
@@ -55,7 +55,7 @@ class RFQI:
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             num_layers: Number of hidden layers (1-4, RFQI can use multiple layers)
             dropout: Dropout probability between layers (default: 0.0)
-            ridge_coeff: Ridge regularization coefficient (default: 1.0)
+            ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
             early_stopping_callback: Early stopping callback (optional)
 
         Raises:
