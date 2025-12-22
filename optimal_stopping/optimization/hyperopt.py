@@ -131,9 +131,9 @@ class HyperparameterOptimizer:
                 from .early_stopping import EarlyStopping
                 hyperparams['nb_epochs'] = 100  # Max epochs, early stopping will cut this short
                 hyperparams['early_stopping_callback'] = EarlyStopping(
-                    patience=5,      # Stop if no improvement for 5 epochs
-                    min_delta=0.001, # Minimum improvement threshold
-                    mode='max'       # Higher validation score is better
+                    patience=5,       # Stop if no improvement for 5 epochs
+                    min_delta=0.01,   # 1 cent improvement threshold (0.001 was too small!)
+                    mode='max'        # Higher validation score is better
                 )
 
             # Evaluate objective
