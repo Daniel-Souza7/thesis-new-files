@@ -69,6 +69,7 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
             'use_barrier_as_input': problem_config.get('use_barrier_as_input', False),
             'activation': hyperparams.get('activation', 'leakyrelu'),
             'dropout': hyperparams.get('dropout', 0.0),
+            'ridge_coeff': hyperparams.get('ridge_coeff', 1.0),  # ✅ FIXED: Now actually passed!
         }
 
         # Add algorithm-specific parameters
@@ -80,8 +81,9 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
             # RFQI/SRFQI uses iterative training
             algo_params['nb_epochs'] = hyperparams['nb_epochs']
 
-        # TODO: Add ridge_coeff support (requires modifying algorithm code)
-        # For now, ridge coefficient is handled internally by algorithms
+        if 'early_stopping_callback' in hyperparams:
+            # RFQI/SRFQI supports early stopping
+            algo_params['early_stopping_callback'] = hyperparams['early_stopping_callback']
 
         # Create algorithm instance
         algo = algo_class(**algo_params)
@@ -125,7 +127,7 @@ def evaluate_objective_with_early_stopping(algo_class, model_class, hyperparams,
     """
     Evaluate objective for algorithms that support early stopping (RFQI, SRFQI).
 
-    This is a wrapper around evaluate_objective that adds early stopping support.
+    Integrates early stopping callback into the algorithm training loop.
 
     Args:
         algo_class: Algorithm class (RFQI, SRFQI, etc.)
@@ -146,17 +148,23 @@ def evaluate_objective_with_early_stopping(algo_class, model_class, hyperparams,
         float: Objective value
         dict: Metrics dictionary
     """
-    # If early stopping config provided, override nb_epochs
+    from .early_stopping import EarlyStopping
+
+    # If early stopping config provided, set up callback
     if early_stopping_config is not None:
         # Set max_epochs as nb_epochs
         hyperparams = hyperparams.copy()
         hyperparams['nb_epochs'] = early_stopping_config.get('max_epochs', 100)
 
-        # TODO: Implement early stopping callback integration
-        # This requires modifying RFQI to accept early_stopping callback
-        # For now, just use max_epochs
+        # Create early stopping callback
+        early_stopping = EarlyStopping(
+            patience=early_stopping_config.get('patience', 5),
+            min_delta=early_stopping_config.get('min_delta', 0.001),
+            mode='max'  # Maximize validation score
+        )
+        hyperparams['early_stopping_callback'] = early_stopping
 
-    # Use standard evaluation
+    # Use standard evaluation with early stopping integrated
     return evaluate_objective(
         algo_class, model_class, hyperparams, problem_config,
         variance_penalty, n_runs, fidelity_factor

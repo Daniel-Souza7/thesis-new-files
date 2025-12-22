@@ -27,7 +27,7 @@ This module automates the process using **Bayesian Optimization (TPE)** via Optu
 **For RLSM/SRLSM** (single layer networks):
 - `hidden_size`: Number of neurons (6-512)
 - `activation`: Activation function ('relu', 'tanh', 'elu')
-- `dropout`: Dropout probability (0.0-0.5)
+- `dropout`: Dropout probability (0.0-0.5) **⚠️ Experimental: See note below**
 - `ridge_coeff`: Regularization (1e-4 to 10.0, log scale)
 
 **For RFQI** (multi-layer networks):
@@ -226,6 +226,28 @@ CUSTOM_SEARCH_SPACE = {
     'ridge_coeff': ('float', 0.001, 1.0, 'log'),
 }
 ```
+
+## Important Notes
+
+### ⚠️ Dropout in Randomized (Frozen) Neural Networks
+
+**Context:** RLSM/SRLSM/RFQI use **Extreme Learning Machines** (randomized neural networks) where weights are randomly initialized and then **frozen** - they are never trained via backpropagation.
+
+**The Concern:** Dropout is traditionally a regularization technique for trainable networks. When applied to frozen networks:
+- During training: Dropout randomly zeros features in the basis function matrix H
+- This acts more like "data augmentation" than traditional dropout regularization
+- May destabilize the ridge regression solution rather than improve it
+- Standard dropout behavior (train vs eval mode) may not apply as intended
+
+**Recommendation:**
+- Include dropout in the search space to test empirically
+- Monitor optimization results: if dropout=0.0 is consistently selected, it confirms dropout is not helpful for this architecture
+- **Ridge regularization (`ridge_coeff`) is the primary regularization mechanism** - focus on optimizing this parameter
+
+**Why it's still in the search space:**
+- Some research suggests dropout on frozen random features can work
+- Let the optimizer decide empirically whether it helps
+- If harmful, TPE will learn to avoid non-zero dropout values
 
 ## Troubleshooting
 

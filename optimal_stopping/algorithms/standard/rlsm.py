@@ -35,7 +35,7 @@ class RLSM:
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
-                 **kwargs):
+                 ridge_coeff=1.0, **kwargs):
         """
         Initialize RLSM pricer.
 
@@ -49,6 +49,7 @@ class RLSM:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0, RLSM uses single layer so dropout has less effect)
+            ridge_coeff: Ridge regularization coefficient (default: 1.0)
 
         Raises:
             ValueError: If payoff is path-dependent
@@ -62,6 +63,7 @@ class RLSM:
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
         self.dropout = dropout
+        self.ridge_coeff = ridge_coeff
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -375,11 +377,13 @@ class RLSM:
                 basis_train = basis_itm[train_itm_mask]
                 train_itm_indices = itm_indices[train_itm_mask]
 
-                coefficients = np.linalg.lstsq(
-                    basis_train,
-                    future_values[train_itm_indices],
-                    rcond=None
-                )[0]
+                # Ridge regression: (X^T X + λI)^{-1} X^T y
+                # where λ = ridge_coeff
+                XtX = basis_train.T @ basis_train
+                ridge_penalty = self.ridge_coeff * np.eye(XtX.shape[0])
+                Xty = basis_train.T @ future_values[train_itm_indices]
+
+                coefficients = np.linalg.solve(XtX + ridge_penalty, Xty)
 
                 # Predict continuation values for all ITM paths
                 continuation_values[itm_mask] = np.dot(basis_itm, coefficients)

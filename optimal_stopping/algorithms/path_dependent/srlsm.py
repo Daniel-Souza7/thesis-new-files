@@ -36,7 +36,7 @@ class SRLSM:
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
-                 **kwargs):
+                 ridge_coeff=1.0, **kwargs):
         """
         Initialize SRLSM pricer.
 
@@ -50,6 +50,7 @@ class SRLSM:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0, SRLSM uses single layer so dropout has less effect)
+            ridge_coeff: Ridge regularization coefficient (default: 1.0)
 
         Raises:
             ValueError: If payoff is NOT path-dependent
@@ -63,6 +64,7 @@ class SRLSM:
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
         self.dropout = dropout
+        self.ridge_coeff = ridge_coeff
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -438,12 +440,16 @@ class SRLSM:
         # Add constant term
         basis = np.concatenate([basis, np.ones((len(basis), 1))], axis=1)
 
-        # Least squares regression on training set
-        coefficients = np.linalg.lstsq(
-            basis[:self.split][train_mask],
-            future_values[:self.split][train_mask],
-            rcond=None
-        )[0]
+        # Ridge regression: (X^T X + λI)^{-1} X^T y
+        # where λ = ridge_coeff
+        basis_train = basis[:self.split][train_mask]
+        targets_train = future_values[:self.split][train_mask]
+
+        XtX = basis_train.T @ basis_train
+        ridge_penalty = self.ridge_coeff * np.eye(XtX.shape[0])
+        Xty = basis_train.T @ targets_train
+
+        coefficients = np.linalg.solve(XtX + ridge_penalty, Xty)
 
         # Predict continuation values
         continuation_values = np.dot(basis, coefficients)
