@@ -35,7 +35,9 @@ class SRFQI:
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, **kwargs):
+                 use_barrier_as_input=False, activation='leakyrelu', num_layers=1,
+                 dropout=0.0, ridge_coeff=1e-3, early_stopping_callback=None,
+                 **kwargs):
         """
         Initialize SRFQI pricer.
 
@@ -48,6 +50,11 @@ class SRFQI:
             train_ITM_only: If True, only consider ITM paths
             use_payoff_as_input: Not typically used for barriers
             use_barrier_as_input: If True, include barrier values as input hint
+            activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
+            num_layers: Number of hidden layers (1-4, multi-layer networks)
+            dropout: Dropout probability (0.0 = no dropout)
+            ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
+            early_stopping_callback: Optional callback for early stopping
 
         Raises:
             ValueError: If payoff is NOT path-dependent
@@ -58,6 +65,8 @@ class SRFQI:
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
+        self.ridge_coeff = ridge_coeff
+        self.early_stopping_callback = early_stopping_callback
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -90,15 +99,25 @@ class SRFQI:
         # State includes: stocks + time + time_to_maturity (+ optionally payoff + barriers)
         self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
 
-        self._init_reservoir(factors)
+        self._init_reservoir(factors, activation=activation, num_layers=num_layers, dropout=dropout)
 
-    def _init_reservoir(self, factors):
-        """Initialize randomized neural network."""
+    def _init_reservoir(self, factors, activation='leakyrelu', num_layers=1, dropout=0.0):
+        """Initialize randomized neural network with configurable architecture."""
+        # Support both old-style (via factors) and new-style (explicit params) activation
+        if isinstance(activation, str):
+            # New style: use string activation name
+            act_function = activation
+        else:
+            # Old style: activation comes from factors[0]
+            act_function = torch.nn.LeakyReLU(factors[0] / 2)
+
         self.reservoir2 = randomized_neural_networks.Reservoir2(
             self.dim_out,
             self.state_size,
             factors=factors[1:] if len(factors) > 1 else (),
-            activation=torch.nn.LeakyReLU(factors[0] / 2)
+            activation=act_function,
+            num_layers=num_layers,
+            dropout=dropout
         )
 
     def evaluate_bases_all(self, stock_price):
@@ -356,8 +375,21 @@ class SRFQI:
                 axis=(0, 1)
             )
 
-            # Solve
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Solve with ridge regularization: (U + λI) * weights = V
+            ridge_penalty = self.ridge_coeff * np.eye(matrixU.shape[0])
+            weights = np.linalg.solve(matrixU + ridge_penalty, vectorV)
+
+            # Early stopping integration
+            if self.early_stopping_callback is not None:
+                # Evaluate on validation set
+                val_continuation = np.dot(eval_bases[self.split:, 1:, :], weights)
+                val_continuation = np.maximum(0, val_continuation)
+                val_values = np.maximum(payoffs[self.split:, 1:], val_continuation)
+                val_score = np.mean(val_values)  # Higher is better
+
+                if self.early_stopping_callback(val_score, epoch):
+                    print(f"Early stopping at epoch {epoch+1}/{self.nb_epochs}")
+                    break
 
         # Store learned weights for later use
         self.weights = weights
@@ -483,7 +515,21 @@ class SRFQI:
                 axis=(0, 1)
             )
 
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Solve with ridge regularization: (U + λI) * weights = V
+            ridge_penalty = self.ridge_coeff * np.eye(matrixU.shape[0])
+            weights = np.linalg.solve(matrixU + ridge_penalty, vectorV)
+
+            # Early stopping integration
+            if self.early_stopping_callback is not None:
+                # Evaluate on validation set
+                val_continuation = np.dot(eval_bases[self.split:, 1:, :], weights)
+                val_continuation = np.maximum(0, val_continuation)
+                val_values = np.maximum(payoffs[self.split:, 1:], val_continuation)
+                val_score = np.mean(val_values)  # Higher is better
+
+                if self.early_stopping_callback(val_score, epoch):
+                    print(f"Early stopping at epoch {epoch+1}/{self.nb_epochs}")
+                    break
 
         self.weights = weights
 
