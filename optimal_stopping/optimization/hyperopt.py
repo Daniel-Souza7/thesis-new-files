@@ -126,6 +126,16 @@ class HyperparameterOptimizer:
                     trial, param_name, param_spec
                 )
 
+            # Add early stopping for RFQI/SRFQI
+            if self.algo_name in ['RFQI', 'SRFQI']:
+                from .early_stopping import EarlyStopping
+                hyperparams['nb_epochs'] = 100  # Max epochs, early stopping will cut this short
+                hyperparams['early_stopping_callback'] = EarlyStopping(
+                    patience=5,      # Stop if no improvement for 5 epochs
+                    min_delta=0.001, # Minimum improvement threshold
+                    mode='max'       # Higher validation score is better
+                )
+
             # Evaluate objective
             obj_value, metrics = evaluate_objective(
                 self.algo_class,
