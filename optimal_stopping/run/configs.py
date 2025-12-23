@@ -2724,23 +2724,23 @@ srfqi_uo_basket_optimized = _DefaultConfig(
     nb_paths=[50000],
     nb_dates=[20],
     maturities=[1.0],
-    payoffs=['UpAndOutMaxCall'],
+    payoffs=['UO-MaxCall'],  # Shorthand for UpAndOutMaxCall
     spots=[100],
     strikes=[100],
     volatilities=[0.2],
     correlation=[0],
     drift=[0.06],
     dividends=[0.0],
-    barriers_up=[150],
+    barriers=[110],  # Main barrier parameter (gets mapped to barriers_up for UO options)
     nb_runs=5,  # Multiple runs to assess stability
-    # TEMPLATE: Replace these with your optimized hyperparameters from hyperopt
-    # Example from RLSM optimization: hidden_size=363, activation='elu', dropout=0.34, ridge_coeff=0.06
-    hidden_size=[100],  # TODO: Replace with optimized value
-    activation=['leakyrelu'],  # TODO: Replace with optimized value (e.g., 'elu', 'relu', 'tanh')
-    dropout=[0.0],  # TODO: Replace with optimized value (e.g., 0.34)
-    num_layers=[1],  # TODO: Replace with optimized value (1-4)
-    ridge_coeff=[1e-3],  # TODO: Replace with optimized value (e.g., 0.06)
-    nb_epochs=[20],  # TODO: Replace with nb_epochs_used from hyperopt results
-    dtype=['float32'],  # Match hyperopt dtype for consistency
+    # Optimized hyperparameters from hyperopt_srfqi_uo_basket:
+    hidden_size=[266],
+    activation=['tanh'],
+    dropout=[0.1864522729305972],
+    num_layers=[1],
+    ridge_coeff=[0.37657203126402644],
+    nb_epochs=[62],  # From early stopping during hyperopt
+    factors=[(1.0, 1.0, 1.0)],  # Match hyperopt
+    dtype=['float32'],
 )
 
