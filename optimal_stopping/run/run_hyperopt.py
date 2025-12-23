@@ -192,29 +192,55 @@ def optimize_config(config_name, algo_override=None, output_dir_override=None):
     # Run optimization
     best_params = optimizer.optimize()
 
+    # Get nb_epochs_used for RFQI/SRFQI if available
+    nb_epochs_used = None
+    if hasattr(optimizer.study.best_trial, 'user_attrs') and 'nb_epochs_used' in optimizer.study.best_trial.user_attrs:
+        nb_epochs_used = optimizer.study.best_trial.user_attrs['nb_epochs_used']
+
+    # Round float values to 3 decimals for display
+    def round_value(v):
+        if isinstance(v, float):
+            return round(v, 3)
+        return v
+
+    rounded_params = {k: round_value(v) for k, v in best_params.items()}
+    if nb_epochs_used is not None:
+        rounded_params['nb_epochs'] = nb_epochs_used
+
     print(f"\n{'='*80}")
     print(f"OPTIMIZATION COMPLETE")
     print(f"{'='*80}")
-    print(f"Best hyperparameters: {best_params}")
+    print(f"Best hyperparameters: {rounded_params}")
     print(f"Results saved to: {output_dir}")
     print(f"{'='*80}\n")
 
-    return best_params
+    # Return both best_params and nb_epochs_used
+    return best_params, nb_epochs_used
 
 
 def main(argv):
     """Main entry point for command-line usage."""
     del argv  # Unused
 
-    best_params = optimize_config(
+    best_params, nb_epochs_used = optimize_config(
         config_name=FLAGS.config,
         algo_override=FLAGS.algo,
         output_dir_override=FLAGS.output_dir
     )
 
+    # Round float values to 3 decimals for display
+    def round_value(v):
+        if isinstance(v, float):
+            return round(v, 3)
+        return v
+
+    rounded_params = {k: round_value(v) for k, v in best_params.items()}
+    if nb_epochs_used is not None:
+        rounded_params['nb_epochs'] = nb_epochs_used
+
     print("\nTo use these hyperparameters in your experiments:")
     print("1. Update your config in configs.py with the best values:")
-    for param, value in best_params.items():
+    for param, value in rounded_params.items():
         print(f"   {param} = {value}")
     print("\n2. Run your experiments with the optimized parameters")
 
