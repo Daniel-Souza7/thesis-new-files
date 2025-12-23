@@ -2733,15 +2733,14 @@ srfqi_uo_basket_optimized = _DefaultConfig(
     dividends=[0.0],
     barriers=[110],
     nb_runs=5,  # Multiple runs to assess stability
-    # TEMPLATE: Replace these with your optimized hyperparameters from hyperopt
-    # Example from RLSM optimization: hidden_size=363, activation='elu', dropout=0.34, ridge_coeff=0.06
-    hidden_size=[266,],  # TODO: Replace with optimized value
-    activation=['tanh'],  # TODO: Replace with optimized value (e.g., 'elu', 'relu', 'tanh')
-    dropout=[0.1864522729305972],  # TODO: Replace with optimized value (e.g., 0.34)
-    num_layers=[1],  # TODO: Replace with optimized value (1-4)
-    ridge_coeff=[0.37657203126402644],  # TODO: Replace with optimized value (e.g., 0.06)
-    nb_epochs=[62],  # TODO: Replace with nb_epochs_used from hyperopt results
-    dtype=['float32'],  # Match hyperopt dtype for consistency
+    # Optimized hyperparameters from hyperopt (rounded to 3 decimals for consistency)
+    hidden_size=[266],
+    activation=['tanh'],
+    dropout=[0.186],  # Rounded from 0.1864522729305972
+    num_layers=[1],
+    ridge_coeff=[0.377],  # Rounded from 0.37657203126402644
+    nb_epochs=[62],  # From early stopping during hyperopt
+    dtype=['float32'],
 )
 
 srfqi_uo_basket_optimized2 = _DefaultConfig(
