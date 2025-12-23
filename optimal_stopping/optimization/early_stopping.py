@@ -25,16 +25,20 @@ class EarlyStopping:
         patience: Number of epochs with no improvement before stopping
         min_delta: Minimum change in score to qualify as an improvement
         mode: 'max' to maximize score (default), 'min' to minimize
+        divergence_threshold: Maximum realistic score (e.g., 5x spot price).
+                            If score exceeds this, training diverged.
     """
 
-    def __init__(self, patience=5, min_delta=0.001, mode='max'):
+    def __init__(self, patience=5, min_delta=0.001, mode='max', divergence_threshold=None):
         self.patience = patience
         self.min_delta = min_delta
         self.mode = mode
+        self.divergence_threshold = divergence_threshold
 
         self.best_score = None
         self.counter = 0
         self.best_epoch = 0
+        self.diverged = False
 
     def __call__(self, score, epoch):
         """
@@ -47,6 +51,17 @@ class EarlyStopping:
         Returns:
             bool: True if training should stop, False otherwise
         """
+        # Check for divergence (NaN, Inf, or unrealistic values)
+        if np.isnan(score) or np.isinf(score):
+            print(f"  [ES] Epoch {epoch:3d}: ⚠️  DIVERGED - NaN or Inf detected!")
+            self.diverged = True
+            return True
+
+        if self.divergence_threshold is not None and score > self.divergence_threshold:
+            print(f"  [ES] Epoch {epoch:3d}: ⚠️  DIVERGED - Score {score:.2e} exceeds threshold {self.divergence_threshold:.2f}")
+            self.diverged = True
+            return True
+
         if self.best_score is None:
             # First epoch
             self.best_score = score

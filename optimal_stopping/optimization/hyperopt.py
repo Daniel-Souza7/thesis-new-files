@@ -10,6 +10,7 @@ Supports:
 
 import optuna
 from optuna.samplers import TPESampler, RandomSampler
+import numpy as np
 import os
 import json
 import datetime
@@ -127,14 +128,21 @@ class HyperparameterOptimizer:
                 )
 
             # Add early stopping for RFQI/SRFQI
+            early_stopping_callback = None
             if self.algo_name in ['RFQI', 'SRFQI']:
                 from .early_stopping import EarlyStopping
+                # Set divergence threshold: 5x spot price (realistic upper bound for option)
+                spot = self.problem_config['model_params']['spot']
+                divergence_threshold = 5.0 * spot
+
                 hyperparams['nb_epochs'] = 100  # Max epochs, early stopping will cut this short
-                hyperparams['early_stopping_callback'] = EarlyStopping(
+                early_stopping_callback = EarlyStopping(
                     patience=5,       # Stop if no improvement for 5 epochs
-                    min_delta=0.01,   # 1 cent improvement threshold (0.001 was too small!)
-                    mode='max'        # Higher validation score is better
+                    min_delta=0.01,   # 1 cent improvement threshold
+                    mode='max',       # Higher validation score is better
+                    divergence_threshold=divergence_threshold  # Detect explosions
                 )
+                hyperparams['early_stopping_callback'] = early_stopping_callback
 
             # Evaluate objective
             obj_value, metrics = evaluate_objective(
@@ -147,11 +155,24 @@ class HyperparameterOptimizer:
                 fidelity_factor=self.fidelity_factor
             )
 
+            # Check for divergence
+            if early_stopping_callback is not None and early_stopping_callback.diverged:
+                print(f"  ⚠️  Trial {trial.number} DIVERGED - Penalizing objective")
+                trial.set_user_attr('diverged', True)
+                return -1e10  # Very low score to make Optuna avoid this region
+
+            # Check for NaN/Inf in metrics
+            if np.isnan(obj_value) or np.isinf(obj_value):
+                print(f"  ⚠️  Trial {trial.number} returned NaN/Inf - Penalizing objective")
+                trial.set_user_attr('diverged', True)
+                return -1e10
+
             # Log intermediate metrics
             trial.set_user_attr('mean_price', metrics['mean_price'])
             trial.set_user_attr('std_price', metrics['std_price'])
             trial.set_user_attr('mean_time', metrics['mean_time'])
             trial.set_user_attr('nb_paths_used', metrics['nb_paths_used'])
+            trial.set_user_attr('diverged', False)
 
             # Log epochs used for RFQI/SRFQI
             if 'nb_epochs_used' in metrics:
