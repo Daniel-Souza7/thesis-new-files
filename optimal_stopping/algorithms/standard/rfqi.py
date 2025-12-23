@@ -37,7 +37,7 @@ class RFQI:
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, activation='leakyrelu', num_layers=1,
+                 use_barrier_as_input=False, activation='leakyrelu',
                  dropout=0.0, ridge_coeff=1e-3, early_stopping_callback=None,
                  **kwargs):
         """
@@ -53,8 +53,7 @@ class RFQI:
             use_payoff_as_input: If True, include payoff in state
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
-            num_layers: Number of hidden layers (1-4, RFQI can use multiple layers)
-            dropout: Dropout probability between layers (default: 0.0)
+            dropout: Dropout probability (default: 0.0)
             ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
             early_stopping_callback: Early stopping callback (optional)
 
@@ -68,7 +67,6 @@ class RFQI:
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
-        self.num_layers = num_layers
         self.dropout = dropout
         self.ridge_coeff = ridge_coeff
         self.early_stopping_callback = early_stopping_callback
@@ -104,18 +102,17 @@ class RFQI:
         # State includes: stocks + time + time_to_maturity (+ optionally payoff + barriers)
         self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
 
-        self._init_reservoir(factors, activation, num_layers, dropout)
+        self._init_reservoir(factors, activation, dropout)
 
-    def _init_reservoir(self, factors, activation, num_layers, dropout):
-        """Initialize randomized neural network."""
-        # RFQI can use multiple layers (1-4)
+    def _init_reservoir(self, factors, activation, dropout):
+        """Initialize randomized neural network with single layer."""
         self.reservoir2 = randomized_neural_networks.Reservoir2(
             self.dim_out,
             self.state_size,
             factors=factors[1:] if len(factors) > 1 else (),
-            activation=activation,  # Configurable activation function
-            num_layers=num_layers,  # RFQI can have 1-4 layers
-            dropout=dropout  # Dropout probability between layers
+            activation=activation,
+            num_layers=1,  # Fixed to single layer
+            dropout=dropout
         )
 
     def evaluate_bases_all(self, stock_price):

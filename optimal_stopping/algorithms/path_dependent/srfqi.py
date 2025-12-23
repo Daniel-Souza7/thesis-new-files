@@ -35,7 +35,7 @@ class SRFQI:
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, activation='leakyrelu', num_layers=1,
+                 use_barrier_as_input=False, activation='leakyrelu',
                  dropout=0.0, ridge_coeff=1e-3, early_stopping_callback=None,
                  **kwargs):
         """
@@ -51,7 +51,6 @@ class SRFQI:
             use_payoff_as_input: Not typically used for barriers
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
-            num_layers: Number of hidden layers (1-4, multi-layer networks)
             dropout: Dropout probability (0.0 = no dropout)
             ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
             early_stopping_callback: Optional callback for early stopping
@@ -99,10 +98,10 @@ class SRFQI:
         # State includes: stocks + time + time_to_maturity (+ optionally payoff + barriers)
         self.state_size = model.nb_stocks * (1 + self.use_var) + 2 + self.use_payoff_as_input * 1 + self.nb_barriers
 
-        self._init_reservoir(factors, activation=activation, num_layers=num_layers, dropout=dropout)
+        self._init_reservoir(factors, activation=activation, dropout=dropout)
 
-    def _init_reservoir(self, factors, activation='leakyrelu', num_layers=1, dropout=0.0):
-        """Initialize randomized neural network with configurable architecture."""
+    def _init_reservoir(self, factors, activation='leakyrelu', dropout=0.0):
+        """Initialize randomized neural network with single layer."""
         # Support both old-style (via factors) and new-style (explicit params) activation
         if isinstance(activation, str):
             # New style: use string activation name
@@ -119,7 +118,7 @@ class SRFQI:
             self.state_size,
             factors=reservoir_factors,
             activation=act_function,
-            num_layers=num_layers,
+            num_layers=1,  # Fixed to single layer
             dropout=dropout
         )
 

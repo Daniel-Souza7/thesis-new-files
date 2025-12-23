@@ -59,7 +59,6 @@ class _DefaultConfig:
   ridge_coeff: Iterable[float] = (1e-3,)  # Changed default from 1.0 to 1e-3
   activation: Iterable[str] = ('leakyrelu',)  # Activation function: 'relu', 'tanh', 'elu', 'leakyrelu'
   dropout: Iterable[float] = (0.0,)  # Dropout probability (0.0 = no dropout)
-  num_layers: Iterable[int] = (1,)  # Number of layers (RFQI only, others always use 1)
   train_ITM_only: Iterable[bool] = (True,)
   use_path: Iterable[bool] = (False,)
   use_payoff_as_input: Iterable[bool] = (False,)
@@ -2676,7 +2675,6 @@ test_optimized = _DefaultConfig(
     activation=['elu'],
     dropout=[0.34],
     ridge_coeff=[0.06],
-    num_layers=[1],  # RLSM always uses 1 layer
     dtype=['float64'],
 )
 
@@ -2737,7 +2735,6 @@ srfqi_uo_basket_optimized = _DefaultConfig(
     hidden_size=[266],
     activation=['tanh'],
     dropout=[0.186],  # Rounded from 0.1864522729305972
-    num_layers=[1],
     ridge_coeff=[0.377],  # Rounded from 0.37657203126402644
     nb_epochs=[62],  # From early stopping during hyperopt
     dtype=['float32'],

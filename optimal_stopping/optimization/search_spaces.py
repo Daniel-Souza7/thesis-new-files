@@ -14,22 +14,9 @@ DEFAULT_SEARCH_SPACE = {
     'ridge_coeff': ('float', 1e-4, 10.0, 'log'),  # Regularization coefficient (log scale)
 }
 
-# Extended search space for RFQI (supports multiple layers)
-RFQI_SEARCH_SPACE = {
-    'hidden_size': ('int', 6, 512),  # Number of neurons per layer
-    'num_layers': ('int', 1, 4),  # Number of hidden layers (RFQI only)
-    'activation': ('categorical', ['relu', 'tanh', 'elu']),  # Activation function
-    'dropout': ('float', 0.0, 0.5),  # Dropout probability between layers
-    'ridge_coeff': ('float', 1e-4, 10.0, 'log'),  # Regularization coefficient (log scale)
-}
-
-# Search space for RLSM/SRLSM (single layer only)
-RLSM_SEARCH_SPACE = {
-    'hidden_size': ('int', 6, 512),  # Number of neurons
-    'activation': ('categorical', ['relu', 'tanh', 'elu']),  # Activation function
-    'dropout': ('float', 0.0, 0.5),  # Dropout (less effect for single layer)
-    'ridge_coeff': ('float', 1e-4, 10.0, 'log'),  # Regularization coefficient (log scale)
-}
+# All algorithms now use single layer (num_layers removed for simplicity)
+RFQI_SEARCH_SPACE = DEFAULT_SEARCH_SPACE.copy()
+RLSM_SEARCH_SPACE = DEFAULT_SEARCH_SPACE.copy()
 
 
 def get_search_space(algo_name):
