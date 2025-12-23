@@ -51,6 +51,7 @@ class EarlyStopping:
             # First epoch
             self.best_score = score
             self.best_epoch = epoch
+            print(f"  [ES] Epoch {epoch:3d}: Initial score = {score:.6f}")
             return False
 
         # Check for improvement based on mode
@@ -61,15 +62,21 @@ class EarlyStopping:
 
         if improved:
             # Score improved
+            delta = score - self.best_score
+            print(f"  [ES] Epoch {epoch:3d}: ✓ IMPROVED! New best: {score:.6f} (Δ={delta:+.6f}) - Counter RESET")
             self.best_score = score
             self.best_epoch = epoch
             self.counter = 0
         else:
             # No improvement
             self.counter += 1
+            delta = score - self.best_score
+            print(f"  [ES] Epoch {epoch:3d}: ✗ No improve. Counter: {self.counter}/{self.patience} (score={score:.6f}, best={self.best_score:.6f}, Δ={delta:+.6f})")
 
         # Stop if patience exceeded
         should_stop = self.counter >= self.patience
+        if should_stop:
+            print(f"  [ES] Epoch {epoch:3d}: STOPPING - Patience exhausted ({self.patience} epochs without improvement)")
         return should_stop
 
     def reset(self):
