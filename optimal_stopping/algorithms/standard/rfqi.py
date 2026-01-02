@@ -38,7 +38,7 @@ class RFQI:
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu',
-                 dropout=0.0, ridge_coeff=1e-3, early_stopping_callback=None,
+                 dropout=0.0, early_stopping_callback=None,
                  **kwargs):
         """
         Initialize RFQI pricer.
@@ -54,7 +54,6 @@ class RFQI:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0)
-            ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
             early_stopping_callback: Early stopping callback (optional)
 
         Raises:
@@ -68,7 +67,6 @@ class RFQI:
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
         self.dropout = dropout
-        self.ridge_coeff = ridge_coeff
         self.early_stopping_callback = early_stopping_callback
 
         # Check for variance paths
@@ -346,10 +344,8 @@ class RFQI:
                 axis=(0, 1)
             )
 
-            # Ridge regression: (U + λI) * weights = V
-            # where λ = ridge_coeff
-            ridge_penalty = self.ridge_coeff * np.eye(matrixU.shape[0])
-            weights = np.linalg.solve(matrixU + ridge_penalty, vectorV)
+            # Standard least squares: U * weights = V
+            weights = np.linalg.solve(matrixU, vectorV)
 
             # Early stopping: check if we should stop training
             if self.early_stopping_callback is not None:

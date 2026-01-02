@@ -9,7 +9,6 @@ Simple benchmark implementation of the classic LSM algorithm from:
 import numpy as np
 import math
 import time
-from sklearn.linear_model import Ridge
 from optimal_stopping.run import configs
 from optimal_stopping.algorithms.utils import basis_functions
 
@@ -23,7 +22,7 @@ class LeastSquaresPricer:
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
                  factors=None, train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False, ridge_coeff=0.0):
+                 use_barrier_as_input=False):
         """
         Initialize LSM pricer.
 
@@ -36,14 +35,12 @@ class LeastSquaresPricer:
             train_ITM_only: If True, only train on in-the-money paths
             use_payoff_as_input: If True, include payoff as feature
             use_barrier_as_input: If True, include barrier values as input hint
-            ridge_coeff: Ridge regularization coefficient (0.0 = no regularization)
         """
         self.model = model
         self.payoff = payoff
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
-        self.ridge_coeff = ridge_coeff
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -152,8 +149,16 @@ class LeastSquaresPricer:
             # Track exercise dates - only update if exercising earlier
             self._exercise_dates[exercise_now] = date
 
+        # After loop, values represent value at time 1
+        # Apply extra discount to get value at time 0
+        discounted_continuation = values * disc_factor
+
+        # Check if immediate exercise at time 0 is better than continuation
+        payoff_0 = payoffs[:, 0]
+        final_values = np.maximum(payoff_0, discounted_continuation)
+
         # Final price: average over evaluation paths
-        price = np.mean(values[self.split:])
+        price = np.mean(final_values[self.split:])
 
         return price, time_path_gen
 
@@ -244,12 +249,19 @@ class LeastSquaresPricer:
             # Upper bound: update martingale M
             M[:, date] = np.maximum(immediate_exercise, continuation_values)
 
-        # Lower bound
-        lower_bound = np.mean(values[self.split:])
+        # After loop, values represent value at time 1
+        # Apply extra discount to get value at time 0
+        discounted_continuation = values * disc_factor
+
+        # Check if immediate exercise at time 0 is better than continuation
+        payoff_0 = payoffs[:, 0]
+        final_values = np.maximum(payoff_0, discounted_continuation)
+
+        # Lower bound: average over evaluation paths
+        lower_bound = np.mean(final_values[self.split:])
 
         # Set M[0] based on time-0 payoff and continuation value
-        payoff_0 = payoffs[:, 0]
-        M[:, 0] = np.maximum(payoff_0, values)
+        M[:, 0] = np.maximum(payoff_0, discounted_continuation)
 
         # Upper bound using dual formulation
         # The martingale M satisfies M[t] >= payoff[t] for all t
@@ -271,57 +283,47 @@ class LeastSquaresPricer:
             continuation_values: (nb_paths,) - Estimated continuation values
             coefficients: (nb_base_fcts,) - Learned regression coefficients
         """
-        # Determine which paths are ITM
-        if self.train_ITM_only:
-            # Only use in-the-money paths
-            itm_mask = (immediate_exercise > 0)
-        else:
-            # Use all paths
-            itm_mask = np.ones(len(immediate_exercise), dtype=bool)
-
-        # Initialize continuation values to 0 (like old LSM code)
+        # Initialize continuation values to 0
         # This prevents noisy extrapolation for OTM paths
         nb_paths = current_state.shape[0]
         continuation_values = np.zeros(nb_paths)
         coefficients = np.zeros(self.nb_base_fcts)  # Default to zero coefficients
 
-        # Only compute continuation values for ITM paths
-        if itm_mask.sum() > 0:
-            # Get indices of ITM paths
-            itm_indices = np.where(itm_mask)[0]
+        # Identify ITM paths in training set, and all ITM paths (for prediction)
+        if self.train_ITM_only:
+            # Train only on ITM paths in training set
+            in_the_money = np.where(immediate_exercise[:self.split] > 0)[0]
+            # Predict on all ITM paths
+            in_the_money_all = np.where(immediate_exercise > 0)[0]
+        else:
+            # Train on all training paths
+            in_the_money = np.arange(self.split)
+            # Predict on all paths
+            in_the_money_all = np.arange(nb_paths)
 
-            # Evaluate basis functions only for ITM paths
-            # Vectorized: loop over basis functions, evaluate all ITM paths at once
-            basis_matrix = np.zeros((len(itm_indices), self.nb_base_fcts))
+        if len(in_the_money) > 0:
+            # Evaluate basis functions for training ITM paths
+            basis_train = np.zeros((len(in_the_money), self.nb_base_fcts))
             for j in range(self.nb_base_fcts):
-                basis_matrix[:, j] = self.basis.base_fct(j, current_state[itm_indices], vectorized=True)
+                basis_train[:, j] = self.basis.base_fct(j, current_state[in_the_money], vectorized=True)
 
-            # Determine which ITM paths are in the training set
-            train_itm_mask = itm_indices < self.split  # Boolean mask within itm_indices
+            # Standard least squares (no regularization)
+            coefficients = np.linalg.lstsq(
+                basis_train,
+                future_values[in_the_money],
+                rcond=None
+            )[0]
 
-            if train_itm_mask.sum() > 0:
-                # Get basis and future values for training ITM paths
-                basis_train = basis_matrix[train_itm_mask]
-                train_itm_indices = itm_indices[train_itm_mask]
+            # Evaluate basis functions for all ITM paths (for prediction)
+            basis_all = np.zeros((len(in_the_money_all), self.nb_base_fcts))
+            for j in range(self.nb_base_fcts):
+                basis_all[:, j] = self.basis.base_fct(j, current_state[in_the_money_all], vectorized=True)
 
-                # Use Ridge regression (or standard least squares if ridge_coeff=0)
-                if self.ridge_coeff > 0:
-                    model = Ridge(alpha=self.ridge_coeff, fit_intercept=False)
-                    model.fit(basis_train, future_values[train_itm_indices])
-                    coefficients = model.coef_
-                else:
-                    # Standard least squares (no regularization)
-                    coefficients = np.linalg.lstsq(
-                        basis_train,
-                        future_values[train_itm_indices],
-                        rcond=None
-                    )[0]
+            # Predict continuation values for all ITM paths
+            continuation_values[in_the_money_all] = np.dot(basis_all, coefficients)
 
-                # Predict continuation values for all ITM paths
-                continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
-
-                # Clip to non-negative (American option value can't be negative)
-                continuation_values = np.maximum(0, continuation_values)
+            # Clip to non-negative (American option value can't be negative)
+            continuation_values = np.maximum(0, continuation_values)
 
         return continuation_values, coefficients
 
@@ -507,11 +509,19 @@ class LeastSquaresPricer:
             # Track exercise dates - only update if exercising earlier
             exercise_dates[exercise_now] = date
 
+        # After loop, values represent value at time 1
+        # Apply extra discount to get value at time 0
+        discounted_continuation = values * disc_factor
+
+        # Check if immediate exercise at time 0 is better than continuation
+        payoff_0 = payoffs[:, 0]
+        final_values = np.maximum(payoff_0, discounted_continuation)
+
         # Extract payoff values at exercise time
         payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
 
-        # Compute price (average discounted payoff)
-        price = np.mean(values)
+        # Compute price (average of final values)
+        price = np.mean(final_values)
 
         return exercise_dates, payoff_values, price
 
@@ -520,10 +530,9 @@ class LeastSquarePricerDeg1(LeastSquaresPricer):
     """LSM using degree-1 polynomial basis."""
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
-                 ridge_coeff=0.0):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
         super().__init__(model, payoff, nb_epochs, hidden_size, factors,
-                         train_ITM_only, use_payoff_as_input, ridge_coeff=ridge_coeff)
+                         train_ITM_only, use_payoff_as_input)
 
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         self.basis = basis_functions.BasisFunctionsDeg1(state_size)
@@ -534,10 +543,9 @@ class LeastSquarePricerLaguerre(LeastSquaresPricer):
     """LSM using weighted Laguerre polynomial basis."""
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
-                 ridge_coeff=0.0):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
         super().__init__(model, payoff, nb_epochs, hidden_size, factors,
-                         train_ITM_only, use_payoff_as_input, ridge_coeff=ridge_coeff)
+                         train_ITM_only, use_payoff_as_input)
 
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         # Use strike as scaling parameter K

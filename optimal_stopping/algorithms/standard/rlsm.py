@@ -35,7 +35,7 @@ class RLSM:
     def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
-                 ridge_coeff=1e-3, **kwargs):
+                 **kwargs):
         """
         Initialize RLSM pricer.
 
@@ -49,7 +49,6 @@ class RLSM:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0, RLSM uses single layer so dropout has less effect)
-            ridge_coeff: Ridge regularization coefficient (default: 1e-3, standard practice)
 
         Raises:
             ValueError: If payoff is path-dependent
@@ -63,7 +62,6 @@ class RLSM:
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
         self.dropout = dropout
-        self.ridge_coeff = ridge_coeff
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -310,8 +308,8 @@ class RLSM:
         payoff_0 = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, 0])
         lower_bound = max(payoff_0[0], np.mean(values[self.split:]) * disc_factor)
 
-        # Set M[0] based on time-0 payoff and continuation value
-        M[:, 0] = np.maximum(payoff_0, values)
+        # Set M[0] based on time-0 payoff and discounted continuation value
+        M[:, 0] = np.maximum(payoff_0, values * disc_factor)
 
         # Compute upper bound on evaluation set using dual formulation
         # The martingale M satisfies M[t] >= payoff[t] for all t
@@ -343,53 +341,50 @@ class RLSM:
             continuation_values: (nb_paths,) - Estimated continuation values
             coefficients: (nb_base_fcts,) - Learned regression coefficients
         """
-        # Determine which paths are ITM
-        if self.train_ITM_only:
-            # Only use in-the-money paths
-            itm_mask = (immediate_exercise > 0)
-        else:
-            # Use all paths
-            itm_mask = np.ones(len(immediate_exercise), dtype=bool)
-
         # Initialize continuation values to 0 (prevents noisy extrapolation for OTM paths)
         nb_paths = current_state.shape[0]
         continuation_values = np.zeros(nb_paths)
         coefficients = np.zeros(self.nb_base_fcts)  # Default to zero coefficients
 
-        # Only compute continuation values for ITM paths
-        if itm_mask.sum() > 0:
-            # Get indices of ITM paths
-            itm_indices = np.where(itm_mask)[0]
+        # Identify ITM paths in training set, and all ITM paths (for prediction)
+        if self.train_ITM_only:
+            # Train only on ITM paths in training set
+            in_the_money = np.where(immediate_exercise[:self.split] > 0)[0]
+            # Predict on all ITM paths
+            in_the_money_all = np.where(immediate_exercise > 0)[0]
+        else:
+            # Train on all training paths
+            in_the_money = np.arange(self.split)
+            # Predict on all paths
+            in_the_money_all = np.arange(nb_paths)
 
-            # Evaluate basis functions only for ITM paths
-            X_itm = current_state[itm_mask]
-            X_tensor = torch.from_numpy(X_itm).type(torch.float32)
-            basis_itm = self.reservoir(X_tensor).detach().numpy()
-
+        if len(in_the_money) > 0:
+            # Evaluate basis functions for training ITM paths
+            X_train = current_state[in_the_money]
+            X_tensor_train = torch.from_numpy(X_train).type(torch.float32)
+            basis_train = self.reservoir(X_tensor_train).detach().numpy()
             # Add constant term (intercept)
-            basis_itm = np.concatenate([basis_itm, np.ones((len(basis_itm), 1))], axis=1)
+            basis_train = np.concatenate([basis_train, np.ones((len(basis_train), 1))], axis=1)
 
-            # Determine which ITM paths are in the training set
-            train_itm_mask = itm_indices < self.split  # Boolean mask within itm_indices
+            # Standard least squares (no regularization)
+            coefficients = np.linalg.lstsq(
+                basis_train,
+                future_values[in_the_money],
+                rcond=None
+            )[0]
 
-            if train_itm_mask.sum() > 0:
-                # Get basis and future values for training ITM paths
-                basis_train = basis_itm[train_itm_mask]
-                train_itm_indices = itm_indices[train_itm_mask]
+            # Evaluate basis functions for all ITM paths (for prediction)
+            X_all = current_state[in_the_money_all]
+            X_tensor_all = torch.from_numpy(X_all).type(torch.float32)
+            basis_all = self.reservoir(X_tensor_all).detach().numpy()
+            # Add constant term (intercept)
+            basis_all = np.concatenate([basis_all, np.ones((len(basis_all), 1))], axis=1)
 
-                # Ridge regression: (X^T X + λI)^{-1} X^T y
-                # where λ = ridge_coeff
-                XtX = basis_train.T @ basis_train
-                ridge_penalty = self.ridge_coeff * np.eye(XtX.shape[0])
-                Xty = basis_train.T @ future_values[train_itm_indices]
+            # Predict continuation values for all ITM paths
+            continuation_values[in_the_money_all] = np.dot(basis_all, coefficients)
 
-                coefficients = np.linalg.solve(XtX + ridge_penalty, Xty)
-
-                # Predict continuation values for all ITM paths
-                continuation_values[itm_mask] = np.dot(basis_itm, coefficients)
-
-                # Clip to non-negative (American option value can't be negative)
-                continuation_values = np.maximum(0, continuation_values)
+            # Clip to non-negative (American option value can't be negative)
+            continuation_values = np.maximum(0, continuation_values)
 
         return continuation_values, coefficients
 
@@ -545,10 +540,18 @@ class RLSM:
             # Track exercise dates - only update if exercising earlier
             exercise_dates[exercise_now] = date
 
+        # After loop, values represent value at time 1
+        # Apply extra discount to get value at time 0
+        discounted_continuation = values * disc_factor
+
+        # Check if immediate exercise at time 0 is better than continuation
+        payoff_0 = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, 0])
+        final_values = np.maximum(payoff_0, discounted_continuation)
+
         # Extract payoff values at exercise time
         payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
 
-        # Compute price (average discounted payoff)
-        price = np.mean(values)
+        # Compute price (average of final values)
+        price = np.mean(final_values)
 
         return exercise_dates, payoff_values, price

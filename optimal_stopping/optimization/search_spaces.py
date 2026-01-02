@@ -11,7 +11,6 @@ DEFAULT_SEARCH_SPACE = {
     'hidden_size': ('int', 6, 512),  # Number of neurons per layer
     'activation': ('categorical', ['relu', 'tanh', 'elu']),  # Activation function
     'dropout': ('float', 0.0, 0.5),  # Dropout probability
-    'ridge_coeff': ('float', 1e-4, 10.0, 'log'),  # Regularization coefficient (log scale)
 }
 
 # All algorithms now use single layer (num_layers removed for simplicity)
