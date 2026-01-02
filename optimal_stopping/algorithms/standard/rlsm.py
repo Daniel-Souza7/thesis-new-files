@@ -149,6 +149,14 @@ class RLSM:
         # Use model's nb_dates (actual time steps) for consistency across all algorithms
         disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
+        # Get spot price for normalization
+        if hasattr(self.model, 'spot'):
+            spot = self.model.spot
+        else:
+            spot = stock_paths[0, :self.model.nb_stocks, 0]
+        if np.isscalar(spot):
+            spot = np.full(self.model.nb_stocks, spot)
+
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
 
@@ -163,19 +171,21 @@ class RLSM:
             # Current immediate exercise value
             immediate_exercise = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, date])
 
-            # Prepare state for regression
+            # Prepare state for regression (normalize stock prices by spot)
             if self.use_payoff_as_input:
-                current_state = stock_paths[:, :, date]
+                # Normalize only the stock price columns, keep payoff unnormalized
+                normalized_stocks = stock_paths[:, :self.model.nb_stocks, date] / spot
+                current_state = np.concatenate([normalized_stocks, stock_paths[:, self.model.nb_stocks:, date]], axis=1)
             else:
-                current_state = stock_paths[:, :self.model.nb_stocks, date]
+                current_state = stock_paths[:, :self.model.nb_stocks, date] / spot
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
-                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
+                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
@@ -248,6 +258,14 @@ class RLSM:
         nb_paths, nb_stocks_plus, nb_dates_from_shape = stock_paths.shape
         disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
+        # Get spot price for normalization
+        if hasattr(self.model, 'spot'):
+            spot = self.model.spot
+        else:
+            spot = stock_paths[0, :self.model.nb_stocks, 0]
+        if np.isscalar(spot):
+            spot = np.full(self.model.nb_stocks, spot)
+
         # Initialize with terminal payoff
         values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])
 
@@ -266,19 +284,21 @@ class RLSM:
             # Current immediate exercise value
             immediate_exercise = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, date])
 
-            # Prepare state for regression
+            # Prepare state for regression (normalize stock prices by spot)
             if self.use_payoff_as_input:
-                current_state = stock_paths[:, :, date]
+                # Normalize only the stock price columns, keep payoff unnormalized
+                normalized_stocks = stock_paths[:, :self.model.nb_stocks, date] / spot
+                current_state = np.concatenate([normalized_stocks, stock_paths[:, self.model.nb_stocks:, date]], axis=1)
             else:
-                current_state = stock_paths[:, :self.model.nb_stocks, date]
+                current_state = stock_paths[:, :self.model.nb_stocks, date] / spot
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                spot = self.model.spot if hasattr(self.model, 'spot') else 100.0
-                barrier_features = np.array([[b / spot for b in self.barrier_values]])
+                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
+                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
@@ -406,6 +426,14 @@ class RLSM:
         nb_paths = stock_paths.shape[0]
         nb_dates = self.model.nb_dates
 
+        # Get spot price for normalization
+        if hasattr(self.model, 'spot'):
+            spot = self.model.spot
+        else:
+            spot = stock_paths[0, :self.model.nb_stocks, 0]
+        if np.isscalar(spot):
+            spot = np.full(self.model.nb_stocks, spot)
+
         # Initialize tracking
         exercise_times = np.full(nb_paths, nb_dates, dtype=int)  # Default to maturity = nb_dates
         payoff_values = self.payoff.eval(stock_paths[:, :self.model.nb_stocks, -1])  # Terminal payoff
@@ -426,11 +454,15 @@ class RLSM:
             # Get immediate exercise value
             immediate_exercise = self.payoff.eval(stock_paths[active_mask, :self.model.nb_stocks, date])
 
-            # Prepare state for continuation value prediction
+            # Prepare state for continuation value prediction (normalize stock prices by spot)
             if self.use_payoff_as_input:
-                current_state = stock_paths[active_mask, :, date]
+                # Normalize only stock columns, keep payoff unnormalized
+                normalized_stocks = stock_paths[active_mask, :self.model.nb_stocks, date] / spot
+                # Get payoff column (assumed to be after stocks in stock_paths if use_payoff_as_input)
+                payoffs_col = stock_paths[active_mask, self.model.nb_stocks:, date]
+                current_state = np.concatenate([normalized_stocks, payoffs_col], axis=1)
             else:
-                current_state = stock_paths[active_mask, :self.model.nb_stocks, date]
+                current_state = stock_paths[active_mask, :self.model.nb_stocks, date] / spot
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[active_mask, :, date]], axis=1)
@@ -485,6 +517,14 @@ class RLSM:
         nb_paths = stock_paths.shape[0]
         nb_dates = self.model.nb_dates
 
+        # Get spot price for normalization
+        if hasattr(self.model, 'spot'):
+            spot = self.model.spot
+        else:
+            spot = stock_paths[0, :self.model.nb_stocks, 0]
+        if np.isscalar(spot):
+            spot = np.full(self.model.nb_stocks, spot)
+
         # Compute all payoffs upfront
         payoffs = self.payoff(stock_paths)
 
@@ -505,8 +545,8 @@ class RLSM:
             # Current immediate exercise value
             immediate_exercise = payoffs[:, date]
 
-            # Prepare state
-            current_state = stock_paths[:, :, date]
+            # Prepare state (normalize stock prices by spot)
+            current_state = stock_paths[:, :self.model.nb_stocks, date] / spot
 
             if self.use_payoff_as_input:
                 current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
