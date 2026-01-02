@@ -144,6 +144,14 @@ class SRLSM:
         nb_dates = nb_dates_plus_one - 1  # Actual number of time steps
         disc_factor = math.exp(-self.model.rate * self.model.maturity / nb_dates)
 
+        # Get spot price for normalization
+        if hasattr(self.model, 'spot'):
+            spot = self.model.spot
+        else:
+            spot = stock_paths[0, :, 0]
+        if np.isscalar(spot):
+            spot = np.full(nb_stocks, spot)
+
         # Initialize with terminal payoff
         # CRITICAL: Pass FULL PATH HISTORY (all dates from 0 to T)
         values = self.payoff.eval(stock_paths)
@@ -161,8 +169,8 @@ class SRLSM:
             path_history = stock_paths[:, :, :date + 1]
             immediate_exercise = self.payoff.eval(path_history)
 
-            # Prepare current state for regression (ONLY current timestep needed)
-            current_state = stock_paths[:, :, date]
+            # Prepare current state for regression (normalize stock prices by spot)
+            current_state = stock_paths[:, :, date] / spot
 
             if self.use_var and var_paths is not None:
                 current_state = np.concatenate([current_state, var_paths[:, :, date]], axis=1)
