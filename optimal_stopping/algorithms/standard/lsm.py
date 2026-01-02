@@ -9,6 +9,7 @@ Simple benchmark implementation of the classic LSM algorithm from:
 import numpy as np
 import math
 import time
+from sklearn.linear_model import Ridge
 from optimal_stopping.run import configs
 from optimal_stopping.algorithms.utils import basis_functions
 
@@ -22,7 +23,7 @@ class LeastSquaresPricer:
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
                  factors=None, train_ITM_only=True, use_payoff_as_input=False,
-                 use_barrier_as_input=False):
+                 use_barrier_as_input=False, ridge_coeff=0.0):
         """
         Initialize LSM pricer.
 
@@ -35,12 +36,14 @@ class LeastSquaresPricer:
             train_ITM_only: If True, only train on in-the-money paths
             use_payoff_as_input: If True, include payoff as feature
             use_barrier_as_input: If True, include barrier values as input hint
+            ridge_coeff: Ridge regularization coefficient (0.0 = no regularization)
         """
         self.model = model
         self.payoff = payoff
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
+        self.ridge_coeff = ridge_coeff
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -288,10 +291,10 @@ class LeastSquaresPricer:
             itm_indices = np.where(itm_mask)[0]
 
             # Evaluate basis functions only for ITM paths
+            # Vectorized: loop over basis functions, evaluate all ITM paths at once
             basis_matrix = np.zeros((len(itm_indices), self.nb_base_fcts))
-            for idx, i in enumerate(itm_indices):
-                for j in range(self.nb_base_fcts):
-                    basis_matrix[idx, j] = self.basis.base_fct(j, current_state[i])
+            for j in range(self.nb_base_fcts):
+                basis_matrix[:, j] = self.basis.base_fct(j, current_state[itm_indices], vectorized=True)
 
             # Determine which ITM paths are in the training set
             train_itm_mask = itm_indices < self.split  # Boolean mask within itm_indices
@@ -301,11 +304,18 @@ class LeastSquaresPricer:
                 basis_train = basis_matrix[train_itm_mask]
                 train_itm_indices = itm_indices[train_itm_mask]
 
-                coefficients = np.linalg.lstsq(
-                    basis_train,
-                    future_values[train_itm_indices],
-                    rcond=None
-                )[0]
+                # Use Ridge regression (or standard least squares if ridge_coeff=0)
+                if self.ridge_coeff > 0:
+                    model = Ridge(alpha=self.ridge_coeff, fit_intercept=False)
+                    model.fit(basis_train, future_values[train_itm_indices])
+                    coefficients = model.coef_
+                else:
+                    # Standard least squares (no regularization)
+                    coefficients = np.linalg.lstsq(
+                        basis_train,
+                        future_values[train_itm_indices],
+                        rcond=None
+                    )[0]
 
                 # Predict continuation values for all ITM paths
                 continuation_values[itm_mask] = np.dot(basis_matrix, coefficients)
@@ -388,11 +398,10 @@ class LeastSquaresPricer:
             coefficients = self._learned_coefficients[date]
             nb_active = active_mask.sum()
 
-            # Evaluate basis functions
+            # Evaluate basis functions (vectorized)
             basis_matrix = np.zeros((nb_active, self.nb_base_fcts))
-            for i in range(nb_active):
-                for j in range(self.nb_base_fcts):
-                    basis_matrix[i, j] = self.basis.base_fct(j, current_state[i])
+            for j in range(self.nb_base_fcts):
+                basis_matrix[:, j] = self.basis.base_fct(j, current_state, vectorized=True)
 
             continuation_values = np.dot(basis_matrix, coefficients)
 
@@ -475,11 +484,10 @@ class LeastSquaresPricer:
             # Get learned coefficients for this time step
             coefficients = self._learned_coefficients[date]
 
-            # Evaluate basis functions for all paths
+            # Evaluate basis functions for all paths (vectorized)
             basis_matrix = np.zeros((nb_paths, self.nb_base_fcts))
-            for i in range(nb_paths):
-                for j in range(self.nb_base_fcts):
-                    basis_matrix[i, j] = self.basis.base_fct(j, current_state[i])
+            for j in range(self.nb_base_fcts):
+                basis_matrix[:, j] = self.basis.base_fct(j, current_state, vectorized=True)
 
             # Compute continuation values
             continuation_values = np.dot(basis_matrix, coefficients)
@@ -512,9 +520,10 @@ class LeastSquarePricerDeg1(LeastSquaresPricer):
     """LSM using degree-1 polynomial basis."""
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
+                 ridge_coeff=0.0):
         super().__init__(model, payoff, nb_epochs, hidden_size, factors,
-                         train_ITM_only, use_payoff_as_input)
+                         train_ITM_only, use_payoff_as_input, ridge_coeff=ridge_coeff)
 
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         self.basis = basis_functions.BasisFunctionsDeg1(state_size)
@@ -525,9 +534,10 @@ class LeastSquarePricerLaguerre(LeastSquaresPricer):
     """LSM using weighted Laguerre polynomial basis."""
 
     def __init__(self, model, payoff, nb_epochs=None, hidden_size=None,
-                 factors=None, train_ITM_only=True, use_payoff_as_input=False):
+                 factors=None, train_ITM_only=True, use_payoff_as_input=False,
+                 ridge_coeff=0.0):
         super().__init__(model, payoff, nb_epochs, hidden_size, factors,
-                         train_ITM_only, use_payoff_as_input)
+                         train_ITM_only, use_payoff_as_input, ridge_coeff=ridge_coeff)
 
         state_size = model.nb_stocks * (1 + self.use_var) + self.use_payoff_as_input * 1
         # Use strike as scaling parameter K
