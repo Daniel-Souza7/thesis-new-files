@@ -425,30 +425,49 @@ class SRLSM:
             continuation_values: (nb_paths,) - Estimated continuation values
             coefficients: (nb_base_fcts,) - Learned regression coefficients
         """
-        # Determine which paths to use for training
+        # Initialize continuation values to 0 (prevents noisy extrapolation for OTM paths)
+        nb_paths = current_state.shape[0]
+        continuation_values = np.zeros(nb_paths)
+        coefficients = np.zeros(self.nb_base_fcts)  # Default to zero coefficients
+
+        # Identify ITM paths in training set, and all ITM paths (for prediction)
         if self.train_ITM_only:
-            train_mask = (immediate_exercise[:self.split] > 0)
+            # Train only on ITM paths in training set
+            in_the_money = np.where(immediate_exercise[:self.split] > 0)[0]
+            # Predict on all ITM paths
+            in_the_money_all = np.where(immediate_exercise > 0)[0]
         else:
-            train_mask = np.ones(self.split, dtype=bool)
+            # Train on all training paths
+            in_the_money = np.arange(self.split)
+            # Predict on all paths
+            in_the_money_all = np.arange(nb_paths)
 
-        # Evaluate basis functions
-        X_tensor = torch.from_numpy(current_state).type(torch.float32)
-        basis = self.reservoir(X_tensor).detach().numpy()
+        if len(in_the_money) > 0:
+            # Evaluate basis functions for training ITM paths
+            X_train = current_state[in_the_money]
+            X_tensor_train = torch.from_numpy(X_train).type(torch.float32)
+            basis_train = self.reservoir(X_tensor_train).detach().numpy()
+            # Add constant term (intercept)
+            basis_train = np.concatenate([basis_train, np.ones((len(basis_train), 1))], axis=1)
 
-        # Add constant term
-        basis = np.concatenate([basis, np.ones((len(basis), 1))], axis=1)
+            # Standard least squares (no regularization)
+            coefficients = np.linalg.lstsq(
+                basis_train,
+                future_values[in_the_money],
+                rcond=None
+            )[0]
 
-        # Standard least squares regression
-        basis_train = basis[:self.split][train_mask]
-        targets_train = future_values[:self.split][train_mask]
+            # Evaluate basis functions for all ITM paths (for prediction)
+            X_all = current_state[in_the_money_all]
+            X_tensor_all = torch.from_numpy(X_all).type(torch.float32)
+            basis_all = self.reservoir(X_tensor_all).detach().numpy()
+            # Add constant term (intercept)
+            basis_all = np.concatenate([basis_all, np.ones((len(basis_all), 1))], axis=1)
 
-        # Use lstsq for standard least squares
-        coefficients = np.linalg.lstsq(basis_train, targets_train, rcond=None)[0]
+            # Predict continuation values for all ITM paths
+            continuation_values[in_the_money_all] = np.dot(basis_all, coefficients)
 
-        # Predict continuation values
-        continuation_values = np.dot(basis, coefficients)
-
-        # Clip to non-negative (American option value can't be negative)
-        continuation_values = np.maximum(0, continuation_values)
+            # Clip to non-negative (American option value can't be negative)
+            continuation_values = np.maximum(0, continuation_values)
 
         return continuation_values, coefficients
