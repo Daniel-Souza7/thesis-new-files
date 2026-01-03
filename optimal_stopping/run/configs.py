@@ -2761,3 +2761,128 @@ srfqi_uo_basket_optimized2 = _DefaultConfig(
     dtype=['float32'],  # Match hyperopt dtype for consistency
 )
 
+test_hyperopt = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[1],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['Put'],
+    spots=[36],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=20,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=40,  # 2 minutes for quick test
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True]
+)
+
+test_hyperopt_results_r0 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[1],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['Put'],
+    spots=[36],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=7,  # Single run for testing
+    dtype = ['float32'],
+    use_payoff_as_input=[True]
+)
+
+test_hyperopt_results_r = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[1],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['Put'],
+    spots=[36],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=20,  # Single run for testing
+    dtype = ['float32'],
+hidden_size = [23],
+activation = ['relu'],
+dropout = [0.0],  # Rounded from 0.1864522729305972
+ridge_coeff = [0.0],  # Rounded from 0.37657203126402644
+use_payoff_as_input=[True]
+)
+
+test_hyperopt_results_l = _DefaultConfig(
+    algos=['LSM', 'SRLSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[7],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1.0],
+    payoffs=['UO-MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=10,  # Single run for testing
+    dtype = ['float32'],
+    use_payoff_as_input=[True, False])
+
+test_hyperopt_results_ls = _DefaultConfig(
+    algos=['LSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[1],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['Put'],
+    spots=[36, 40, 44],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06, 0.00],
+    dividends=[0.0],
+    nb_runs=10,  # Single run for testing
+    #dtype = ['float64'],
+    use_payoff_as_input=[True, False])
+
+test_hyperopt_results_lsm_brandnew = _DefaultConfig(
+    algos=['LSM'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[1],
+    nb_paths=[150000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['Put'],
+    spots=[36, 40, 44],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=10,  # Single run for testing
+    )
