@@ -187,6 +187,11 @@ def _run_algos():
         if nb_stocks_flag:
             config.nb_stocks = [a for a in config.nb_stocks
                                 if a in nb_stocks_flag]
+
+        # Ensure user_data_file and dtype are iterable (wrap in list if None or not iterable)
+        user_data_files = config.user_data_file if isinstance(config.user_data_file, (list, tuple)) else [config.user_data_file]
+        dtypes = config.dtype if isinstance(config.dtype, (list, tuple)) else [config.dtype]
+
         combinations = list(itertools.product(
             config.algos, config.dividends, config.maturities, config.nb_dates,
             config.nb_paths, config.nb_stocks, config.payoffs, config.drift,
@@ -199,7 +204,7 @@ def _run_algos():
             config.barriers_up, config.barriers_down,
             config.k, config.weights,
             config.step_param1, config.step_param2, config.step_param3, config.step_param4,
-            config.user_data_file, config.dtype))
+            user_data_files, dtypes))
 
         for params in combinations:
             for i in range(config.nb_runs):
