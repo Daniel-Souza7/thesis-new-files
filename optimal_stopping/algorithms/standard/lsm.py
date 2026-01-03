@@ -101,16 +101,17 @@ class LeastSquaresPricer:
         # Use model's nb_dates (actual time steps) for consistency across all algorithms
         disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
-        # Get spot price for normalization
-        # Use model.spot if available, otherwise use initial prices from paths
-        if hasattr(self.model, 'spot'):
-            spot = self.model.spot
+        # Get strike price for normalization
+        # Use strike from payoff if available
+        if hasattr(self.payoff, 'strike'):
+            strike = self.payoff.strike
         else:
-            spot = stock_paths[0, :, 0]  # Initial prices for each asset
+            # Fallback to spot if no strike available
+            strike = self.model.spot if hasattr(self.model, 'spot') else stock_paths[0, :, 0]
 
-        # Ensure spot is broadcastable (convert scalar to array if needed)
-        if np.isscalar(spot):
-            spot = np.full(nb_stocks, spot)
+        # Ensure strike is broadcastable (convert scalar to array if needed)
+        if np.isscalar(strike):
+            strike = np.full(nb_stocks, strike)
 
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
@@ -126,8 +127,8 @@ class LeastSquaresPricer:
             # Current immediate exercise value
             immediate_exercise = payoffs[:, date]
 
-            # Prepare state for regression (normalize by spot price)
-            current_state = stock_paths[:, :, date] / spot
+            # Prepare state for regression (normalize by strike price)
+            current_state = stock_paths[:, :, date] / strike
 
             if self.use_payoff_as_input:
                 current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
@@ -137,9 +138,9 @@ class LeastSquaresPricer:
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                # Use first element of spot for barrier normalization (typically scalar)
-                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
-                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
+                # Use first element of strike for barrier normalization (typically scalar)
+                strike_scalar = strike[0] if isinstance(strike, np.ndarray) else strike
+                barrier_features = np.array([[b / strike_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
@@ -212,13 +213,13 @@ class LeastSquaresPricer:
         nb_paths, nb_stocks, nb_dates_from_shape = stock_paths.shape
         disc_factor = math.exp(-self.model.rate * self.model.maturity / self.model.nb_dates)
 
-        # Get spot price for normalization
-        if hasattr(self.model, 'spot'):
-            spot = self.model.spot
+        # Get strike price for normalization
+        if hasattr(self.payoff, 'strike'):
+            strike = self.payoff.strike
         else:
-            spot = stock_paths[0, :, 0]
-        if np.isscalar(spot):
-            spot = np.full(nb_stocks, spot)
+            strike = self.model.spot if hasattr(self.model, 'spot') else stock_paths[0, :, 0]
+        if np.isscalar(strike):
+            strike = np.full(nb_stocks, strike)
 
         # Initialize with terminal payoff
         values = payoffs[:, -1].copy()
@@ -236,7 +237,7 @@ class LeastSquaresPricer:
         # Backward induction
         for date in range(self.model.nb_dates - 1, 0, -1):
             immediate_exercise = payoffs[:, date]
-            current_state = stock_paths[:, :, date] / spot
+            current_state = stock_paths[:, :, date] / strike
 
             if self.use_payoff_as_input:
                 current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
@@ -246,9 +247,9 @@ class LeastSquaresPricer:
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                # Use first element of spot for barrier normalization (typically scalar)
-                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
-                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
+                # Use first element of strike for barrier normalization (typically scalar)
+                strike_scalar = strike[0] if isinstance(strike, np.ndarray) else strike
+                barrier_features = np.array([[b / strike_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
@@ -377,13 +378,13 @@ class LeastSquaresPricer:
         nb_dates = self.model.nb_dates
         nb_stocks = stock_paths.shape[1]
 
-        # Get spot price for normalization
-        if hasattr(self.model, 'spot'):
-            spot = self.model.spot
+        # Get strike price for normalization
+        if hasattr(self.payoff, 'strike'):
+            strike = self.payoff.strike
         else:
-            spot = stock_paths[0, :, 0]
-        if np.isscalar(spot):
-            spot = np.full(nb_stocks, spot)
+            strike = self.model.spot if hasattr(self.model, 'spot') else stock_paths[0, :, 0]
+        if np.isscalar(strike):
+            strike = np.full(nb_stocks, strike)
 
         # Compute all payoffs upfront
         payoffs = self.payoff(stock_paths)
@@ -410,8 +411,8 @@ class LeastSquaresPricer:
             # Get immediate exercise value
             immediate_exercise = payoffs[active_mask, date]
 
-            # Prepare state for continuation value prediction (normalize by spot price)
-            current_state = stock_paths[active_mask, :, date] / spot
+            # Prepare state for continuation value prediction (normalize by strike price)
+            current_state = stock_paths[active_mask, :, date] / strike
 
             if self.use_payoff_as_input:
                 current_state = np.concatenate([current_state, payoffs[active_mask, date:date+1]], axis=1)
@@ -421,9 +422,9 @@ class LeastSquaresPricer:
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                # Use first element of spot for barrier normalization (typically scalar)
-                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
-                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
+                # Use first element of strike for barrier normalization (typically scalar)
+                strike_scalar = strike[0] if isinstance(strike, np.ndarray) else strike
+                barrier_features = np.array([[b / strike_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
@@ -479,13 +480,13 @@ class LeastSquaresPricer:
         nb_dates = self.model.nb_dates
         nb_stocks = stock_paths.shape[1]
 
-        # Get spot price for normalization
-        if hasattr(self.model, 'spot'):
-            spot = self.model.spot
+        # Get strike price for normalization
+        if hasattr(self.payoff, 'strike'):
+            strike = self.payoff.strike
         else:
-            spot = stock_paths[0, :, 0]
-        if np.isscalar(spot):
-            spot = np.full(nb_stocks, spot)
+            strike = self.model.spot if hasattr(self.model, 'spot') else stock_paths[0, :, 0]
+        if np.isscalar(strike):
+            strike = np.full(nb_stocks, strike)
 
         # Compute all payoffs upfront
         payoffs = self.payoff(stock_paths)
@@ -507,8 +508,8 @@ class LeastSquaresPricer:
             # Current immediate exercise value
             immediate_exercise = payoffs[:, date]
 
-            # Prepare state (normalize by spot price)
-            current_state = stock_paths[:, :, date] / spot
+            # Prepare state (normalize by strike price)
+            current_state = stock_paths[:, :, date] / strike
 
             if self.use_payoff_as_input:
                 current_state = np.concatenate([current_state, payoffs[:, date:date+1]], axis=1)
@@ -518,9 +519,9 @@ class LeastSquaresPricer:
 
             # Add barrier values as input hint (if enabled)
             if self.nb_barriers > 0:
-                # Use first element of spot for barrier normalization (typically scalar)
-                spot_scalar = spot[0] if isinstance(spot, np.ndarray) else spot
-                barrier_features = np.array([[b / spot_scalar for b in self.barrier_values]])
+                # Use first element of strike for barrier normalization (typically scalar)
+                strike_scalar = strike[0] if isinstance(strike, np.ndarray) else strike
+                barrier_features = np.array([[b / strike_scalar for b in self.barrier_values]])
                 barrier_features = np.repeat(barrier_features, current_state.shape[0], axis=0)
                 current_state = np.concatenate([current_state, barrier_features], axis=1)
 
