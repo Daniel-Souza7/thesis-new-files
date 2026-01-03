@@ -199,7 +199,7 @@ def _run_algos():
             config.barriers_up, config.barriers_down,
             config.k, config.weights,
             config.step_param1, config.step_param2, config.step_param3, config.step_param4,
-            config.dtype))
+            config.user_data_file, config.dtype))
 
         for params in combinations:
             for i in range(config.nb_runs):
