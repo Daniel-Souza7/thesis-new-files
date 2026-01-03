@@ -163,15 +163,15 @@ class LeastSquaresPricer:
             self._exercise_dates[exercise_now] = date
 
         # After loop, values represent value at time 1
-        # Apply extra discount to get value at time 0
-        discounted_continuation = values * disc_factor
+        # At t=0, all paths start at same spot, so immediate payoff is identical
+        # Compute average continuation value first, then compare with single payoff
+        continuation_0 = np.mean(values[self.split:]) * disc_factor
 
-        # Check if immediate exercise at time 0 is better than continuation
-        payoff_0 = payoffs[:, 0]
-        final_values = np.maximum(payoff_0, discounted_continuation)
+        # Immediate payoff at t=0 (same for all paths since all start at same spot)
+        payoff_0 = payoffs[0, 0]
 
-        # Final price: average over evaluation paths
-        price = np.mean(final_values[self.split:])
+        # Price is max of immediate exercise vs expected continuation
+        price = np.maximum(payoff_0, continuation_0)
 
         return price, time_path_gen
 
@@ -272,18 +272,20 @@ class LeastSquaresPricer:
             M[:, date] = np.maximum(immediate_exercise, continuation_values)
 
         # After loop, values represent value at time 1
-        # Apply extra discount to get value at time 0
+        # At t=0, all paths start at same spot, so immediate payoff is identical
+        # Compute average continuation value first, then compare with single payoff
+        continuation_0 = np.mean(values[self.split:]) * disc_factor
+
+        # Immediate payoff at t=0 (same for all paths since all start at same spot)
+        payoff_0 = payoffs[0, 0]
+
+        # Lower bound is max of immediate exercise vs expected continuation
+        lower_bound = np.maximum(payoff_0, continuation_0)
+
+        # For upper bound, we need M[0] for each path (dual formulation)
+        # Here we still use element-wise max because M is a martingale construction
         discounted_continuation = values * disc_factor
-
-        # Check if immediate exercise at time 0 is better than continuation
-        payoff_0 = payoffs[:, 0]
-        final_values = np.maximum(payoff_0, discounted_continuation)
-
-        # Lower bound: average over evaluation paths
-        lower_bound = np.mean(final_values[self.split:])
-
-        # Set M[0] based on time-0 payoff and continuation value
-        M[:, 0] = np.maximum(payoff_0, discounted_continuation)
+        M[:, 0] = np.maximum(payoffs[:, 0], discounted_continuation)
 
         # Upper bound using dual formulation
         # The martingale M satisfies M[t] >= payoff[t] for all t
@@ -552,18 +554,18 @@ class LeastSquaresPricer:
             exercise_dates[exercise_now] = date
 
         # After loop, values represent value at time 1
-        # Apply extra discount to get value at time 0
-        discounted_continuation = values * disc_factor
+        # At t=0, all paths start at same spot, so immediate payoff is identical
+        # Compute average continuation value first, then compare with single payoff
+        continuation_0 = np.mean(values) * disc_factor
 
-        # Check if immediate exercise at time 0 is better than continuation
-        payoff_0 = payoffs[:, 0]
-        final_values = np.maximum(payoff_0, discounted_continuation)
+        # Immediate payoff at t=0 (same for all paths since all start at same spot)
+        payoff_0 = payoffs[0, 0]
+
+        # Price is max of immediate exercise vs expected continuation
+        price = np.maximum(payoff_0, continuation_0)
 
         # Extract payoff values at exercise time
         payoff_values = np.array([payoffs[i, exercise_dates[i]] for i in range(nb_paths)])
-
-        # Compute price (average of final values)
-        price = np.mean(final_values)
 
         return exercise_dates, payoff_values, price
 
