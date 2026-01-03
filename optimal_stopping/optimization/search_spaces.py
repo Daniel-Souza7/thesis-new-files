@@ -9,8 +9,7 @@ Each algorithm has a specific search space based on its architecture.
 # Used for: RLSM, SRLSM, RFQI, SRFQI, LSM, FQI
 DEFAULT_SEARCH_SPACE = {
     'hidden_size': ('int', 6, 512),  # Number of neurons per layer
-    'activation': ('categorical', ['relu', 'tanh', 'elu']),  # Activation function
-    'dropout': ('float', 0.0, 0.5),  # Dropout probability
+    'activation': ('categorical', ['relu', 'tanh', 'elu', 'leakyrelu', 'softplus', 'gelu']),  # Activation function
 }
 
 # All algorithms now use single layer (num_layers removed for simplicity)

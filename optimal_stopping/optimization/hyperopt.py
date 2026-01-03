@@ -167,16 +167,16 @@ class HyperparameterOptimizer:
                 trial.set_user_attr('diverged', True)
                 return -1e10
 
-            # Log intermediate metrics
-            trial.set_user_attr('mean_price', metrics['mean_price'])
-            trial.set_user_attr('std_price', metrics['std_price'])
-            trial.set_user_attr('mean_time', metrics['mean_time'])
-            trial.set_user_attr('nb_paths_used', metrics['nb_paths_used'])
+            # Log intermediate metrics (convert numpy types to Python types for JSON serialization)
+            trial.set_user_attr('mean_price', float(metrics['mean_price']))
+            trial.set_user_attr('std_price', float(metrics['std_price']))
+            trial.set_user_attr('mean_time', float(metrics['mean_time']))
+            trial.set_user_attr('nb_paths_used', int(metrics['nb_paths_used']))
             trial.set_user_attr('diverged', False)
 
             # Log epochs used for RFQI/SRFQI
             if 'nb_epochs_used' in metrics:
-                trial.set_user_attr('nb_epochs_used', metrics['nb_epochs_used'])
+                trial.set_user_attr('nb_epochs_used', int(metrics['nb_epochs_used']))
 
             return obj_value
 

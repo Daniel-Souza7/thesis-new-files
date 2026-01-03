@@ -181,6 +181,8 @@ class Reservoir2(torch.nn.Module):
             'tanh': torch.nn.Tanh(),
             'elu': torch.nn.ELU(),
             'leakyrelu': torch.nn.LeakyReLU(0.5),
+            'softplus': torch.nn.Softplus(),
+            'gelu': torch.nn.GELU(),
         }
 
         activation_str_lower = activation_str.lower()
