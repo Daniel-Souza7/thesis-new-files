@@ -69,7 +69,6 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
             'use_barrier_as_input': problem_config.get('use_barrier_as_input', False),
             'activation': hyperparams.get('activation', 'leakyrelu'),
             'dropout': hyperparams.get('dropout', 0.0),
-            'ridge_coeff': hyperparams.get('ridge_coeff', 0.0),  # ✅ FIXED: Now actually passed!
         }
 
         # Add algorithm-specific parameters
