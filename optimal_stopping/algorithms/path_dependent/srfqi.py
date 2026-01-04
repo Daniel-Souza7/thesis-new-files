@@ -36,8 +36,7 @@ class SRFQI:
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1., 1.), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu',
-                 dropout=0.0, early_stopping_callback=None,
-                 **kwargs):
+                 dropout=0.0, **kwargs):
         """
         Initialize SRFQI pricer.
 
@@ -52,7 +51,6 @@ class SRFQI:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (0.0 = no dropout)
-            early_stopping_callback: Optional callback for early stopping
 
         Raises:
             ValueError: If payoff is NOT path-dependent
@@ -63,7 +61,6 @@ class SRFQI:
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input
         self.use_barrier_as_input = use_barrier_as_input
-        self.early_stopping_callback = early_stopping_callback
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -336,9 +333,6 @@ class SRFQI:
         # Initialize Q-function weights
         weights = np.zeros(self.nb_base_fcts, dtype=float)
 
-        # Track actual epochs used (for early stopping)
-        epochs_used = self.nb_epochs
-
         # Fitted Q-iteration (IDENTICAL to RFQI)
         for epoch in range(self.nb_epochs):
             # Compute continuation values
@@ -382,22 +376,8 @@ class SRFQI:
             # Use lstsq for numerical stability (handles singular/near-singular matrices)
             weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
-            # Early stopping integration
-            if self.early_stopping_callback is not None:
-                # Evaluate on validation set
-                val_continuation = np.dot(eval_bases[self.split:, 1:, :], weights)
-                val_continuation = np.maximum(0, val_continuation)
-                val_values = np.maximum(payoffs[self.split:, 1:], val_continuation)
-                val_score = np.mean(val_values)  # Higher is better
-
-                if self.early_stopping_callback(val_score, epoch):
-                    epochs_used = epoch + 1  # Track actual epochs used
-                    print(f"Early stopping at epoch {epochs_used}/{self.nb_epochs}")
-                    break
-
-        # Store learned weights and epochs used
+        # Store learned weights
         self.weights = weights
-        self._epochs_used = epochs_used  # Store for hyperopt metrics
 
         # Final evaluation on all paths
         continuation_value = np.dot(eval_bases, weights)
@@ -523,18 +503,6 @@ class SRFQI:
             # Standard least squares: U * weights = V
             # Use lstsq for numerical stability (handles singular/near-singular matrices)
             weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
-
-            # Early stopping integration
-            if self.early_stopping_callback is not None:
-                # Evaluate on validation set
-                val_continuation = np.dot(eval_bases[self.split:, 1:, :], weights)
-                val_continuation = np.maximum(0, val_continuation)
-                val_values = np.maximum(payoffs[self.split:, 1:], val_continuation)
-                val_score = np.mean(val_values)  # Higher is better
-
-                if self.early_stopping_callback(val_score, epoch):
-                    print(f"Early stopping at epoch {epoch+1}/{self.nb_epochs}")
-                    break
 
         self.weights = weights
 

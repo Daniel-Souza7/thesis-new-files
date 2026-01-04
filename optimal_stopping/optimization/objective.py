@@ -97,12 +97,6 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
         prices.append(price)
         times.append(comp_time)
 
-        # Track epochs used (for RFQI/SRFQI with early stopping)
-        if hasattr(algo, '_epochs_used'):
-            if 'epochs_used' not in locals():
-                epochs_used = []
-            epochs_used.append(algo._epochs_used)
-
     # Compute statistics
     mean_price = np.mean(prices)
     std_price = np.std(prices) if n_runs > 1 else 0.0
@@ -121,11 +115,6 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
         'n_runs': n_runs,
         'nb_paths_used': nb_paths_opt,
     }
-
-    # Add epochs used for RFQI/SRFQI
-    if 'epochs_used' in locals():
-        metrics['nb_epochs_used'] = int(np.mean(epochs_used))  # Average across runs
-        metrics['nb_epochs_std'] = float(np.std(epochs_used)) if len(epochs_used) > 1 else 0.0
 
     return objective_value, metrics
 

@@ -127,23 +127,6 @@ class HyperparameterOptimizer:
                     trial, param_name, param_spec
                 )
 
-            # Add early stopping for RFQI/SRFQI
-            early_stopping_callback = None
-            if self.algo_name in ['RFQI', 'SRFQI']:
-                from .early_stopping import EarlyStopping
-                # Set divergence threshold: 5x spot price (realistic upper bound for option)
-                spot = self.problem_config['model_params']['spot']
-                divergence_threshold = 5.0 * spot
-
-                hyperparams['nb_epochs'] = 100  # Max epochs, early stopping will cut this short
-                early_stopping_callback = EarlyStopping(
-                    patience=5,       # Stop if no improvement for 5 epochs
-                    min_delta=0.01,   # 1 cent improvement threshold
-                    mode='max',       # Higher validation score is better
-                    divergence_threshold=divergence_threshold  # Detect explosions
-                )
-                hyperparams['early_stopping_callback'] = early_stopping_callback
-
             # Evaluate objective
             obj_value, metrics = evaluate_objective(
                 self.algo_class,
@@ -154,12 +137,6 @@ class HyperparameterOptimizer:
                 n_runs=3,  # Single run per trial for speed
                 fidelity_factor=self.fidelity_factor
             )
-
-            # Check for divergence
-            if early_stopping_callback is not None and early_stopping_callback.diverged:
-                print(f"  ⚠️  Trial {trial.number} DIVERGED - Penalizing objective")
-                trial.set_user_attr('diverged', True)
-                return -1e10  # Very low score to make Optuna avoid this region
 
             # Check for NaN/Inf in metrics
             if np.isnan(obj_value) or np.isinf(obj_value):
@@ -172,11 +149,6 @@ class HyperparameterOptimizer:
             trial.set_user_attr('std_price', float(metrics['std_price']))
             trial.set_user_attr('mean_time', float(metrics['mean_time']))
             trial.set_user_attr('nb_paths_used', int(metrics['nb_paths_used']))
-            trial.set_user_attr('diverged', False)
-
-            # Log epochs used for RFQI/SRFQI
-            if 'nb_epochs_used' in metrics:
-                trial.set_user_attr('nb_epochs_used', int(metrics['nb_epochs_used']))
 
             return obj_value
 
@@ -197,13 +169,6 @@ class HyperparameterOptimizer:
         print(f"{'='*80}")
         print(f"Best hyperparameters: {self.best_params}")
         print(f"Best objective value: {self.best_value:.6f}")
-
-        # Print nb_epochs_used for RFQI/SRFQI
-        if hasattr(self.study.best_trial, 'user_attrs') and 'nb_epochs_used' in self.study.best_trial.user_attrs:
-            nb_epochs = self.study.best_trial.user_attrs['nb_epochs_used']
-            print(f"Epochs used (early stopping): {nb_epochs}")
-            print(f"  → Use nb_epochs={nb_epochs} for final runs")
-
         print(f"Number of trials completed: {len(self.study.trials)}")
         print(f"{'='*80}\n")
 
@@ -249,10 +214,6 @@ class HyperparameterOptimizer:
             'best_objective_value': self.best_value,
         }
 
-        # Add nb_epochs_used for RFQI/SRFQI if available
-        if hasattr(self.study.best_trial, 'user_attrs') and 'nb_epochs_used' in self.study.best_trial.user_attrs:
-            metadata['nb_epochs_used'] = self.study.best_trial.user_attrs['nb_epochs_used']
-
         # Save as JSON
         json_path = self.output_dir / f"{self.study_name}_summary.json"
         with open(json_path, 'w') as f:
@@ -292,11 +253,6 @@ class HyperparameterOptimizer:
             f.write("Best Hyperparameters:\n")
             for param, value in metadata['best_hyperparameters'].items():
                 f.write(f"  {param}: {value}\n")
-
-            # Add nb_epochs_used for RFQI/SRFQI
-            if 'nb_epochs_used' in metadata:
-                f.write(f"\nEpochs Used (with early stopping): {metadata['nb_epochs_used']}\n")
-                f.write(f"  → Use nb_epochs={metadata['nb_epochs_used']} for final runs\n")
 
             f.write("\n" + "="*80 + "\n")
 

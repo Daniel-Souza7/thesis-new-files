@@ -38,8 +38,7 @@ class RFQI:
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
                  factors=(1., 1.), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu',
-                 dropout=0.0, early_stopping_callback=None,
-                 **kwargs):
+                 dropout=0.0, **kwargs):
         """
         Initialize RFQI pricer.
 
@@ -54,7 +53,6 @@ class RFQI:
             use_barrier_as_input: If True, include barrier values as input hint
             activation: Activation function ('relu', 'tanh', 'elu', 'leakyrelu')
             dropout: Dropout probability (default: 0.0)
-            early_stopping_callback: Early stopping callback (optional)
 
         Raises:
             ValueError: If payoff is path-dependent
@@ -67,7 +65,6 @@ class RFQI:
         self.use_barrier_as_input = use_barrier_as_input
         self.activation = activation
         self.dropout = dropout
-        self.early_stopping_callback = early_stopping_callback
 
         # Check for variance paths
         self.use_var = getattr(model, 'return_var', False)
@@ -300,9 +297,6 @@ class RFQI:
         # Initialize Q-function weights
         weights = np.zeros(self.nb_base_fcts, dtype=float)
 
-        # Track actual epochs used (for early stopping)
-        epochs_used = self.nb_epochs
-
         # Fitted Q-iteration
         for epoch in range(self.nb_epochs):
             # Compute continuation values for dates 1 to T
@@ -348,22 +342,8 @@ class RFQI:
             # Use lstsq for numerical stability (handles singular/near-singular matrices)
             weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
-            # Early stopping: check if we should stop training
-            if self.early_stopping_callback is not None:
-                # Evaluate on validation set (use eval paths for early stopping)
-                val_continuation = np.dot(eval_bases[self.split:, 1:, :], weights)
-                val_continuation = np.maximum(0, val_continuation)
-                val_values = np.maximum(payoffs[self.split:, 1:], val_continuation)
-                val_score = np.mean(val_values)  # Higher is better
-
-                if self.early_stopping_callback(val_score, epoch):
-                    epochs_used = epoch + 1  # Track actual epochs used
-                    print(f"Early stopping at epoch {epochs_used}/{self.nb_epochs}")
-                    break
-
-        # Store learned weights and epochs used
+        # Store learned weights
         self.weights = weights
-        self._epochs_used = epochs_used  # Store for hyperopt metrics
 
         # Final evaluation on all paths
         continuation_value = np.dot(eval_bases, weights)
