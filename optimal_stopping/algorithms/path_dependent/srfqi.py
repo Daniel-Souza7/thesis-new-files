@@ -34,7 +34,7 @@ class SRFQI:
     """
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
-                 factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
+                 factors=(1., 1.), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu',
                  dropout=0.0, early_stopping_callback=None,
                  **kwargs):

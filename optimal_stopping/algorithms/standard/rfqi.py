@@ -36,7 +36,7 @@ class RFQI:
     """
 
     def __init__(self, model, payoff, nb_epochs=20, hidden_size=20,
-                 factors=(1.,), train_ITM_only=True, use_payoff_as_input=False,
+                 factors=(1., 1.), train_ITM_only=True, use_payoff_as_input=False,
                  use_barrier_as_input=False, activation='leakyrelu',
                  dropout=0.0, early_stopping_callback=None,
                  **kwargs):
@@ -107,7 +107,7 @@ class RFQI:
         self.reservoir2 = randomized_neural_networks.Reservoir2(
             self.dim_out,
             self.state_size,
-            factors=factors[1:] if len(factors) > 1 else (),
+            factors=factors[1:] if len(factors) > 1 else (1.,),
             activation=activation,
             num_layers=1,  # Fixed to single layer
             dropout=dropout
