@@ -6,17 +6,10 @@ Each algorithm has a specific search space based on its architecture.
 """
 
 # Default search space for randomized neural network algorithms
-# Used for: RLSM, SRLSM, LSM
+# Used for: RLSM, SRLSM, LSM, FQI
 DEFAULT_SEARCH_SPACE = {
     'hidden_size': ('int', 6, 512),  # Number of neurons per layer
     'activation': ('categorical', ['relu', 'tanh', 'elu', 'leakyrelu', 'softplus', 'gelu']),  # Activation function
-}
-
-# RFQI/SRFQI search space includes nb_epochs (iterative training)
-RFQI_SEARCH_SPACE = {
-    'hidden_size': ('int', 6, 512),
-    'activation': ('categorical', ['relu', 'tanh', 'elu', 'leakyrelu', 'softplus', 'gelu']),
-    'nb_epochs': ('int', 10, 100),  # Number of training epochs
 }
 
 RLSM_SEARCH_SPACE = DEFAULT_SEARCH_SPACE.copy()
@@ -27,18 +20,13 @@ def get_search_space(algo_name):
     Get the appropriate search space for a given algorithm.
 
     Args:
-        algo_name: Algorithm name ('RLSM', 'SRLSM', 'RFQI', 'SRFQI', etc.)
+        algo_name: Algorithm name ('RLSM', 'SRLSM', 'LSM', 'FQI', etc.)
 
     Returns:
         dict: Search space specification
     """
-    if algo_name.upper() in ['RFQI', 'SRFQI']:
-        return RFQI_SEARCH_SPACE.copy()
-    elif algo_name.upper() in ['RLSM', 'SRLSM']:
-        return RLSM_SEARCH_SPACE.copy()
-    else:
-        # Default for other algorithms
-        return DEFAULT_SEARCH_SPACE.copy()
+    # All algorithms use the default search space
+    return DEFAULT_SEARCH_SPACE.copy()
 
 
 def suggest_hyperparameter(trial, name, spec):

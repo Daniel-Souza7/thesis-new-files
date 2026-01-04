@@ -19,7 +19,7 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
     Objective: Maximize (validation_price - variance_penalty * std_price)
 
     Args:
-        algo_class: Algorithm class (RLSM, SRLSM, RFQI, etc.)
+        algo_class: Algorithm class (RLSM, SRLSM, LSM, FQI, etc.)
         model_class: Stock model class (BlackScholes, Heston, etc.)
         hyperparams: Dictionary of hyperparameters to evaluate
         problem_config: Dictionary with problem specification
@@ -71,19 +71,6 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
             'dropout': hyperparams.get('dropout', 0.0),
         }
 
-        # Add algorithm-specific parameters
-        if 'num_layers' in hyperparams:
-            # RFQI/SRFQI supports multiple layers
-            algo_params['num_layers'] = hyperparams['num_layers']
-
-        if 'nb_epochs' in hyperparams:
-            # RFQI/SRFQI uses iterative training
-            algo_params['nb_epochs'] = hyperparams['nb_epochs']
-
-        if 'early_stopping_callback' in hyperparams:
-            # RFQI/SRFQI supports early stopping
-            algo_params['early_stopping_callback'] = hyperparams['early_stopping_callback']
-
         # Create algorithm instance
         algo = algo_class(**algo_params)
 
@@ -124,12 +111,12 @@ def evaluate_objective_with_early_stopping(algo_class, model_class, hyperparams,
                                              n_runs=1, fidelity_factor=4,
                                              early_stopping_config=None):
     """
-    Evaluate objective for algorithms that support early stopping (RFQI, SRFQI).
+    DEPRECATED: Early stopping is no longer used in hyperparameter optimization.
 
-    Integrates early stopping callback into the algorithm training loop.
+    This function is kept for backwards compatibility but simply calls evaluate_objective.
 
     Args:
-        algo_class: Algorithm class (RFQI, SRFQI, etc.)
+        algo_class: Algorithm class
         model_class: Stock model class
         hyperparams: Dictionary of hyperparameters
         problem_config: Problem specification
