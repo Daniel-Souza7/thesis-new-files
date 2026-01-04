@@ -2598,30 +2598,6 @@ rfqi_to_fqi9 = _DefaultConfig(
 '''
 Test config for hyperparameter optimization
 '''
-test_hyperopt = _DefaultConfig(
-    algos=['RLSM'],  # Start with RLSM only
-    stock_models=['BlackScholes'],
-    nb_stocks=[2],
-    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
-    nb_dates=[20],
-    maturities=[1.0],
-    payoffs=['MaxCall'],
-    spots=[100],
-    strikes=[100],
-    volatilities=[0.2],
-    correlation=[0],
-    drift=[0.06],
-    dividends=[0.0],
-    nb_runs=1,  # Single run for testing
-    enable_hyperopt=True,  # ENABLE HYPEROPT
-    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
-    hyperopt_timeout=120,  # 2 minutes for quick test
-    hyperopt_n_trials=None,  # Run until timeout
-    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
-    hyperopt_variance_penalty=0.1,
-    hyperopt_output_dir='hyperopt_results',
-    dtype = ['float64'],
-)
 
 
 test_hyperopt2 = _DefaultConfig(
@@ -2764,6 +2740,34 @@ srfqi_uo_basket_optimized2 = _DefaultConfig(
 test_hyperopt = _DefaultConfig(
     algos=['RLSM'],  # Start with RLSM only
     stock_models=['BlackScholes'],
+    nb_stocks=[100],
+    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[50],
+    maturities=[1.0],
+    payoffs=['MinPut'],
+    spots=[36],
+    strikes=[40],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.06],
+    dividends=[0.0],
+    nb_runs=100,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=40,  # 2 minutes for quick test
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True]
+)
+
+
+test_hyperopt_fqi = _DefaultConfig(
+    algos=['RFQI'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
     nb_stocks=[1],
     nb_paths=[50000],  # Will use 50000/4=12500 during optimization
     nb_dates=[50],
@@ -2776,7 +2780,7 @@ test_hyperopt = _DefaultConfig(
     barriers=[140],
     drift=[0.06],
     dividends=[0.0],
-    nb_runs=20,  # Single run for testing
+    nb_runs=1000000,  # Single run for testing
     enable_hyperopt=True,  # ENABLE HYPEROPT
     hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
     hyperopt_timeout=40,  # 2 minutes for quick test
@@ -2785,7 +2789,7 @@ test_hyperopt = _DefaultConfig(
     hyperopt_variance_penalty=0.1,
     hyperopt_output_dir='hyperopt_results',
     dtype = ['float32'],
-    use_payoff_as_input=[True]
+    use_payoff_as_input=[False]
 )
 
 test_hyperopt_results_r0 = _DefaultConfig(

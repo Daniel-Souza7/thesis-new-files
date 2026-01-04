@@ -151,7 +151,7 @@ class HyperparameterOptimizer:
                 hyperparams,
                 self.problem_config,
                 variance_penalty=self.variance_penalty,
-                n_runs=1,  # Single run per trial for speed
+                n_runs=3,  # Single run per trial for speed
                 fidelity_factor=self.fidelity_factor
             )
 

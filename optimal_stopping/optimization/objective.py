@@ -12,7 +12,7 @@ import time
 
 
 def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
-                        variance_penalty=0.1, n_runs=1, fidelity_factor=4):
+                        variance_penalty=0.1, n_runs=3, fidelity_factor=4):
     """
     Evaluate objective function for a given set of hyperparameters.
 
@@ -65,11 +65,11 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
             'payoff': problem_config['payoff'],
             'hidden_size': hyperparams.get('hidden_size', 50),
             'train_ITM_only': problem_config.get('train_ITM_only', True),
-            'use_payoff_as_input': problem_config.get('use_payoff_as_input', False),
+            'use_payoff_as_input': problem_config.get('use_payoff_as_input', True),
             'use_barrier_as_input': problem_config.get('use_barrier_as_input', False),
             'activation': hyperparams.get('activation', 'leakyrelu'),
             'dropout': hyperparams.get('dropout', 0.0),
-            'ridge_coeff': hyperparams.get('ridge_coeff', 1.0),  # ✅ FIXED: Now actually passed!
+            'ridge_coeff': hyperparams.get('ridge_coeff', 0.0),  # ✅ FIXED: Now actually passed!
         }
 
         # Add algorithm-specific parameters
