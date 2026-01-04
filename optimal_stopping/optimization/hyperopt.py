@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 from .search_spaces import get_search_space, suggest_hyperparameter
-from .objective import evaluate_objective, evaluate_objective_with_early_stopping
+from .objective import evaluate_objective
 
 
 class HyperparameterOptimizer:
@@ -134,7 +134,7 @@ class HyperparameterOptimizer:
                 hyperparams,
                 self.problem_config,
                 variance_penalty=self.variance_penalty,
-                n_runs=3,  # Single run per trial for speed
+                n_runs=5,  # Multiple runs for robust evaluation
                 fidelity_factor=self.fidelity_factor
             )
 

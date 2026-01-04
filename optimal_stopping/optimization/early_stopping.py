@@ -1,6 +1,10 @@
 """
-Early stopping callback for iterative algorithms (RFQI, SRFQI).
+DEPRECATED: Early stopping is no longer used in hyperparameter optimization.
 
+This module is kept for backwards compatibility only.
+Previously used for RFQI/SRFQI, which are no longer supported in hyperopt.
+
+Early stopping callback for iterative algorithms.
 Monitors validation performance and stops training when no improvement is observed
 for a specified number of epochs (patience).
 """

@@ -8,7 +8,7 @@ Each algorithm has a specific search space based on its architecture.
 # Default search space for randomized neural network algorithms
 # Used for: RLSM, SRLSM, LSM, FQI
 DEFAULT_SEARCH_SPACE = {
-    'hidden_size': ('int', 6, 512),  # Number of neurons per layer
+    'hidden_size': ('int', 2, 256),  # Number of neurons per layer (reduced range for efficiency)
     # Activation functions optimized for diverse payoffs:
     # - tanh: bounded, symmetric (classic choice)
     # - leakyrelu: unbounded, non-smooth, prevents dying neurons
