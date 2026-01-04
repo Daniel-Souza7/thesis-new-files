@@ -379,7 +379,8 @@ class SRFQI:
             )
 
             # Standard least squares: U * weights = V
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Use lstsq for numerical stability (handles singular/near-singular matrices)
+            weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
             # Early stopping integration
             if self.early_stopping_callback is not None:
@@ -520,7 +521,8 @@ class SRFQI:
             )
 
             # Standard least squares: U * weights = V
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Use lstsq for numerical stability (handles singular/near-singular matrices)
+            weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
             # Early stopping integration
             if self.early_stopping_callback is not None:

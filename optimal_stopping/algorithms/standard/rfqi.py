@@ -345,7 +345,8 @@ class RFQI:
             )
 
             # Standard least squares: U * weights = V
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Use lstsq for numerical stability (handles singular/near-singular matrices)
+            weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
             # Early stopping: check if we should stop training
             if self.early_stopping_callback is not None:
@@ -484,7 +485,8 @@ class RFQI:
                 axis=(0, 1)
             )
 
-            weights = np.linalg.solve(matrixU, vectorV)
+            # Use lstsq for numerical stability (handles singular/near-singular matrices)
+            weights = np.linalg.lstsq(matrixU, vectorV, rcond=None)[0]
 
         self.weights = weights
 
