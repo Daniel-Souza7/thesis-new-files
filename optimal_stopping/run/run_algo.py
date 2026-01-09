@@ -350,22 +350,15 @@ def _run_algo(
         paths_to_load = nb_paths
         actual_train_eval_split = train_eval_split
 
-        # Instantiate stock model
-    stock_model_obj = _STOCK_MODELS[stock_model_name](
-        drift=drift, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
-        correlation=correlation, nb_stocks=nb_stocks,
-        nb_paths=paths_to_load,  # <--- CHANGED THIS
-        nb_dates=nb_dates,
-        spot=spot, dividend=dividend,
-        maturity=maturity, user_data_file=user_data_file, dtype=dtype)
     # Instantiate stock model
     # Note: Don't pass 'name' - each model sets its own name internally
     stock_model_obj = _STOCK_MODELS[stock_model_name](
         drift=drift, volatility=volatility, mean=mean, speed=speed, hurst=hurst,
         correlation=correlation, nb_stocks=nb_stocks,
-        nb_paths=nb_paths, nb_dates=nb_dates,
+        nb_paths=paths_to_load, nb_dates=nb_dates,
         spot=spot, dividend=dividend,
-        maturity=maturity, user_data_file=user_data_file, dtype=dtype)
+        maturity=maturity, user_data_file=user_data_file, dtype=dtype,
+        start_index=start_index)
 
     # Capture actual parameter values used by the model for CSV output
     # (important when drift/volatility are None and model uses empirical/default values)
