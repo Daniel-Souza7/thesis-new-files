@@ -32,8 +32,8 @@ class RLSM:
     Uses randomized neural networks as basis functions for regression.
     """
 
-    def __init__(self, model, payoff, hidden_size=100, factors=(1., 1.),
-                 train_ITM_only=True, use_payoff_as_input=False,
+    def __init__(self, model, payoff, hidden_size=20, factors=(1., 1.),
+                 train_ITM_only=True, use_payoff_as_input=True,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
                  **kwargs):
         """

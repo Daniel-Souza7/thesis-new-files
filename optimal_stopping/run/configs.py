@@ -2739,24 +2739,24 @@ srfqi_uo_basket_optimized2 = _DefaultConfig(
 
 test_hyperopt = _DefaultConfig(
     algos=['RLSM'],  # Start with RLSM only
-    stock_models=['BlackScholes'],
-    nb_stocks=[100],
-    nb_paths=[50000],  # Will use 50000/4=12500 during optimization
-    nb_dates=[50],
+    stock_models=['BlackScholesStored1767972707864'],
+    nb_stocks=[7],
+    nb_paths=[400000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
     maturities=[1.0],
-    payoffs=['MinPut'],
-    spots=[36],
-    strikes=[40],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
     volatilities=[0.2],
     correlation=[0],
     barriers=[140],
-    drift=[0.06],
+    drift=[0.08],
     dividends=[0.0],
-    nb_runs=100,  # Single run for testing
+    nb_runs=10,  # Single run for testing
     enable_hyperopt=True,  # ENABLE HYPEROPT
     hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
-    hyperopt_timeout=40,  # 2 minutes for quick test
-    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=40,  # Run until timeout
     hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
     hyperopt_variance_penalty=0.1,
     hyperopt_output_dir='hyperopt_results',
@@ -2874,19 +2874,85 @@ test_hyperopt_results_ls = _DefaultConfig(
     #dtype = ['float64'],
     use_payoff_as_input=[True, False])
 
-test_hyperopt_results_lsm_brandnew = _DefaultConfig(
-    algos=['LSM'],  # Start with RLSM only
+test_hyperopt22 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
     stock_models=['BlackScholes'],
-    nb_stocks=[1],
-    nb_paths=[150000],  # Will use 50000/4=12500 during optimization
-    nb_dates=[50],
+    nb_stocks=[500],
+    nb_paths=[20000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
     maturities=[1.0],
-    payoffs=['Put'],
-    spots=[36, 40, 44],
-    strikes=[40],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
     volatilities=[0.2],
     correlation=[0],
-    drift=[0.06],
+    barriers=[140],
+    drift=[0.08],
     dividends=[0.0],
     nb_runs=10,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=3600,  # 2 minutes for quick test
+    hyperopt_n_trials=None,  # Run until timeout
+    hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True]
+)
+
+
+test_hyperopt_results_lsm_brandnew = _DefaultConfig(
+    algos=['RLSM', 'LSM', 'RFQI', 'DOS', 'FQI', 'NLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1767972707864'],
+    nb_stocks=[7,],
+    nb_paths=[100000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=10,  # Single run for testing,
+    dtype = ['float32'],
     )
+
+fast_test = _DefaultConfig(
+    algos=['EOP', 'LSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1767972707864'],
+    nb_stocks=[7,],
+    nb_paths=[100000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=10,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    )
+
+fast_test2 = _DefaultConfig(
+    algos=['EOP', 'LSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1767972707864'],
+    nb_stocks=[7,],
+    nb_paths=[100000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=10,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    )
+

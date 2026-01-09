@@ -2,14 +2,7 @@
 
 Usage:
     # Store RealData paths
-    python -m optimal_stopping.data.store_paths \
-        --stock_model=RealData \
-        --nb_stocks=50 \
-        --nb_paths=100000 \
-        --nb_dates=252 \
-        --maturity=1.0 \
-        --drift=None \
-        --volatilities=None
+    python -m optimal_stopping.data.store_paths --stock_model=BlackScholes --nb_stocks=7 --nb_paths=1000000 --nb_dates=100 --maturity=1.0 --drift=0.08 --volatility=0.2
 
     # Store RoughHeston paths (New Example)
     python -m optimal_stopping.data.store_paths \
