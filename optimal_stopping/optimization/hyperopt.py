@@ -42,13 +42,14 @@ class HyperparameterOptimizer:
         n_trials: Number of trials (None = run until timeout)
         variance_penalty: Weight for variance penalty in objective
         fidelity_factor: Reduction factor for nb_paths during optimization
+        nb_runs: Number of runs per trial for variance estimation (default: 10)
         output_dir: Directory for saving results
         study_name: Optional custom study name
     """
 
     def __init__(self, algo_name, algo_class, model_class, problem_config,
                  method='tpe', timeout=1200, n_trials=None,
-                 variance_penalty=0.1, fidelity_factor=4,
+                 variance_penalty=0.1, fidelity_factor=4, nb_runs=10,
                  output_dir='hyperopt_results', study_name=None):
 
         self.algo_name = algo_name
@@ -60,6 +61,7 @@ class HyperparameterOptimizer:
         self.n_trials = n_trials
         self.variance_penalty = variance_penalty
         self.fidelity_factor = fidelity_factor
+        self.nb_runs = nb_runs
 
         # Output directory setup
         self.output_dir = Path(output_dir)
@@ -151,7 +153,7 @@ class HyperparameterOptimizer:
                 hyperparams,
                 self.problem_config,
                 variance_penalty=self.variance_penalty,
-                n_runs=3,  # Single run per trial for speed
+                n_runs=self.nb_runs,  # Number of runs per trial (from config)
                 fidelity_factor=self.fidelity_factor
             )
 

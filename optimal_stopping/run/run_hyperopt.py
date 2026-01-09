@@ -160,6 +160,7 @@ def optimize_config(config_name, algo_override=None, output_dir_override=None):
     n_trials = config.hyperopt_n_trials
     variance_penalty = config.hyperopt_variance_penalty
     fidelity_factor = config.hyperopt_fidelity_factor
+    nb_runs = getattr(config, 'nb_runs', 10)  # Number of runs per trial (default: 10)
     output_dir = output_dir_override or config.hyperopt_output_dir
 
     print(f"\n{'='*80}")
@@ -186,6 +187,7 @@ def optimize_config(config_name, algo_override=None, output_dir_override=None):
         n_trials=n_trials,
         variance_penalty=variance_penalty,
         fidelity_factor=fidelity_factor,
+        nb_runs=nb_runs,
         output_dir=output_dir
     )
 

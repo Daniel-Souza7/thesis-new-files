@@ -43,11 +43,13 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
         dict: Metrics dictionary with detailed results
     """
     # Use reduced fidelity (fewer paths) for faster evaluation during optimization
-    nb_paths_opt = problem_config['nb_paths_full'] // fidelity_factor
+    # fidelity_factor applies to TRAINING paths, not total paths
+    nb_paths_train = problem_config['nb_paths_full'] // fidelity_factor
+    train_eval_split = problem_config.get('train_eval_split', 2)
+    nb_paths_total = nb_paths_train * train_eval_split  # Need train + eval paths
 
     # Build model with reduced paths
     model_params = problem_config['model_params'].copy()
-    model_params['nb_paths'] = nb_paths_opt
     model_params['nb_dates'] = problem_config['nb_dates']
     model_params['maturity'] = problem_config['maturity']
 
@@ -56,8 +58,20 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
     times = []
 
     for run in range(n_runs):
+        # For stored models, use different paths for each run (but same across trials)
+        # For simulated models, start_index is ignored (they generate fresh random paths)
+        if "Stored" in model_class.__name__ or model_class.__name__ == "RealData":
+            start_index = run * nb_paths_total  # Run 0: 0, Run 1: 200k, Run 2: 400k
+        else:
+            start_index = 0
+
+        # Create model params for this run
+        model_params_run = model_params.copy()
+        model_params_run['nb_paths'] = nb_paths_total
+        model_params_run['start_index'] = start_index
+
         # Create fresh model instance
-        model = model_class(**model_params)
+        model = model_class(**model_params_run)
 
         # Create algorithm instance with current hyperparameters
         algo_params = {
@@ -120,7 +134,7 @@ def evaluate_objective(algo_class, model_class, hyperparams, problem_config,
         'mean_time': mean_time,
         'objective': objective_value,
         'n_runs': n_runs,
-        'nb_paths_used': nb_paths_opt,
+        'nb_paths_used': nb_paths_train,  # Training paths (eval paths = same amount)
     }
 
     # Add epochs used for RFQI/SRFQI
