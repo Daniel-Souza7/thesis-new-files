@@ -13,6 +13,7 @@ from optuna.samplers import TPESampler, RandomSampler
 import numpy as np
 import os
 import json
+import csv
 import datetime
 import subprocess
 from pathlib import Path
@@ -302,10 +303,59 @@ class HyperparameterOptimizer:
 
             f.write("\n" + "="*80 + "\n")
 
+        # Save trial-by-trial results to CSV
+        self._save_trials_csv()
+
         print(f"Results saved to: {self.output_dir}")
         print(f"  - SQLite database: {self.study_name}.db")
         print(f"  - JSON summary: {self.study_name}_summary.json")
         print(f"  - Text summary: {self.study_name}_summary.txt")
+        print(f"  - Trial results CSV: {self.study_name}_trials.csv")
+
+    def _save_trials_csv(self):
+        """Save trial-by-trial results to CSV file."""
+        csv_path = self.output_dir / f"{self.study_name}_trials.csv"
+
+        with open(csv_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+
+            # Write header
+            header = ['trial_number', 'objective_value', 'mean_price', 'std_price',
+                     'mean_comp_time', 'diverged']
+
+            # Add hyperparameter columns
+            if len(self.study.trials) > 0:
+                param_names = sorted(self.study.trials[0].params.keys())
+                header.extend(param_names)
+
+            # Add epochs_used for RFQI/SRFQI if present
+            has_epochs = any('nb_epochs_used' in trial.user_attrs
+                           for trial in self.study.trials)
+            if has_epochs:
+                header.append('nb_epochs_used')
+
+            writer.writerow(header)
+
+            # Write data for each trial
+            for trial in self.study.trials:
+                row = [
+                    trial.number,
+                    trial.value if trial.value is not None else 'N/A',
+                    trial.user_attrs.get('mean_price', 'N/A'),
+                    trial.user_attrs.get('std_price', 'N/A'),
+                    trial.user_attrs.get('mean_time', 'N/A'),
+                    trial.user_attrs.get('diverged', False),
+                ]
+
+                # Add hyperparameter values
+                for param_name in param_names:
+                    row.append(trial.params.get(param_name, 'N/A'))
+
+                # Add epochs_used if present
+                if has_epochs:
+                    row.append(trial.user_attrs.get('nb_epochs_used', 'N/A'))
+
+                writer.writerow(row)
 
     def _generate_visualizations(self):
         """Generate Optuna visualization plots."""
