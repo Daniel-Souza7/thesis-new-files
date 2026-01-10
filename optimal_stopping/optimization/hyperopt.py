@@ -324,6 +324,7 @@ class HyperparameterOptimizer:
                      'mean_comp_time', 'diverged']
 
             # Add hyperparameter columns
+            param_names = []
             if len(self.study.trials) > 0:
                 param_names = sorted(self.study.trials[0].params.keys())
                 header.extend(param_names)
