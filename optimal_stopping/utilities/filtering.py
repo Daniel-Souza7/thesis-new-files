@@ -1,5 +1,7 @@
 """Module to filter DataFrame based on config."""
 from absl import flags
+from torch.ao.quantization.utils import activation_dtype
+
 from optimal_stopping.run import configs
 
 flags.DEFINE_bool(
@@ -36,7 +38,8 @@ FILTERS = [
     ("step_param3", "step_param3"),
     ("step_param4", "step_param4"),
     ("user_data_file", "user_data_file"),
-    ("dtype", "dtype")
+    ("dtype", "dtype"),
+    ("activation", "activation")
 ]
 
 FLAGS = flags.FLAGS

@@ -8,14 +8,14 @@ Each algorithm has a specific search space based on its architecture.
 # Default search space for randomized neural network algorithms
 # Used for: RLSM, SRLSM, LSM, FQI
 DEFAULT_SEARCH_SPACE = {
-    'hidden_size': ('int', 10, 60),  # Number of neurons per layer (reduced range for efficiency)
+    'hidden_size': ('int', 10, 10),  # Number of neurons per layer (reduced range for efficiency)
     # Activation functions optimized for diverse payoffs:
     # - tanh: bounded, symmetric (classic choice)
     # - leakyrelu: unbounded, non-smooth, prevents dying neurons
     # - elu: unbounded, smooth, negative saturation
     # - gelu: unbounded, smooth, state-of-the-art (Transformer-style)
     # Removed: relu (redundant with leakyrelu), softplus (redundant with relu/leakyrelu)
-    'activation': ('categorical', ['tanh', 'leakyrelu', 'elu', 'gelu']), #['leakyrelu']),
+    'activation': ('categorical', ['leakyrelu', 'tanh', 'leakyrelu', 'elu', 'gelu']),
 }
 
 RLSM_SEARCH_SPACE = DEFAULT_SEARCH_SPACE.copy()

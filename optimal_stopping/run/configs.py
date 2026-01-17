@@ -2739,9 +2739,9 @@ srfqi_uo_basket_optimized2 = _DefaultConfig(
 
 test_hyperopt = _DefaultConfig(
     algos=['RLSM'],  # Start with RLSM only
-    stock_models=['BlackScholesStored1767972707864'],
-    nb_stocks=[7],
-    nb_paths=[400000],  # Will use 50000/4=12500 during optimization
+    stock_models=['BlackScholesStored1768038945649'],
+    nb_stocks=[500],
+    nb_paths=[10000],  # Will use 50000/4=12500 during optimization
     nb_dates=[100],
     maturities=[1.0],
     payoffs=['BskCall'],
@@ -2752,11 +2752,11 @@ test_hyperopt = _DefaultConfig(
     barriers=[140],
     drift=[0.08],
     dividends=[0.0],
-    nb_runs=10,  # Single run for testing
+    nb_runs=4,  # Single run for testing
     enable_hyperopt=True,  # ENABLE HYPEROPT
     hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
     hyperopt_timeout=None,  # 2 minutes for quick test
-    hyperopt_n_trials=40,  # Run until timeout
+    hyperopt_n_trials=50,  # Run until timeout
     hyperopt_fidelity_factor=4,  # Use 1/4 of paths during optimization
     hyperopt_variance_penalty=0.1,
     hyperopt_output_dir='hyperopt_results',
@@ -2920,29 +2920,270 @@ test_hyperopt_results_lsm_brandnew = _DefaultConfig(
     dtype = ['float32'],
     )
 
-fast_test = _DefaultConfig(
-    algos=['EOP', 'LSM'],  # Start with RLSM only
-    stock_models=['BlackScholesStored1767972707864'],
-    nb_stocks=[7,],
-    nb_paths=[100000,],  # Will use 50000/4=12500 during optimization
-    nb_dates=[100],
-    maturities=[1.0],
-    payoffs=['BskCall'],
+fast_test40 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['RoughHestonStored1768508428856'],
+    nb_stocks=[5],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['MaxCall'],
     spots=[100],
     strikes=[100],
     volatilities=[0.2],
-    correlation=[0],
-    drift=[0.08],
+    correlation=[-0.7],
+    barriers=[1400],
+    drift=[0.02],
     dividends=[0.0],
-    nb_runs=10,  # should get different results in each run for each algo
-    dtype = ['float32',],
+    nb_runs=1,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=5,  # Run until timeout
+    hyperopt_fidelity_factor=1,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    mean=[0.3],
+    speed=[0.15],
+)
+
+
+fast_test41 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['RoughHestonStored1768508428856'],
+    nb_stocks=[5,],
+    nb_paths=[1000000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[-0.7],
+    drift=[0.02],
+    hidden_size=[3,20],
+    activation=['elu', 'leakyrelu'],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float64',],
+    use_payoff_as_input=[True],
+    mean=[0.3],
+    speed=[0.15],
     )
 
-fast_test2 = _DefaultConfig(
-    algos=['EOP', 'LSM'],  # Start with RLSM only
+fast_test42 = _DefaultConfig(
+    algos=['RLSM', 'EOP'],  # Start with RLSM only
+    stock_models=['RealDataStored1768557043630'],
+    nb_stocks=[25,],
+    nb_paths=[200000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['MaxCall'],
+    spots=[100],
+    strikes=[100],
+    drift=[0.02],
+    hidden_size=[10, 20],
+    activation=['elu', 'leakyrelu'],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float64',],
+    use_payoff_as_input=[True],
+    )
+
+
+
+fast_test43 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768557530815'],
+    nb_stocks=[250,],
+    nb_paths=[20000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[-0.7],
+    drift=[0.02],
+    hidden_size=[20, 80],
+    activation=['elu', 'leakyrelu'],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float64',],
+    use_payoff_as_input=[True],
+    )
+
+
+fast_test44 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
     stock_models=['BlackScholesStored1767972707864'],
     nb_stocks=[7,],
-    nb_paths=[100000,],  # Will use 50000/4=12500 during optimization
+    nb_paths=[1000000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1],
+    payoffs=['BskPut', 'GeoPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    drift=[0.08],
+    hidden_size=[14],
+    activation=['leakyrelu'],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32', 'float64'],
+    use_payoff_as_input=[True],
+    )
+
+
+fast_test45 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768038945649'],
+    nb_stocks=[500,],
+    nb_paths=[10000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1],
+    payoffs=['BskPut', 'GeoPut', 'MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    drift=[0.08],
+    hidden_size=[600],
+    activation=['leakyrelu'],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32', 'float64'],
+    use_payoff_as_input=[True],
+    )
+
+fast_test46 = _DefaultConfig(
+    algos=['SRLSM'],  # Start with RLSM only
+    stock_models=['RoughHestonStored1768508428856'],
+    nb_stocks=[5,],
+    spots=[90, 100, 110],
+    nb_paths=[1000000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['UO-BskCall'],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[-0.7],
+    drift=[0.02],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    mean=[0.3],
+    speed=[0.15],
+    hidden_size = [10],
+    barriers=[10, 80, 90, 100, 110, 120, 10000],
+    )
+
+fast_test47 = _DefaultConfig(
+    algos=['SRLSM'],  # Start with RLSM only
+    stock_models=['RealDataStored1768557043630'],
+    nb_stocks=[25,],
+    nb_paths=[200000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['DO-MaxCall'],
+    strikes=[100],
+    drift=[0.02],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    hidden_size=[65],
+    barriers=[10, 80, 90, 100, 110, 120, 10000],
+    spots=[90, 100, 110],
+    )
+fast_test48 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['RoughHestonStored1768508428856'],
+    nb_stocks=[5,],
+    spots=[90, 100, 110],
+    nb_paths=[1000000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['BskCall'],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[-0.7],
+    drift=[0.02],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    mean=[0.3],
+    speed=[0.15],
+    hidden_size = [10],
+    )
+
+fast_test49 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['RealDataStored1768557043630'],
+    nb_stocks=[25,],
+    nb_paths=[200000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[0.5],
+    payoffs=['MaxCall'],
+    strikes=[100],
+    drift=[0.02],
+    dividends=[0.0],
+    nb_runs=1,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    hidden_size=[65],
+    spots=[90, 100, 110],
+    )
+
+fast_test3000 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[2,],
+    nb_paths=[5000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[5],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.02],
+    hidden_size=[5],
+    dividends=[0.0],
+    nb_runs=1000,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    )
+
+fast_test3001 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[50,],
+    nb_paths=[200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 102400, 204800],  # Will use 50000/4=12500 during optimization
+    nb_dates=[5],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.02],
+    hidden_size=[5],
+    dividends=[0.0],
+    nb_runs=1000,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True],
+    )
+
+
+fast_test2 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768038945649'],
+    nb_stocks=[500,],
+    nb_paths=[9000,],  # Will use 50000/4=12500 during optimization
     nb_dates=[100],
     maturities=[1.0],
     payoffs=['BskCall'],
@@ -2952,7 +3193,96 @@ fast_test2 = _DefaultConfig(
     correlation=[0],
     drift=[0.08],
     dividends=[0.0],
-    nb_runs=10,  # should get different results in each run for each algo
+    hidden_size=[600],
+    nb_runs=1,  # should get different results in each run for each algo
     dtype = ['float32',],
+    use_payoff_as_input=[True]
+    )
+
+
+fast_test3 = _DefaultConfig(
+    algos=['EOP'],  # Start with RLSM only
+    stock_models=['BlackScholes'],
+    nb_stocks=[500,],
+    nb_paths=[10000,],  # Will use 50000/4=12500 during optimization
+    nb_dates=[100],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=5,  # should get different results in each run for each algo
+    dtype = ['float32',],
+    use_payoff_as_input=[True]
+    )
+
+
+fast_test30 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768333421555'],
+    nb_stocks=[50],
+    nb_paths=[100000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[92, 100, 120],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    use_payoff_as_input=[True, False],
+    hidden_size=[5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    dtype=['float32'],
+    )
+
+fast_test31 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768333421555'],
+    nb_stocks=[50],
+    nb_paths=[100000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[92, 100, 120],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    use_payoff_as_input=[True],
+    use_barrier_as_input=[True, False],
+    hidden_size=[5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    dtype=['float32'],
+    )
+
+
+fast_test32 = _DefaultConfig(
+    algos=['RLSM'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768333421555'],
+    nb_stocks=[50],
+    nb_paths=[100000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[20],
+    maturities=[1.0],
+    payoffs=['BskCall'],
+    spots=[92, 100, 120],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[140],
+    drift=[0.08],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    use_payoff_as_input=[True],
+    use_barrier_as_input=[False],
+    hidden_size=[5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    dtype=['float32', 'float64'],
     )
 

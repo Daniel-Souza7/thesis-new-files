@@ -16,7 +16,7 @@ INDEX = [
     "nb_epochs", "hidden_size", "factors", "ridge_coeff",
     "use_payoff_as_input", "use_barrier_as_input", "train_ITM_only", "barriers_up", "barriers_down",
     "k", "weights", "step_param1", "step_param2", "step_param3", "step_param4",
-    "user_data_file", "dtype"
+    "user_data_file", "dtype", "activation"
 ]
 
 old_new_algo_dict = {

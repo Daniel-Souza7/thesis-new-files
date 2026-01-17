@@ -31,7 +31,7 @@ from optimal_stopping.algorithms.path_dependent.rrlsm import RRLSM
 
 # BENCHMARK ALGORITHMS - Simple implementations for comparison
 from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer, LeastSquarePricerDeg1, LeastSquarePricerLaguerre
-from optimal_stopping.algorithms.standard.fqi import FQIFast, FQIFastDeg1, FQIFastLaguerre
+from optimal_stopping.algorithms.standard.fqi import FQIFast
 from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
 from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
 from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
@@ -152,8 +152,6 @@ _ALGOS = {
     "LSMLaguerre": LeastSquarePricerLaguerre,
 
     "FQI": FQIFast,
-    "FQIDeg1": FQIFastDeg1,
-    "FQILaguerre": FQIFastLaguerre,
 
     "NLSM": NeuralLSM,
     "DOS": DeepOptimalStopping,
