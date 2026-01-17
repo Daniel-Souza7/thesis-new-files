@@ -25,6 +25,7 @@ from optimal_stopping.payoffs import get_payoff_class, _PAYOFF_REGISTRY
 # NEW IMPORTS - Restructured algorithms
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.standard.rt import RT
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
 from optimal_stopping.algorithms.path_dependent.rrlsm import RRLSM
@@ -134,6 +135,7 @@ _ALGOS = {
     "SRLSM": SRLSM,  # Path-dependent options (barriers, lookbacks)
     "RFQI": RFQI,  # Standard options
     "SRFQI": SRFQI,  # Path-dependent options (barriers, lookbacks)
+    "RT": RT,  # Universal (works with both path-dependent and non-path-dependent)
     "RRLSM": RRLSM,
     "ZAPQ": ZapQ,
     "RZAPQ": RZapQ,
@@ -403,6 +405,20 @@ def _run_algo(
                 use_payoff_as_input=use_payoff_as_input,
                 use_barrier_as_input=use_barrier_as_input,
                 nb_epochs=nb_epochs if algo == "RFQI" else None
+            )
+
+        elif algo == "RT":
+            # RT is universal - works with both path-dependent and non-path-dependent
+            pricer = _ALGOS[algo](
+                stock_model_obj, payoff_obj,
+                hidden_size=hidden_size,
+                factors=factors,
+                ridge_coeff=ridge_coeff,
+                activation=activation,
+                dropout=dropout,
+                train_ITM_only=train_ITM_only,
+                use_payoff_as_input=use_payoff_as_input,
+                use_barrier_as_input=use_barrier_as_input
             )
 
         elif algo in ["SRLSM", "SRFQI"]:

@@ -29,6 +29,7 @@ from optimal_stopping.data.stock_model import BlackScholes
 from optimal_stopping.payoffs import get_payoff_class
 from optimal_stopping.algorithms.standard.rlsm import RLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
+from optimal_stopping.algorithms.standard.rt import RT
 from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer
 from optimal_stopping.algorithms.standard.fqi import FQIFast
 from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
@@ -53,6 +54,7 @@ except:
 _ALGOS = {
     "RLSM": RLSM,
     "SRLSM": SRLSM,
+    "RT": RT,
     "RFQI": RFQI,
     "SRFQI": SRFQI,
     "LSM": LeastSquaresPricer,

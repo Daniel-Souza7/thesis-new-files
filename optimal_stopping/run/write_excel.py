@@ -34,7 +34,7 @@ flags.DEFINE_string("telegram_token", "8239319342:AAGIIcoDaxJ1uauHbWfdByF4yzNYdQ
 flags.DEFINE_string("telegram_chat_id", "798647521", "Telegram chat ID")
 flags.DEFINE_bool("send_telegram", True, "Whether to send Excel via Telegram")
 
-ALGOS_ORDER = ["RLSM", "SRLSM", "RFQI", "SRFQI", "LSM", "DOS", "NLSM", "FQI"]
+ALGOS_ORDER = ["RLSM", "SRLSM", "RT", "RFQI", "SRFQI", "LSM", "DOS", "NLSM", "FQI"]
 
 
 def _get_output_dir():
