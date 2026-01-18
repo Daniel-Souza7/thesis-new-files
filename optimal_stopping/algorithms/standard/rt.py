@@ -155,12 +155,31 @@ class RT:
 
         # Compute payoffs for all paths (for use_payoff_as_input feature)
         if self.use_payoff_as_input:
-            # Compute payoffs at all time steps
             nb_paths, nb_stocks, nb_dates_plus_1 = stock_paths.shape
             payoffs = np.zeros((nb_paths, nb_dates_plus_1))
 
-            for t in range(nb_dates_plus_1):
-                payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
+            if self.is_path_dependent:
+                # For path-dependent payoffs (barriers, lookbacks), try to use base payoff
+                # at intermediate timesteps since full barrier logic requires complete path
+                if hasattr(self.payoff, 'base_payoff'):
+                    # Barrier wrapper - use base payoff for intermediate timesteps
+                    base_payoff = self.payoff.base_payoff
+                    for t in range(nb_dates_plus_1):
+                        if base_payoff.is_path_dependent:
+                            # Base is also path-dependent (e.g., Lookback with barrier)
+                            payoffs[:, t] = base_payoff.eval(stock_paths[:, :nb_stocks, :t + 1])
+                        else:
+                            # Base is standard (e.g., BasketCall with barrier)
+                            payoffs[:, t] = base_payoff.eval(stock_paths[:, :nb_stocks, t])
+                else:
+                    # Pure path-dependent (e.g., Lookback without barrier)
+                    # Evaluate with partial path history
+                    for t in range(nb_dates_plus_1):
+                        payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
+            else:
+                # Non-path-dependent: evaluate normally at each timestep
+                for t in range(nb_dates_plus_1):
+                    payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
 
             # Add payoff as extra feature
             stock_paths = np.concatenate(
@@ -270,12 +289,31 @@ class RT:
 
         # Compute payoffs for all paths (for use_payoff_as_input feature)
         if self.use_payoff_as_input:
-            # Compute payoffs at all time steps
             nb_paths, nb_stocks, nb_dates_plus_1 = stock_paths.shape
             payoffs = np.zeros((nb_paths, nb_dates_plus_1))
 
-            for t in range(nb_dates_plus_1):
-                payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
+            if self.is_path_dependent:
+                # For path-dependent payoffs (barriers, lookbacks), try to use base payoff
+                # at intermediate timesteps since full barrier logic requires complete path
+                if hasattr(self.payoff, 'base_payoff'):
+                    # Barrier wrapper - use base payoff for intermediate timesteps
+                    base_payoff = self.payoff.base_payoff
+                    for t in range(nb_dates_plus_1):
+                        if base_payoff.is_path_dependent:
+                            # Base is also path-dependent (e.g., Lookback with barrier)
+                            payoffs[:, t] = base_payoff.eval(stock_paths[:, :nb_stocks, :t + 1])
+                        else:
+                            # Base is standard (e.g., BasketCall with barrier)
+                            payoffs[:, t] = base_payoff.eval(stock_paths[:, :nb_stocks, t])
+                else:
+                    # Pure path-dependent (e.g., Lookback without barrier)
+                    # Evaluate with partial path history
+                    for t in range(nb_dates_plus_1):
+                        payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
+            else:
+                # Non-path-dependent: evaluate normally at each timestep
+                for t in range(nb_dates_plus_1):
+                    payoffs[:, t] = self._eval_payoff(stock_paths, date=t)
 
             # Add payoff as extra feature
             stock_paths = np.concatenate(
