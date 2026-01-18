@@ -1,0 +1,655 @@
+\chapter*{Appendix X: Software Manual}
+\label{att:setup_guide}
+\addcontentsline{toc}{chapter}{Appendix X: Software Manual}
+
+\section*{Overview}
+
+This appendix provides comprehensive technical documentation for the \texttt{optimal\_stopping} software framework introduced in Chapter~\ref{ch:software_implementation}. It is structured as a practical manual covering installation procedures, architectural details, usage workflows, and extension guidelines. The complete repository is available at:
+
+\begin{center}
+\url{https://github.com/Daniel-Souza7/thesis-new-files}
+\end{center}
+
+\section*{System Requirements and Installation}
+
+\subsection*{Minimum Specifications}
+
+\begin{itemize}
+    \item \textbf{Python:} Version 3.9 or higher
+    \item \textbf{Memory:} 8 GB RAM minimum (16 GB recommended for $d \geq 50$)
+    \item \textbf{CPU:} Multi-core processor (parallelization scales linearly with core count)
+    \item \textbf{Storage:} 5 GB free disk space
+    \item \textbf{Operating System:} Linux (recommended), macOS, or Windows
+\end{itemize}
+
+\noindent Linux is preferred for large-scale experiments due to superior multiprocessing performance and lower memory overhead.
+
+\subsection*{Installation Procedure}
+
+\textbf{Step 1: Clone the Repository}
+
+\begin{verbatim}
+git clone https://github.com/Daniel-Souza7/thesis-new-files.git
+cd thesis-new-files
+\end{verbatim}
+
+\textbf{Step 2: Create Virtual Environment}
+
+Using a virtual environment prevents dependency conflicts:
+
+\begin{verbatim}
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+\end{verbatim}
+
+\textbf{Step 3: Install Dependencies}
+
+\begin{verbatim}
+pip install --upgrade pip
+pip install -r requirements.txt
+\end{verbatim}
+
+This installs approximately 40 packages including NumPy, PyTorch, Optuna, Matplotlib, Pandas, and scikit-learn. Installation typically requires 5--10 minutes.
+
+\textbf{Step 4: Verify Installation}
+
+\begin{verbatim}
+python -c "import optimal_stopping; print('Success!')"
+\end{verbatim}
+
+If this executes without errors, the environment is ready.
+
+\section*{Architectural Details}
+
+\subsection*{Module Organization}
+
+The package structure reflects the mathematical decomposition of the American option pricing problem:
+
+\begin{itemize}
+    \item \textbf{\texttt{algorithms/}}: Nine algorithm categories implementing the methods from Chapter~\ref{ch:methods}. Standard algorithms (RLSM, RFQI, LSM, FQI, NLSM, DOS, EOP) handle Markovian problems, while path-dependent variants (SRLSM, SRFQI, RRLSM) accommodate full trajectory histories. Each inherits from a common base class ensuring consistent interfaces.
+
+    \item \textbf{\texttt{data/}}: Implements seven stochastic models: BlackScholes, Heston, FractionalBrownianMotion, RoughHeston, RealData (Yahoo Finance), UserData (custom CSV bootstrap), and StoredModel (HDF5 pre-generated paths). Includes path storage and retrieval functionality.
+
+    \item \textbf{\texttt{payoffs/}}: Houses the 360-option library (30 base payoffs $\times$ 12 barrier conditions). Automated registration system enables new payoffs via simple class inheritance.
+
+    \item \textbf{\texttt{optimization/}}: Bayesian hyperparameter optimization via Optuna with multi-fidelity search, automatic visualization, and result logging.
+
+    \item \textbf{\texttt{run/}}: Execution orchestration including parallelized algorithm runs (\texttt{run\_algo.py}), convergence analysis (\texttt{plot\_convergence.py}), Excel export (\texttt{write\_excel.py}), video generation (\texttt{create\_video.py}), and configuration system (\texttt{configs.py}).
+\end{itemize}
+
+\subsection*{Key Design Patterns}
+
+\textbf{Configuration-Driven Experimentation:} All parameters are specified declaratively in \texttt{\_DefaultConfig} objects. Lists enable parameter sweeps (e.g., \texttt{nb\_paths=[10000, 50000, 100000]} runs three experiments). Every result traces to a configuration snapshot for reproducibility.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Automated Registration:} Payoffs and algorithms self-register upon class definition using \texttt{\_\_init\_subclass\_\_}. Defining \texttt{class CustomPayoff(Payoff)} automatically makes it available as \texttt{'CustomPayoff'} in configurations.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Separation of State from Logic:} Path generation, payoff evaluation, continuation value regression, and exercise decisions are strictly decoupled. Pre-generated paths can price multiple payoffs or test different algorithms without regeneration.
+
+\section*{Quick Start Guide}
+
+\subsection*{Running Your First Experiment}
+
+The simplest workflow prices an American put option using RLSM. Understanding configurations is essential:
+
+\subsubsection*{Configuration Anatomy}
+
+File: \texttt{optimal\_stopping/run/configs.py}
+
+\begin{verbatim}
+from optimal_stopping.run.configs import _DefaultConfig
+
+simple_test = _DefaultConfig(
+    algos=['RLSM'],                    # Algorithms to run
+    stock_models=['BlackScholes'],     # Stochastic process
+    payoffs=['Put'],                   # Option structure
+    nb_stocks=[1],                     # Dimensionality
+    nb_paths=[10000],                  # Monte Carlo budget
+    nb_dates=[50],                     # Time discretization
+    maturity=[1.0],                    # Years to expiry
+    spot=[100],                        # Initial stock price
+    strike=[100],                      # Strike price
+    drift=[0.05],                      # Risk-free rate
+    volatility=[0.2],                  # Volatility
+    hidden_size=[100],                 # RNN neurons
+)
+\end{verbatim}
+
+\subsubsection*{Execution}
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo --config simple_test
+\end{verbatim}
+
+Progress updates print to console. Results write to timestamped CSV files.
+
+\subsubsection*{Result Interpretation}
+
+The output CSV contains:
+
+\begin{itemize}
+    \item \texttt{algorithm}: Method identifier (RLSM, LSM, etc.)
+    \item \texttt{price}: Estimated option value
+    \item \texttt{std}: Standard error across MC replications
+    \item \texttt{time}: Execution time (seconds)
+    \item \texttt{config\_*}: All configuration parameters for traceability
+\end{itemize}
+
+\section*{Working with the Payoff Library}
+
+\subsection*{Listing Available Payoffs}
+
+\begin{verbatim}
+python -c "from optimal_stopping.payoffs import list_payoffs; \
+           print('\n'.join(list_payoffs()))"
+\end{verbatim}
+
+This displays all 360 structures including:
+
+\begin{itemize}
+    \item \textbf{Vanilla:} Call, Put
+    \item \textbf{Basket:} BasketCall, BasketPut, GeometricCall, GeometricPut
+    \item \textbf{Rainbow:} MaxCall, MinPut
+    \item \textbf{Dispersion:} DispersionCall, MaxDispersionPut
+    \item \textbf{Rank:} BestOfKCall, WorstOfKPut, RankWeightedBasketCall
+    \item \textbf{Asian:} AsianFixedStrikeCall, AsianFloatingStrikePut
+    \item \textbf{Lookback:} LookbackFixedCall, LookbackFloatPut
+    \item \textbf{Range:} RangeCall, RangePut
+    \item \textbf{Barrier Variants:} Append \texttt{\_UO} (up-out), \texttt{\_DI} (down-in), \texttt{\_UODO} (up-out-down-out), \texttt{\_PTB} (partial time barrier), etc.
+\end{itemize}
+
+\subsection*{Using Payoffs in Configurations}
+
+\begin{verbatim}
+convergence_study = _DefaultConfig(
+    algos=['RLSM', 'LSM'],
+    payoffs=['MaxCall', 'AsianFixedStrikeCall_DI', 'BasketPut_UO'],
+    # ... other parameters
+)
+\end{verbatim}
+
+\subsection*{Mathematical Definitions}
+
+Complete specifications are in \texttt{payoffs\_index.tex}. Example excerpts:
+
+\textbf{MaxCall:} $g(\mathbf{S}_t) = \left(\max_{i=1}^d S^i_t - K\right)^+$
+
+\textbf{AsianFixedStrikeCall:} $g(\mathbf{S}_t) = \left(\frac{1}{t}\sum_{k=1}^t S_{\tau_k} - K\right)^+$
+
+\textbf{LookbackFloatPut:} $g(\mathbf{S}_t) = \left(\max_{\tau \le t} S_\tau - S_t\right)^+$
+
+\textbf{BasketCall\_UO:} $g(\mathbf{S}_t) = \left(\frac{1}{d}\sum_{i=1}^d S^i_t - K\right)^+ \cdot \mathbbm{1}_{\{\max_{\tau \le t} \bar{S}_\tau < B_{\text{up}}\}}$
+
+\section*{Path Storage System}
+
+Expensive models (Rough Heston, fBM) benefit from pre-generation and reuse via HDF5 storage.
+
+\subsection*{Generating and Storing Paths}
+
+\begin{verbatim}
+from optimal_stopping.data.stock_model import RoughHeston
+from optimal_stopping.data.stored_paths import store_paths
+
+model = RoughHeston(
+    drift=0.05, volatility=0.2, hurst=0.1,
+    nb_stocks=5, nb_dates=100, maturity=1.0
+)
+paths = model.generate_paths(nb_paths=100000)
+
+store_paths(
+    paths,
+    name='rough_heston_5d_100k',
+    metadata={'model': 'RoughHeston', 'hurst': 0.1, 'kappa': 0.15}
+)
+\end{verbatim}
+
+Paths save to \texttt{optimal\_stopping/data/stored\_paths/} as compressed HDF5.
+
+\subsection*{Using Stored Paths}
+
+\begin{verbatim}
+stored_experiment = _DefaultConfig(
+    algos=['RLSM'],
+    stock_models=['Stored'],
+    stored_path_name=['rough_heston_5d_100k'],
+    payoffs=['BasketPut'],
+    # ... other parameters
+)
+\end{verbatim}
+
+The framework automatically loads from storage, bypassing regeneration.
+
+\subsection*{Path Management}
+
+\textbf{List stored paths:}
+\begin{verbatim}
+python -m optimal_stopping.data.stored_paths list
+\end{verbatim}
+
+\textbf{Delete a path set:}
+\begin{verbatim}
+python -m optimal_stopping.data.stored_paths delete rough_heston_5d_100k
+\end{verbatim}
+
+\section*{Convergence Analysis Workflow}
+
+To replicate plots like those in Section~\ref{subsec:convergence_analysis}:
+
+\subsection*{Define Convergence Study}
+
+\begin{verbatim}
+convergence_study = _DefaultConfig(
+    algos=['RLSM', 'LSM'],
+    stock_models=['BlackScholes'],
+    payoffs=['Put'],
+    nb_paths=[5000, 10000, 20000, 50000, 100000],  # Sweep
+    nb_stocks=[1],
+    nb_dates=[50],
+    spot=[100],
+    strike=[100],
+    drift=[0.05],
+    volatility=[0.2],
+    hidden_size=[100],
+)
+\end{verbatim}
+
+\subsection*{Run with Replications}
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo \
+       --config convergence_study \
+       --nb_runs 10
+\end{verbatim}
+
+Performs 10 independent runs per configuration for statistical confidence intervals.
+
+\subsection*{Generate Convergence Plot}
+
+\begin{verbatim}
+python -m optimal_stopping.run.plot_convergence \
+       --input results_convergence_study.csv \
+       --x_param nb_paths \
+       --y_param price \
+       --output convergence_plot.pdf
+\end{verbatim}
+
+The plot shows price estimates vs.\ path count with 95\% confidence intervals using $t$-distribution quantiles (appropriate for $n < 30$ samples).
+
+\section*{Results Aggregation and Excel Export}
+
+For large benchmarks:
+
+\begin{verbatim}
+python -m optimal_stopping.run.write_excel \
+       --input results_benchmark.csv \
+       --output benchmark_summary.xlsx
+\end{verbatim}
+
+Computes means, standard deviations, formats times (h:m:s), and organizes sheets by algorithm.
+
+\section*{Hyperparameter Optimization}
+
+While dimension-adaptive heuristics (Equation~\eqref{eq:neuron_heuristic}) provide robust defaults, automatic tuning is available:
+
+\subsection*{Enable Optimization in Configuration}
+
+\begin{verbatim}
+hyperopt_config = _DefaultConfig(
+    algos=['RLSM'],
+    payoffs=['BasketCall'],
+    nb_stocks=[10],
+    nb_paths=[50000],
+    enable_hyperopt=True,
+    hyperopt_method='tpe',              # Bayesian optimization
+    hyperopt_timeout=1200,              # 20 minutes
+    hyperopt_n_trials=50,               # Max evaluations
+    hyperopt_fidelity_factor=4,         # Use 12500 paths during search
+)
+\end{verbatim}
+
+\subsection*{Run Optimization}
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_hyperopt --config hyperopt_config
+\end{verbatim}
+
+\subsection*{Output Files}
+
+Results save to \texttt{hyperopt\_results/}:
+
+\begin{itemize}
+    \item \texttt{study.db}: SQLite database with full Optuna study
+    \item \texttt{summary.json}: Best hyperparameters (machine-readable)
+    \item \texttt{summary.txt}: Human-readable report
+    \item \texttt{optimization\_history.png}: Convergence plot
+    \item \texttt{param\_importance.png}: Feature importance
+    \item \texttt{slice\_plot.png}: Parameter effects
+\end{itemize}
+
+Consult \texttt{optimal\_stopping/optimization/README.md} for advanced usage.
+
+\section*{Interactive Game Setup}
+
+The game (Chapter~\ref{sec:pricing_game}) is a standalone application in \texttt{thesis-game/}.
+
+\subsection*{Backend Setup}
+
+\textbf{Navigate and install:}
+\begin{verbatim}
+cd thesis-game/backend
+pip install -r requirements.txt
+\end{verbatim}
+
+\textbf{Train models (required before first use):}
+\begin{verbatim}
+python train_models.py
+\end{verbatim}
+
+Generates 50,000 training paths and 500 test paths for both game modes (Up-and-Out Min Put, Double Knock-Out Lookback Put). Training takes ~5 minutes.
+
+\textbf{Start API server:}
+\begin{verbatim}
+python api.py
+\end{verbatim}
+
+Backend runs on \texttt{http://localhost:5000}.
+
+\subsection*{Frontend Setup}
+
+\textbf{Open new terminal:}
+\begin{verbatim}
+cd thesis-game/frontend
+npm install
+npm run dev
+\end{verbatim}
+
+Game opens at \texttt{http://localhost:3000}. Select a mode and compete against SRLSM by making hold/exercise decisions.
+
+\subsection*{Cloud Deployment}
+
+For Vercel deployment:
+\begin{verbatim}
+npm i -g vercel
+vercel
+\end{verbatim}
+
+Ensure trained models are committed to git (Vercel build time limits prevent real-time training). See \texttt{thesis-game/README.md} for detailed deployment configurations.
+
+\section*{Reproducing Thesis Results}
+
+Every figure and table in Chapter~\ref{ch:results} can be reproduced:
+
+\begin{enumerate}
+    \item Identify configuration name from figure caption or results text
+    \item Check out corresponding git commit (if specified in metadata)
+    \item Run: \texttt{python -m optimal\_stopping.run.run\_algo --config <name>}
+    \item Generate visualization using appropriate plotting script
+\end{enumerate}
+
+\textbf{Example:} To reproduce Figure~\ref{fig:dual_comparison}:
+
+\begin{verbatim}
+git checkout <commit-hash>
+python -m optimal_stopping.run.run_algo --config benchmark_basket_call
+python -m optimal_stopping.run.plot_dual_comparison \
+       --input results_benchmark_basket_call.csv \
+       --output dual_comparison.pdf
+\end{verbatim}
+
+Pre-generated path datasets are publicly available at:
+\begin{center}
+\href{https://drive.google.com/drive/folders/1QVHAzgOZjcE3zN3rTba81LQ-GmGk5wWx}{Google Drive Link}
+\end{center}
+
+Download and place in \texttt{optimal\_stopping/data/stored\_paths/} to eliminate regeneration overhead.
+
+\section*{Common Issues and Troubleshooting}
+
+\subsection*{Out of Memory Errors}
+
+\textbf{Symptoms:} \texttt{MemoryError} or system freezes during path generation or algorithm training.
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Reduce \texttt{nb\_paths} or \texttt{nb\_dates}
+    \item Verify \texttt{dtype='float32'} (default, uses 50\% less memory than float64)
+    \item Use path storage to avoid holding multiple path sets simultaneously
+    \item For very large dimensions ($d > 100$), reduce \texttt{hidden\_size}
+\end{itemize}
+
+\subsection*{Slow Execution}
+
+\textbf{Symptoms:} Experiments taking hours when minutes are expected.
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Enable multiprocessing: \texttt{--n\_jobs -1} (uses all CPU cores)
+    \item Use stored paths instead of regenerating per run
+    \item For hyperparameter optimization, increase \texttt{hyperopt\_fidelity\_factor} to reduce trial cost
+    \item Verify no background processes are consuming CPU
+\end{itemize}
+
+\subsection*{Import Errors}
+
+\textbf{Symptoms:} \texttt{ModuleNotFoundError: No module named 'optimal\_stopping'}
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Ensure you are in repository root: \texttt{pwd} should show \texttt{.../thesis-new-files}
+    \item Activate virtual environment: \texttt{source venv/bin/activate}
+    \item Install in editable mode: \texttt{pip install -e .}
+\end{itemize}
+
+\subsection*{Visualization Issues}
+
+\textbf{Symptoms:} Plots not rendering, blank figures, or save errors.
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Install missing dependencies: \texttt{pip install matplotlib kaleido plotly}
+    \item For headless servers, set backend: \texttt{export MPLBACKEND=Agg}
+    \item Check write permissions in output directory
+\end{itemize}
+
+\subsection*{Hyperopt Divergence}
+
+\textbf{Symptoms:} Trials producing prices exceeding \$1,000,000 or negative values.
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Enable divergence filtering (automatic in recent versions)
+    \item Reduce \texttt{hyperopt\_fidelity\_factor} (use more paths during search)
+    \item Increase \texttt{hyperopt\_n\_trials} for better exploration
+    \item Check that payoff function is correctly defined
+\end{itemize}
+
+\section*{Extending the Codebase}
+
+\subsection*{Adding a Custom Payoff}
+
+Create a class inheriting from \texttt{Payoff}:
+
+\begin{verbatim}
+from optimal_stopping.payoffs.base import Payoff
+import numpy as np
+
+class CustomSpread(Payoff):
+    def __init__(self, strike1, strike2):
+        self.strike1 = strike1
+        self.strike2 = strike2
+
+    def __call__(self, S, n=None, use_path=False, path=None):
+        # S is the current state vector
+        payoff = max(S[0] - self.strike1, 0) - max(S[1] - self.strike2, 0)
+        return max(payoff, 0)
+\end{verbatim}
+
+The payoff automatically registers as \texttt{'CustomSpread'} for use in configurations.
+
+\subsection*{Adding a Custom Algorithm}
+
+Subclass the base algorithm and implement required methods:
+
+\begin{verbatim}
+from optimal_stopping.algorithms.base import BaseAlgorithm
+
+class CustomMethod(BaseAlgorithm):
+    def __init__(self, hidden_size=50, **kwargs):
+        super().__init__(**kwargs)
+        self.hidden_size = hidden_size
+
+    def train(self, paths, payoff):
+        # Implement training logic
+        # Store learned parameters in self
+        pass
+
+    def evaluate(self, paths, payoff):
+        # Apply learned policy to evaluation paths
+        # Return price estimate
+        pass
+\end{verbatim}
+
+Register in \texttt{optimal\_stopping/algorithms/\_\_init\_\_.py}:
+
+\begin{verbatim}
+from .custom import CustomMethod
+ALGO_REGISTRY['CustomMethod'] = CustomMethod
+\end{verbatim}
+
+\subsection*{Adding a Custom Stochastic Model}
+
+Subclass \texttt{StockModel} and implement path generation:
+
+\begin{verbatim}
+from optimal_stopping.data.stock_model import StockModel
+import numpy as np
+
+class CustomProcess(StockModel):
+    def __init__(self, custom_param=0.5, **kwargs):
+        super().__init__(**kwargs)
+        self.custom_param = custom_param
+
+    def generate_paths(self, nb_paths):
+        # Initialize paths array
+        paths = np.zeros((nb_paths, self.nb_dates + 1, self.nb_stocks))
+        paths[:, 0, :] = self.spot
+
+        # Implement custom dynamics
+        for t in range(self.nb_dates):
+            # Update paths[:, t+1, :] based on custom SDE
+            pass
+
+        return paths
+\end{verbatim}
+
+Register in \texttt{optimal\_stopping/data/\_\_init\_\_.py} and use as \texttt{stock\_models=['CustomProcess']} in configurations.
+
+\section*{Advanced Configuration Options}
+
+The \texttt{\_DefaultConfig} class supports numerous advanced parameters:
+
+\subsection*{Algorithmic Hyperparameters}
+
+\begin{itemize}
+    \item \texttt{hidden\_size}: Neurons per layer (overridden by Eq.~\eqref{eq:neuron_heuristic} for RT)
+    \item \texttt{nb\_epochs}: Training iterations for RFQI/SRFQI (default: 1 for RLSM)
+    \item \texttt{activation}: \texttt{'relu'}, \texttt{'tanh'}, \texttt{'elu'}, \texttt{'leakyrelu'}
+    \item \texttt{dropout}: Probability (0.0--1.0) for dropout regularization
+    \item \texttt{ridge\_coeff}: Regularization strength for ridge regression
+    \item \texttt{train\_ITM\_only}: Boolean, filters out-of-the-money paths during regression
+    \item \texttt{use\_payoff\_as\_input}: Boolean, includes $g(\mathbf{x})$ as input feature
+    \item \texttt{use\_barrier\_as\_input}: Boolean, includes barrier levels (empirically ineffective)
+\end{itemize}
+
+\subsection*{Barrier Parameters}
+
+\begin{itemize}
+    \item \texttt{barriers}: Single barrier level (for UO, DO, UI, DI)
+    \item \texttt{barriers\_up}: Upper barrier (for double barriers)
+    \item \texttt{barriers\_down}: Lower barrier (for double barriers)
+    \item \texttt{step\_param1--4}: Time-varying barrier parameters
+\end{itemize}
+
+\subsection*{Execution Control}
+
+\begin{itemize}
+    \item \texttt{dtype}: \texttt{'float32'} (default, fast) or \texttt{'float64'} (precise)
+    \item \texttt{n\_jobs}: Number of parallel processes (-1 for all cores)
+    \item \texttt{verbose}: Integer verbosity level (0: silent, 2: detailed)
+    \item \texttt{seed}: Random seed for reproducibility
+\end{itemize}
+
+\subsection*{Greeks Computation}
+
+\begin{itemize}
+    \item \texttt{compute\_greeks}: Boolean, enables delta/gamma/vega calculation
+    \item \texttt{greek\_method}: \texttt{'central'}, \texttt{'forward'}, \texttt{'backward'}, \texttt{'regression'}
+    \item \texttt{greek\_bump\_size}: Perturbation size for finite differences
+\end{itemize}
+
+\section*{Performance Optimization Tips}
+
+\subsection*{Path Generation}
+
+\begin{itemize}
+    \item Pre-generate paths for expensive models (Rough Heston, fBM)
+    \item Use correlation=0 when possible (faster Cholesky decomposition)
+    \item Reduce \texttt{nb\_dates} if high temporal resolution is unnecessary
+\end{itemize}
+
+\subsection*{Algorithm Training}
+
+\begin{itemize}
+    \item RLSM/RT train 10--100× faster than NLSM/DOS for equivalent accuracy
+    \item Use \texttt{train\_ITM\_only=True} to exclude irrelevant paths from regression
+    \item Lower \texttt{ridge\_coeff} if underfitting, raise if overfitting
+\end{itemize}
+
+\subsection*{Parallelization}
+
+\begin{itemize}
+    \item Set \texttt{n\_jobs=-1} to use all CPU cores
+    \item For parameter sweeps, parallelize at configuration level rather than within single runs
+    \item Monitor CPU usage to verify cores are utilized
+\end{itemize}
+
+\subsection*{Memory Management}
+
+\begin{itemize}
+    \item Always use \texttt{dtype='float32'} unless $10^{-6}$ precision is required
+    \item Delete large path arrays after use: \texttt{del paths; gc.collect()}
+    \item For $d > 100$, generate paths in batches rather than all at once
+\end{itemize}
+
+\section*{Coding Standards and Documentation}
+
+The codebase adheres to consistent conventions:
+
+\begin{itemize}
+    \item \textbf{Naming:} Snake\_case for functions/variables, CamelCase for classes
+    \item \textbf{Docstrings:} All public methods include parameter descriptions and return types
+    \item \textbf{Type Hints:} Functions specify input/output types where practical
+    \item \textbf{Comments:} Non-obvious algorithmic steps explained inline
+    \item \textbf{Version Control:} All experiments tagged with git commit hashes
+\end{itemize}
+
+When contributing extensions, follow these standards for maintainability.
+
+\section*{Getting Help}
+
+For issues not covered in this manual:
+
+\begin{itemize}
+    \item Check module-specific README files in \texttt{optimal\_stopping/*/README.md}
+    \item Review GitHub Issues page for known problems and solutions
+    \item Examine example configurations in \texttt{optimal\_stopping/run/configs.py}
+    \item Inspect test scripts (\texttt{test\_factors\_*.py}) for usage patterns
+    \item File new issues on GitHub with minimal reproducible examples
+\end{itemize}
+
+\vspace{1cm}
+
+\noindent This manual provides sufficient information to replicate all computational results, extend the framework with custom components, and conduct independent research building on this foundation. The modular architecture and comprehensive documentation are designed to facilitate long-term maintainability and community contributions.
