@@ -14,8 +14,8 @@ class RRLSM:
     Uses randomRNN (Echo State Networks) to capture path-dependent dynamics.
     """
 
-    def __init__(self, model, payoff, hidden_size=100, factors=(1., 1., 1.),
-                 train_ITM_only=True, use_payoff_as_input=False, **kwargs):
+    def __init__(self, model, payoff, hidden_size=20, factors=(1., 1., 1.),
+                 train_ITM_only=True, use_payoff_as_input=True, **kwargs):
         """
         Initialize RRLSM pricer.
         """
