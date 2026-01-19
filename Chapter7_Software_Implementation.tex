@@ -5,68 +5,59 @@
 \begin{center}
 \url{https://github.com/Daniel-Souza7/thesis-new-files}
 \end{center}
-The framework emphasizes modularity, extensibility and efficiency enabling systematic experimentation. Furthermore, a manual containing instructions for the utilization of the software is provided in Appendix~\ref{att:setup_guide}.
+The framework emphasizes modularity, extensibility and efficiency enabling systematic experimentation. Furthermore, a manual containing instructions for software utilization is provided in Appendix~\ref{att:setup_guide}.
 
 \section{Software Framework Overview}
 \label{sec:framework_overview}
 
-The \texttt{optimal\_stopping} Python package implements a production-grade computational environment for large-scale American option pricing benchmarks. Nine algorithmic families span three paradigms: \textit{randomized neural networks} (RLSM, SRLSM, RFQI, SRFQI) using frozen weights and ridge regression with training times in seconds, \textit{trainable neural networks} (NLSM, DOS) optimizing via gradient descent, and \textit{classical methods} (LSM, FQI, EOP) using polynomial or Laguerre basis functions. The 360-option library documented in Section~\ref{sec:payoffs} combines 30 base payoff functionals with 12 barrier conditions through automated registration enabling simple class inheritance. Seven stochastic models generate paths: Geometric Brownian Motion, Heston stochastic volatility, Fractional Brownian Motion, Rough Heston, and empirical models via Yahoo Finance or custom data bootstrap. The path storage system uses compressed HDF5 archives enabling pre-generation and reuse, eliminating redundant computation as demonstrated in Section~\ref{subsec:convergence_justification}.
+The \texttt{optimal\_stopping} Python repository implements a production-grade computational environment for large-scale American option pricing benchmarks. The modular architecture organizes functionality across five core directories, each encapsulating distinct aspects of the pricing workflow.
 
-\vspace{0.5cm}
+\vspace{0.3cm}
 
-\noindent Specialized utilities handle post-processing: convergence analysis with $t$-distribution confidence intervals for small samples, exercise boundary visualization in state-time space, Excel aggregation with summary statistics, and video generation producing the static figures in Chapter~\ref{ch:results}. A comprehensive configuration system (\texttt{configs.py}) specifies all parameters declaratively with parameter sweeps via Python iterables, ensuring reproducibility by tracing every result to its configuration snapshot. Bayesian hyperparameter optimization via Optuna \cite{akiba2019optuna} searches algorithm-specific parameter spaces using multi-fidelity evaluation, though this functionality remains under active development as ongoing research into problem-specific optimal configurations. Complete technical documentation, installation procedures, usage workflows, and extension guidelines are provided in Appendix~\ref{att:setup_guide}.
+\noindent \textbf{Algorithms Module (\texttt{algorithms/}):} Contains implementations of all nine methods evaluated in Chapter~\ref{ch:results}, organized into standard variants (RLSM, RFQI, LSM, FQI, NLSM, DOS, EOP) and path-dependent extensions (SRLSM, SRFQI, RRLSM). Each algorithm supports configurable activation functions (ReLU, LeakyReLU, ELU, Tanh), parameterized hidden layer sizes, and dropout regularization. The factory pattern enables dynamic instantiation via string identifiers specified in configuration files.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Payoffs Module (\texttt{payoffs/}):} Implements the 360-instrument library documented in Section~\ref{sec:payoffs} through combinatorial construction of 30 base payoff functionals and 12 barrier conditions. The automated registration system via \texttt{\_\_init\_subclass\_\_} metaclass hooks enables new derivatives to be defined through simple class inheritance without manual registry modifications. Complete mathematical specifications are provided in \texttt{payoffs\_index.tex}.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Data Module (\texttt{data/}):} Houses implementations of the five stochastic processes detailed in Section~\ref{sec:underlying_processes}: Geometric Brownian Motion with configurable correlation matrices, Heston stochastic volatility, Fractional Brownian Motion, Rough Heston, and the Stationary Block Bootstrap empirical model interfacing with Yahoo Finance via \texttt{yfinance} or custom CSV data. The path storage subsystem (\texttt{store\_paths.py}) serializes generated trajectories to compressed HDF5 archives, enabling pre-computation and reuse across experiments as demonstrated in Section~\ref{subsec:simulation_protocol}. Users can generate and store custom path sets or download the datasets used throughout this thesis from the \href{https://drive.google.com/drive/folders/1QVHAzgOZjcE3zN3rTba81LQ-GmGk5wWx?usp=sharing}{public repository}, referencing them via dataset identifiers in \texttt{configs.py}.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Execution Module (\texttt{run/}):} Orchestrates the experimental workflow through specialized scripts. The \texttt{run\_algo.py} harness executes algorithm benchmarks with multiprocessing support and optional Telegram notifications upon completion. Results aggregation is handled by \texttt{write\_excel.py}, which processes large CSV outputs into structured spreadsheets with summary statistics, formatted execution times, and configuration metadata. Convergence diagnostics are generated via \texttt{plot\_convergence.py}, producing visualizations with $t$-distribution confidence intervals. Exercise decision analysis is performed by \texttt{create\_video.py}, which renders animated trajectories illustrating stopping policies. The comprehensive configuration system (\texttt{configs.py}) specifies all experimental parameters declaratively, supporting parameter sweeps via iterables for systematic sensitivity analysis.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Optimization Module (\texttt{optimization/}):} Provides Bayesian hyperparameter tuning infrastructure via Optuna \cite{akiba2019optuna}, implementing Tree-structured Parzen Estimator search with multi-fidelity evaluation. The module supports automatic parameter space exploration for algorithm-specific configurations (hidden layer dimensions, activation functions, regularization coefficients) with full trial logging and visualization generation. Execution is managed through \texttt{run\_hyperopt.py}.
+
+\section{Development Credits and Contributions}
+\label{sec:credits}
+
+This work builds upon the repository of Herrera et al.\ \cite{herrera2021optimal} (\url{https://github.com/HeKrRuTe/OptStopRandNN}), which was modernized as part of the contributions of this thesis. The original codebase was migrated to contemporary Python environments and package ecosystems, resolving deprecated dependencies that precluded execution on modern systems. The foundational algorithmic implementations (RLSM, RRLSM, RFQI) and initial stochastic model classes (BlackScholes, Heston, FractionalBrownianMotion) from the original repository were retained, with the BlackScholes model extended to support configurable correlation matrices for multi-asset simulations.
+
+\vspace{0.3cm}
+
+\noindent Significant architectural enhancements were developed as part of this thesis. The RT algorithm and its associated dimension-adaptive heuristics (Equation~\eqref{eq:neuron_heuristic}) were implemented, incorporating payoff augmentation, non-negativity constraints, and precision management. Additional benchmark algorithms (LSM, FQI, NLSM, DOS) were integrated from alternative implementations to enable comprehensive comparative analysis. The activation function framework was extended to support parameterized selection (ReLU, LeakyReLU, ELU, Tanh) across all randomized neural network variants. Exercise time extraction functionality was developed to enable policy visualization and algorithmic debugging, facilitating the identification and correction of spurious early exercise behaviors documented in Section~\ref{subsec:structural_enhancements}.
+
+\vspace{0.3cm}
+
+\noindent The payoff library underwent complete restructuring. The original implementation supporting eight fixed derivatives was replaced with the combinatorial 360-instrument framework detailed in Section~\ref{sec:payoffs}, leveraging automated registration patterns to minimize maintenance overhead. The Stationary Block Bootstrap model with Yahoo Finance integration was implemented to enable empirical validation against historical market data. Path storage and retrieval infrastructure (\texttt{store\_paths.py}) was developed to eliminate redundant Monte Carlo simulation across experimental trials.
+
+\vspace{0.3cm}
+
+\noindent Results processing and visualization capabilities were substantially expanded. The \texttt{write\_excel.py} aggregation pipeline was created to handle large-scale benchmark outputs, computing cross-run statistics and organizing results hierarchically. Convergence analysis (\texttt{plot\_convergence.py}) and exercise policy animation (\texttt{create\_video.py}) tools were developed to produce the diagnostic visualizations presented throughout Chapter~\ref{ch:results}. The table generation subsystem (\texttt{comparison\_table.py}) was reimplemented to correct rendering issues in the original LaTeX export functionality. Execution time instrumentation was integrated across all algorithmic modules to support the efficiency comparisons in Section~\ref{sec:curse_dimensionality}. Telegram notification functionality, adapted from the implementation by Florian Ofenheimer-Krach (\url{https://github.com/FlorianKrach/Telegram-Bot-Install}), was incorporated to facilitate asynchronous monitoring of long-running experiments.
+
+\vspace{0.3cm}
+
+\noindent The hyperparameter optimization infrastructure (\texttt{optimization/}) represents an original contribution, implementing multi-fidelity Bayesian search with automatic trial management and result logging. This subsystem supports ongoing research into problem-specific hyperparameter selection strategies beyond the scope of this thesis.
+
+\vspace{0.3cm}
+
+\noindent While the original repository provided an essential foundation, substantial engineering effort was required to transform it into the production-grade research platform documented herein. The combination of modernization, algorithmic enhancement, architectural expansion, and tooling development collectively enabled the comprehensive empirical evaluation presented in Chapter~\ref{ch:results}.
 
 \section{Interactive Optimal Stopping Game}
 \label{sec:pricing_game}
 
-To demonstrate optimal stopping theory beyond academic audiences and provide an accessible educational tool, an interactive web application gamifies the American option exercise decision problem. Players compete against pre-trained SRLSM algorithms by observing simulated stock price paths unfolding step-by-step and deciding whether to exercise immediately or continue. The machine opponent applies its learned optimal policy in parallel, with final payoffs compared to determine the winner.
 
-\subsection{Game Design and Mechanics}
-\label{subsec:game_mechanics}
-
-Two game modes highlight different pricing complexities:
-
-\begin{enumerate}
-    \item \textbf{Up-and-Out Min Put (3 stocks):} A rainbow option with payoff $(\max(0, K - \min(S^1_t, S^2_t, S^3_t)))$ and upper barrier at 110, demonstrating multi-asset correlation effects and knockout risk.
-
-    \item \textbf{Double Knock-Out Lookback Put (1 stock):} A path-dependent contract with payoff $\max_{\tau \le t} S_\tau - S_T$ and barriers at 90 and 110, illustrating memory-dependent derivatives where players track running maxima while navigating two-sided knockout corridors.
-\end{enumerate}
-
-\noindent Both employ Geometric Brownian Motion with $r = 0.02$, $\sigma = 0.2$, $S_0 = K = 100$, consistent with Chapter~\ref{ch:results} benchmarks, creating balanced risk-reward profiles where optimal exercise timing is non-trivial.
-
-\subsection{Implementation and Interface}
-\label{subsec:game_implementation}
-
-The application combines a React frontend with a Flask backend serving pre-generated paths and model predictions via REST API. To eliminate latency, SRLSM algorithms are trained offline on 50,000 paths per mode, with 500 test paths stored for instant initialization. The interface adopts retro arcade aesthetics (pixel fonts, neon colors, CRT effects) to enhance engagement. Stock prices animate with smooth interpolation, exercise decisions receive visual feedback indicating alignment with machine policy, and real-time statistics track cumulative payoffs and decision agreement rates.
-
-\vspace{0.5cm}
-
-\noindent Figures~\ref{fig:game_menu} and \ref{fig:game_play} illustrate the interface. The main menu presents scenario selection with contract specifications and difficulty indicators, while gameplay displays synchronized price charts with barrier level markers, decision prompts, and comparative payoff tracking.
-
-\begin{figure}[h]
-\centering
-% \includegraphics[width=0.7\textwidth]{Chapter7/figures/game_menu.pdf}
-\caption{Main menu allowing selection between Up-and-Out Min Put and Double Knock-Out Lookback Put scenarios with contract specifications.}
-\label{fig:game_menu}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-% \includegraphics[width=0.85\textwidth]{Chapter7/figures/game_play.pdf}
-\caption{Gameplay interface showing real-time stock price evolution, barrier levels, exercise decision prompts, and cumulative payoff comparison with color-coded decision agreement indicators.}
-\label{fig:game_play}
-\end{figure}
-
-\subsection{Educational Value}
-\label{subsec:game_value}
-
-The game serves dual purposes. First, it transforms abstract mathematical objects from Chapter~\ref{ch:methods} into tangible decision-making agents, making the research accessible to finance practitioners, students, and general audiences unfamiliar with stochastic calculus. Second, it functions as a pedagogical tool where users develop intuition for time value erosion, volatility impact, and early exercise premiums through experiencing consequences of suboptimal decisions. Preliminary classroom deployment suggests students interacting with the game before studying American option theory demonstrate improved conceptual understanding and retention compared to lecture-only instruction. The complete source code with deployment configurations is available in the \texttt{thesis-game/} repository subdirectory.
-
-\section{Reproducibility and Accessibility}
-\label{sec:accessibility}
-
-All software components prioritize transparency and replication. The GitHub repository includes comprehensive documentation, and every Chapter~\ref{ch:results} experiment is tagged with configuration metadata and git commit hashes enabling exact reproduction. Pre-generated path datasets are publicly hosted on Google Drive, eliminating computational barriers for researchers lacking high-performance resources. Detailed environment setup, dependency installation, execution workflows, convergence plot generation, and codebase extension procedures are provided in Appendix~\ref{att:setup_guide}.
-
-\vspace{0.5cm}
-
-\noindent By open-sourcing this production-grade implementation with extensive documentation, this research lowers barriers to future investigations into randomized neural network methods for American option pricing. The modular architecture facilitates extensions to new algorithms, exotic derivatives, and alternative stochastic models, positioning the codebase as a platform for continued methodological development within the computational finance community.
