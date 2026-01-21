@@ -1,0 +1,269 @@
+\chapter{Methodology for Non-RNN Models}
+\label{app:non_rnn_methodology}
+
+\noindent This appendix provides detailed technical specifications for the non-randomized neural network algorithms employed in the comparative benchmarks presented in Chapter~\ref{ch:results}. For each method, the mathematical formulation, basis function selection, neural network architecture, and hyperparameter configurations are documented to ensure reproducibility and facilitate extension of this research.
+
+\section{Least Squares Monte Carlo (LSM)}
+\label{app:lsm}
+
+As detailed in Section~\ref{sec:lsm}, the LSM algorithm approximates the continuation value $c_n(\mathbf{x})$ through linear regression on polynomial basis functions. The implementation employs degree-2 monomial polynomials as the default basis, with alternative formulations available for sensitivity analysis.
+
+\subsection{Basis Function Specifications}
+
+\noindent \textbf{Degree-2 Monomials (Default):} For a $d$-dimensional state space, the basis consists of:
+\begin{equation}
+\label{eq:app_lsm_basis}
+\boldsymbol{\psi}(\mathbf{x}) = \left\{1, x_1, \ldots, x_d, x_1^2, \ldots, x_d^2, x_1x_2, x_1x_3, \ldots, x_{d-1}x_d\right\},
+\end{equation}
+where the quadratic terms include all squares and all pairwise cross-products. The total number of basis functions is:
+\begin{equation}
+\label{eq:app_lsm_nbasis}
+K_{\text{LSM}} = 1 + 2d + \binom{d}{2} = 1 + 2d + \frac{d(d-1)}{2}.
+\end{equation}
+For example, $d=1$ yields $K=3$ (constant, linear, quadratic), $d=2$ yields $K=6$, and $d=50$ yields $K=1326$ basis functions.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Degree-1 Monomials (Variant):} For comparison, a linear basis variant is implemented:
+\begin{equation}
+\boldsymbol{\psi}(\mathbf{x}) = \{1, x_1, \ldots, x_d\}, \quad K_{\text{LSM-Deg1}} = 1 + d.
+\end{equation}
+
+\vspace{0.3cm}
+
+\noindent \textbf{Weighted Laguerre Polynomials (Variant):} Following Longstaff and Schwartz \cite{longstaff2001valuing}, weighted Laguerre basis functions are also supported. For each stock $i$, the first three weighted Laguerre polynomials are:
+\begin{align}
+L_0(x_i) &= e^{-x_i/2K}, \\
+L_1(x_i) &= e^{-x_i/2K}\left(1 - \frac{x_i}{K}\right), \\
+L_2(x_i) &= e^{-x_i/2K}\left(1 - \frac{2x_i}{K} + \frac{(x_i/K)^2}{2}\right),
+\end{align}
+where $K$ is the strike price serving as a scaling parameter. The complete basis is $\boldsymbol{\psi}(\mathbf{x}) = \{1, L_0(x_1), \ldots, L_0(x_d), L_1(x_1), \ldots, L_1(x_d), L_2(x_1), \ldots, L_2(x_d)\}$, yielding $K_{\text{LSM-Lag}} = 1 + 3d$ basis functions.
+
+\subsection{Algorithmic Configuration}
+
+\noindent \textbf{State Normalization:} To ensure numerical stability, all state variables are normalized by the strike price: $\tilde{\mathbf{x}} = \mathbf{x} / K$. This prevents ill-conditioned design matrices when asset prices are large ($S \approx 100$ yields $S^3 \approx 10^6$ without normalization).
+
+\vspace{0.3cm}
+
+\noindent \textbf{Training Set Filtering:} Regression is restricted to in-the-money (ITM) paths where $g(\mathbf{X}^i_n) > 0$, as exercising is never rational when the payoff is zero. This reduces noise from out-of-the-money extrapolation.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Regularization:} Standard least squares without ridge regularization is employed. The regression objective at time $n$ for ITM paths $\mathcal{I}_n$ is:
+\begin{equation}
+\boldsymbol{\beta}_n = \argmin_{\boldsymbol{\beta}} \sum_{i \in \mathcal{I}_n} \left(\alpha p^i_{n+1} - \boldsymbol{\beta}^\top \boldsymbol{\psi}(\tilde{\mathbf{X}}^i_n)\right)^2,
+\end{equation}
+solved via NumPy's \texttt{lstsq} function with \texttt{rcond=None}.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Non-Negativity Constraint:} Estimated continuation values are clipped to $\hat{c}_n(\mathbf{x}) = \max(0, \boldsymbol{\beta}_n^\top \boldsymbol{\psi}(\mathbf{x}))$ to prevent spurious early exercise caused by negative regression predictions for OTM paths.
+
+\vspace{0.3cm}
+
+\noindent \textbf{Payoff Augmentation (Optional):} When enabled via \texttt{use\_payoff\_as\_input=True}, the immediate payoff $g(\mathbf{x})$ is appended to the state vector, increasing the basis dimension by the corresponding polynomial expansion of this additional feature. This mirrors the payoff hint enhancement in RLSM (Section~\ref{subsec:structural_enhancements}).
+
+\section{Fitted Q-Iteration (FQI)}
+\label{app:fqi}
+
+FQI extends LSM by learning a single continuation value function across all time steps rather than $N$ separate functions. This is achieved by augmenting the state space with temporal features and iterating the regression to convergence.
+
+\subsection{State Augmentation}
+
+The extended state vector incorporates current time and time-to-maturity:
+\begin{equation}
+\tilde{\mathbf{x}}_n = \left(n, N-n, \mathbf{x}^\top\right)^\top \in \mathbb{R}^{d+2},
+\end{equation}
+where $n \in \{0, 1, \ldots, N\}$ is the current discrete time index and $N-n$ represents remaining exercise opportunities. These temporal features enable the shared Q-function $Q(n, \mathbf{x})$ to adapt its approximation across the full time horizon.
+
+\subsection{Basis Functions}
+
+The same degree-2 monomial basis is applied to the augmented state $\tilde{\mathbf{x}}_n$. For $d$ assets, the total dimensionality becomes $(d+2)$, yielding:
+\begin{equation}
+K_{\text{FQI}} = 1 + 2(d+2) + \frac{(d+2)(d+1)}{2} = 1 + 2d + 4 + \frac{d^2 + 3d + 2}{2}.
+\end{equation}
+For $d=50$, this results in $K_{\text{FQI}} = 1381$ basis functions (compared to $K_{\text{LSM}} = 1326$).
+
+\subsection{Iterative Training}
+
+Unlike LSM's single backward pass, FQI alternates between policy evaluation and parameter updates. Starting from $\boldsymbol{\beta}_0 = \mathbf{0}$, each iteration $\ell$ consists of:
+
+\begin{enumerate}
+    \item \textbf{Policy Evaluation:} For all paths $i$ and times $n$, compute $p^i_n = \max(g(\mathbf{X}^i_n), \boldsymbol{\beta}_\ell^\top \boldsymbol{\psi}(n, \mathbf{X}^i_n))$.
+    \item \textbf{Global Regression:} Aggregate training data across all time steps and solve:
+    \begin{equation}
+    \boldsymbol{\beta}_{\ell+1} = \argmin_{\boldsymbol{\beta}} \sum_{n=1}^{N} \sum_{i \in \mathcal{I}_n} \left(\alpha p^i_{n+1} - \boldsymbol{\beta}^\top \boldsymbol{\psi}(n, \mathbf{X}^i_n)\right)^2.
+    \end{equation}
+    \item \textbf{Convergence Check:} Repeat until $\|\boldsymbol{\beta}_{\ell+1} - \boldsymbol{\beta}_\ell\| < \varepsilon$ or maximum iterations reached.
+\end{enumerate}
+
+\subsection{Hyperparameters}
+
+\begin{itemize}
+    \item \textbf{Number of Iterations (\texttt{nb\_epochs}):} Default is 20. Empirically, convergence typically occurs within 10--30 iterations for well-conditioned problems.
+    \item \textbf{ITM Filtering:} Enabled by default, restricting regression to $\mathcal{I}_n = \{i : g(\mathbf{X}^i_n) > 0\}$ at each time $n$.
+    \item \textbf{Normalization:} Stock prices normalized by strike $K$, time features normalized by $N$.
+\end{itemize}
+
+\section{Deep Optimal Stopping (DOS)}
+\label{app:dos}
+
+DOS, introduced by Becker et al.\ \cite{becker2020pricing}, employs neural networks to directly learn optimal stopping decisions by maximizing expected discounted payoffs. Unlike regression-based methods, DOS outputs exercise probabilities via sigmoid activations and trains using policy gradients.
+
+\subsection{Neural Network Architecture}
+
+Each exercise date $n$ is assigned an independent feedforward neural network $F_{\boldsymbol{\theta}_n}: \mathbb{R}^d \to [0,1]$ with the following structure:
+
+\begin{itemize}
+    \item \textbf{Input Layer:} Dimension $d_{\text{in}} = d + \mathbb{I}_{\text{payoff}}$, where $\mathbb{I}_{\text{payoff}} = 1$ if payoff augmentation is enabled.
+    \item \textbf{Hidden Layer 1:} $d_{\text{in}} \to H$ with $\tanh$ activation.
+    \item \textbf{Hidden Layer 2:} $H \to H$ with $\tanh$ activation.
+    \item \textbf{Output Layer:} $H \to 1$ with $\sigma(z) = (1 + e^{-z})^{-1}$ (sigmoid) activation.
+\end{itemize}
+
+where $H$ denotes the hidden layer size. The network output $F_{\boldsymbol{\theta}_n}(\mathbf{x}) \in [0,1]$ represents the probability of exercising at time $n$ in state $\mathbf{x}$ during training. At evaluation, a hard threshold is applied: exercise if $F_{\boldsymbol{\theta}_n}(\mathbf{x}) \geq 0.5$.
+
+\subsection{Training Procedure}
+
+Networks are trained backward from $n = N-1$ to $n = 1$, with future networks $\{F_{\boldsymbol{\theta}_{n+1}}, \ldots, F_{\boldsymbol{\theta}_N}\}$ frozen while optimizing $\boldsymbol{\theta}_n$. The objective at time $n$ is:
+\begin{equation}
+\max_{\boldsymbol{\theta}_n} \mathbb{E}\left[F_{\boldsymbol{\theta}_n}(\mathbf{X}_n) \cdot g(\mathbf{X}_n) + (1 - F_{\boldsymbol{\theta}_n}(\mathbf{X}_n)) \cdot V_{n+1}(\mathbf{X}_{n+1})\right],
+\end{equation}
+where $V_{n+1}$ is the expected continuation value computed using the already-trained networks for times $n+1, \ldots, N$. This is maximized via Adam optimization with gradient ascent.
+
+\subsection{Hyperparameters}
+
+\begin{itemize}
+    \item \textbf{Hidden Size ($H$):} Default is 40 neurons per layer.
+    \item \textbf{Learning Rate:} Default is $0.001$ for Adam optimizer.
+    \item \textbf{Training Epochs:} Default is 30 epochs per time step.
+    \item \textbf{Batch Size:} Full-batch training on all $m$ paths (default $m = 8192$).
+    \item \textbf{Weight Initialization:} Xavier initialization: $\mathbf{W} \sim \mathcal{N}(0, 2/d_{\text{in}})$ for layers.
+    \item \textbf{Input Normalization:} States log-normalized: $\tilde{\mathbf{x}} = \log(\mathbf{x} / \mathbf{x}_0)$.
+    \item \textbf{Payoff Augmentation:} Enabled by default (\texttt{use\_payoff\_as\_input=True}).
+\end{itemize}
+
+\subsection{Implementation Notes}
+
+DOS supports both NumPy (CPU) and PyTorch (GPU) backends. The PyTorch implementation enables GPU acceleration for large-scale problems, though CPU execution is default when PyTorch is unavailable. Gradients are computed via automatic differentiation rather than manual backpropagation.
+
+\section{Neural Least Squares Monte Carlo (NLSM)}
+\label{app:nlsm}
+
+NLSM, proposed by Lapeyre and Lelong \cite{lapeyre2021neural}, replaces polynomial basis functions in LSM with neural networks trained via mean squared error regression. Unlike DOS, NLSM uses regression targets (discounted future values) rather than policy gradients, aligning more closely with classical LSM.
+
+\subsection{Neural Network Architecture}
+
+At each exercise date $n$, a separate feedforward network $\hat{c}_n(\mathbf{x}; \boldsymbol{\theta}_n): \mathbb{R}^d \to \mathbb{R}$ approximates the continuation value:
+
+\begin{itemize}
+    \item \textbf{Input Layer:} Dimension $d_{\text{in}} = d + \mathbb{I}_{\text{payoff}}$.
+    \item \textbf{Hidden Layer 1:} $d_{\text{in}} \to H$ with ReLU activation.
+    \item \textbf{Hidden Layer 2:} $H \to H$ with ReLU activation.
+    \item \textbf{Output Layer:} $H \to 1$ with \textit{linear} activation (unbounded continuation value).
+\end{itemize}
+
+The use of ReLU activations distinguishes NLSM from DOS (which uses $\tanh$), providing unbounded positive outputs suitable for continuation value approximation.
+
+\subsection{Training Procedure}
+
+Networks are trained backward in time using supervised learning. At time $n$, the regression target for path $i$ is the discounted realized future value $\alpha p^i_{n+1}$. The loss function is mean squared error over ITM paths:
+\begin{equation}
+\mathcal{L}(\boldsymbol{\theta}_n) = \frac{1}{|\mathcal{I}_n|} \sum_{i \in \mathcal{I}_n} \left(\hat{c}_n(\mathbf{X}^i_n; \boldsymbol{\theta}_n) - \alpha p^i_{n+1}\right)^2,
+\end{equation}
+minimized via mini-batch stochastic gradient descent with Adam.
+
+\subsection{Hyperparameters}
+
+\begin{itemize}
+    \item \textbf{Hidden Size ($H$):} Default is 40 neurons per layer.
+    \item \textbf{Learning Rate:} Default is $0.001$ for Adam optimizer.
+    \item \textbf{Training Epochs:} Default is 50 epochs per time step (more than DOS due to regression convergence requirements).
+    \item \textbf{Batch Size:} Default is 256 for mini-batch SGD (unlike DOS's full-batch).
+    \item \textbf{Weight Initialization:} He initialization for ReLU: $\mathbf{W} \sim \mathcal{N}(0, 2/d_{\text{in}})$.
+    \item \textbf{Input Normalization:} States log-normalized, then standardized using training set mean/std.
+    \item \textbf{Payoff Augmentation:} Enabled by default.
+    \item \textbf{ITM Filtering:} Enabled by default, training only on paths where $g(\mathbf{X}^i_n) > 0$.
+\end{itemize}
+
+\subsection{Regularization}
+
+NLSM employs feature standardization (zero mean, unit variance) computed on the training set and applied consistently to evaluation paths. This improves training stability compared to DOS, which uses only log-normalization.
+
+\section{Tree-Based Methods (CRR and LR)}
+\label{app:trees}
+
+The Cox-Ross-Rubinstein (CRR) \cite{cox1979option} and Leisen-Reimer (LR) \cite{leisen1996binomial} binomial tree methods were employed as classical benchmarks, particularly for low-dimensional problems ($d \leq 2$). These methods discretize the state space into a lattice and solve the optimal stopping problem via backward induction on the tree nodes.
+
+\subsection{General Framework}
+
+For a $d$-dimensional problem with $N$ time steps, a recombining binomial tree constructs a lattice with $M = (N+1)^d$ terminal nodes at maturity. At each node $(i, n)$ representing state $\mathbf{S}_{i,n}$ at time $n$, the option value is:
+\begin{equation}
+U_{i,n} = \max\left(g(\mathbf{S}_{i,n}), \, e^{-r\Delta t} \mathbb{E}_{\mathbb{Q}}[U_{n+1} \mid \mathbf{S}_n = \mathbf{S}_{i,n}]\right),
+\end{equation}
+where the conditional expectation is computed as a weighted average over the node's successors determined by the tree construction rule.
+
+\subsection{CRR Tree Construction}
+
+The CRR method uses multiplicative factors for up/down movements:
+\begin{equation}
+u = e^{\sigma\sqrt{\Delta t}}, \quad d = e^{-\sigma\sqrt{\Delta t}} = \frac{1}{u},
+\end{equation}
+with risk-neutral probabilities:
+\begin{equation}
+p = \frac{e^{(r-q)\Delta t} - d}{u - d}, \quad 1 - p = \frac{u - e^{(r-q)\Delta t}}{u - d}.
+\end{equation}
+These parameters ensure that the discrete tree converges to geometric Brownian motion as $N \to \infty$ \cite{cox1979option}.
+
+\subsection{Leisen-Reimer Tree Construction}
+
+The LR method modifies CRR to improve convergence rate by aligning terminal distribution moments with the continuous model. It uses an alternative probability formula based on Peizer-Pratt inversion \cite{leisen1996binomial}:
+\begin{equation}
+p = h\left(\frac{d_1}{\sqrt{N}}\right), \quad 1-p = h\left(\frac{d_2}{\sqrt{N}}\right),
+\end{equation}
+where $h(\cdot)$ is the Peizer-Pratt inversion function and $d_1, d_2$ are standard Black-Scholes auxiliary variables. This yields faster convergence for European options and more stable American option prices with fewer time steps.
+
+\subsection{Computational Complexity}
+
+Tree methods exhibit exponential complexity in dimension: constructing and traversing the full tree requires $\mathcal{O}(M \cdot N) = \mathcal{O}((N+1)^d \cdot N)$ operations. For $d=2$ and $N=100$, this yields $\approx 10^6$ nodes, manageable but expensive. For $d \geq 3$, memory and time constraints become prohibitive, validating the curse of dimensionality motivations in Chapter~\ref{ch:introduction}.
+
+\subsection{Implementation Source}
+
+CRR and LR implementations were executed via an external codebase (not included in the \texttt{optimal\_stopping} repository) developed specifically for tree-based benchmarking. These methods were applied exclusively to low-dimensional problems ($d \in \{1, 2\}$) where computational feasibility permitted comparison. Results are reported in Table~\ref{tab:benchmark_results} for $d=1$ and $d=2$ only, with higher dimensions marked as computationally infeasible (N/A).
+
+\section{Comparative Summary}
+\label{app:comparative_summary}
+
+Table~\ref{tab:app_method_comparison} summarizes the key methodological differences across all five non-RNN methods.
+
+\begin{table}[H]
+\centering
+\caption{Methodological comparison of non-RNN algorithms.}
+\label{tab:app_method_comparison}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lllll}
+\toprule
+\textbf{Method} & \textbf{Basis/Architecture} & \textbf{Key Parameters} & \textbf{Training} & \textbf{Complexity} \\
+\midrule
+LSM & Degree-2 polynomials & $K = 1 + 2d + \binom{d}{2}$ & Single pass & $\mathcal{O}(m \cdot N \cdot K^2)$ \\
+& (+ variants: Deg-1, Laguerre) & ITM-only & Closed-form & \\
+\midrule
+FQI & Degree-2 + time features & $K = 1 + 2(d+2) + \binom{d+2}{2}$ & Iterative & $\mathcal{O}(L \cdot m \cdot N \cdot K^2)$ \\
+& & $L = 20$ iterations & Global regression & ($L$ iterations) \\
+\midrule
+DOS & 2-layer NN, Tanh & $H = 40$ neurons/layer & Backward Adam & $\mathcal{O}(N \cdot E \cdot m \cdot H^2)$ \\
+& Sigmoid output & $E = 30$ epochs/step & Policy gradient & \\
+& & Full-batch ($m=8192$) & & \\
+\midrule
+NLSM & 2-layer NN, ReLU & $H = 40$ neurons/layer & Backward Adam & $\mathcal{O}(N \cdot E \cdot m \cdot H^2 / B)$ \\
+& Linear output & $E = 50$ epochs/step & MSE regression & ($B=256$ mini-batch) \\
+& & Mini-batch ($B=256$) & ITM-only & \\
+\midrule
+CRR/LR & Binomial tree lattice & $M = (N+1)^d$ nodes & Backward DP & $\mathcal{O}(M \cdot N) = \mathcal{O}((N+1)^{d+1})$ \\
+& & & Exact on lattice & (exponential in $d$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent This comprehensive specification enables exact replication of all benchmark experiments presented in Chapter~\ref{ch:results}, ensuring transparency and facilitating independent validation of the reported comparative performance claims.
