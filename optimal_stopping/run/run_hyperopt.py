@@ -23,6 +23,7 @@ from optimal_stopping.optimization import HyperparameterOptimizer
 from optimal_stopping.data import stock_model
 from optimal_stopping.payoffs import _PAYOFF_REGISTRY
 from optimal_stopping.algorithms.standard.rlsm import RLSM
+from optimal_stopping.algorithms.standard.rt import RT
 from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
 from optimal_stopping.algorithms.standard.rfqi import RFQI
 from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
@@ -43,6 +44,7 @@ _ALGOS = {
     "SRLSM": SRLSM,
     "RFQI": RFQI,
     "SRFQI": SRFQI,
+    "RT": RT,
 }
 
 # Stock model mapping

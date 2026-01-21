@@ -3836,3 +3836,508 @@ barrier_convergence10 = _DefaultConfig(
     mean=[0.3],
     speed=[0.15],
     )
+
+
+thesis_game1 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[130],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game2 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DO-BestK-BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    k=2,
+)
+
+thesis_game3 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DStepB-Disp-BskCall'],
+    spots=[100],
+    strikes=[1],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    step_param1=[-2],
+    step_param2=[1],
+    step_param3=[-1],
+    step_param4=[2],
+)
+
+thesis_game4 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[85],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game5 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game6 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-Rank-BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    weights=[(15, 50, 35),],
+    k=3
+)
+
+
+thesis_game7 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UO-Call'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game8 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['StepB-Call'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[125],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    step_param1=[-2],
+    step_param2=[1],
+
+)
+
+thesis_game9 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-LBFl-Put'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=2,  # Single run for testing
+    enable_hyperopt=True,  # ENABLE HYPEROPT
+    hyperopt_method='tpe',  # Use TPE (Bayesian optimization)
+    hyperopt_timeout=None,  # 2 minutes for quick test
+    hyperopt_n_trials=20,  # Run until timeout
+    hyperopt_fidelity_factor=2,  # Use 1/4 of paths during optimization
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hyperopt_results',
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+
+)
+
+thesis_game11 = _DefaultConfig(
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-MaxCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[130],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    activation = ['gelu'],
+    hidden_size=[40],
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game21 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DO-BestK-BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    k=[2],
+)
+
+thesis_game31 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768937403018'],
+    nb_stocks=[7],
+    nb_paths=[1000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DStepB-Disp-BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    step_param1=[-2],
+    step_param2=[1],
+    step_param3=[-1],
+    step_param4=[2],
+)
+
+thesis_game41 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['DO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[85],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game51 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UO-MinPut'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game61 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936729928'],
+    nb_stocks=[3],
+    nb_paths=[2000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-Rank-BskCall'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[1400],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    weights=[(15, 50, 35),],
+    k=[3],
+)
+
+
+thesis_game71 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UO-Call'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+)
+
+thesis_game81 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['StepB-Call'],
+    spots=[100],
+    strikes=[100],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[125],
+    barriers_up=[125],
+    barriers_down=[80],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+    step_param1=[-2],
+    step_param2=[1],
+
+)
+
+thesis_game91 = _DefaultConfig(
+    activation=['gelu'],
+    hidden_size=[40],
+    algos=['RT'],  # Start with RLSM only
+    stock_models=['BlackScholesStored1768936784892'],
+    nb_stocks=[1],
+    nb_paths=[6000000],  # Will use 50000/4=12500 during optimization
+    nb_dates=[10],
+    maturities=[1],
+    payoffs=['UODO-LBFl-Put'],
+    spots=[100],
+    strikes=[1],
+    volatilities=[0.2],
+    correlation=[0],
+    barriers=[120],
+    barriers_up=[115],
+    barriers_down=[85],
+    drift=[0.05],
+    dividends=[0.0],
+    nb_runs=1,  # Single run for testing
+   
+    dtype = ['float32'],
+    use_payoff_as_input=[True],
+
+)
