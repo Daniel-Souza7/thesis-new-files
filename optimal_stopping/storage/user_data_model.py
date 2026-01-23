@@ -24,7 +24,7 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
-from optimal_stopping.data.stock_model import Model
+from optimal_stopping.models.stock_model import Model
 
 
 class UserDataModel(Model):

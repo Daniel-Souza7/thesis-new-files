@@ -27,19 +27,19 @@ import scipy.stats as st  # <--- Added for t-distribution
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from optimal_stopping.run import configs
-from optimal_stopping.data.stock_model import BlackScholes, STOCK_MODELS
+from optimal_stopping.models.stock_model import BlackScholes, STOCK_MODELS
 from optimal_stopping.payoffs import get_payoff_class
-from optimal_stopping.algorithms.standard.rlsm import RLSM
-from optimal_stopping.algorithms.standard.rfqi import RFQI
-from optimal_stopping.algorithms.standard.rt import RT
-from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer
-from optimal_stopping.algorithms.standard.fqi import FQIFast
-from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
-from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
-from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
-from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
-from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
-from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
+from optimal_stopping.algorithms.core.rlsm import RLSM
+from optimal_stopping.algorithms.core.rfqi import RFQI
+from optimal_stopping.algorithms.core.rt import RT
+from optimal_stopping.algorithms.core.lsm import LeastSquaresPricer
+from optimal_stopping.algorithms.core.fqi import FQIFast
+from optimal_stopping.algorithms.core.eop import EuropeanOptionPrice
+from optimal_stopping.algorithms.deep.nlsm import NeuralNetworkPricer
+from optimal_stopping.algorithms.deep.dos import DeepOptimalStopping
+from optimal_stopping.algorithms.recurrent.srlsm import SRLSM
+from optimal_stopping.algorithms.recurrent.srfqi import SRFQI
+from optimal_stopping.algorithms.experimental.SRFQI_RBF import SRFQI_RBF
 
 # Telegram setup
 try:

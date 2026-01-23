@@ -692,7 +692,7 @@ class RoughHestonWithVar(RoughHeston):
 
 # Import RealDataModel (lazy import to avoid yfinance dependency if not used)
 try:
-    from optimal_stopping.data.real_data import RealDataModel
+    from optimal_stopping.models.real_data import RealDataModel
     _HAS_REAL_DATA = True
 except ImportError:
     _HAS_REAL_DATA = False
@@ -700,7 +700,7 @@ except ImportError:
 
 # Import UserDataModel (always available - uses pandas only)
 try:
-    from optimal_stopping.data.user_data_model import UserDataModel
+    from optimal_stopping.storage.user_data_model import UserDataModel
     _HAS_USER_DATA = True
 except ImportError:
     _HAS_USER_DATA = False
@@ -738,8 +738,8 @@ def _register_stored_models():
     'RealDataStored1700000000123', 'BlackScholesStored123', etc.
     """
     try:
-        from optimal_stopping.data.stored_model import create_stored_model_class
-        from optimal_stopping.data.path_storage import STORAGE_DIR
+        from optimal_stopping.storage.stored_model import create_stored_model_class
+        from optimal_stopping.storage.path_storage import STORAGE_DIR
         from pathlib import Path
         import h5py
 

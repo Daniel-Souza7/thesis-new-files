@@ -9,8 +9,11 @@ TableDuration = FigureType("TableDuration")
 PricePerNbPaths = FigureType("PricePerNbPaths")
 
 '''
-Algos:NLSM, LSM, LS2, DOS, HP, LSPI, FQI, FQIR, LN, LN2, LND
-New algos = RLSM, FQI, RFQI, LNfast
+Available Algorithms:
+  Core: RT, RLSM, RFQI, LSM, FQI, EOP
+  Deep: DOS, NLSM
+  Recurrent: RRLSM, SRLSM, SRFQI
+  Experimental: SM, RSM1, RSM2, ZAPQ, RZAPQ, DKL, RDKL
 '''
 
 class Seed:
@@ -29,14 +32,15 @@ path_gen_seed = Seed()
 
 @dataclass
 class _DefaultConfig:
-  algos: Iterable[str] = ('NLSM',
-                          'LSM',
-                          'DOS',
-                          'FQI',
-                          'RFQI',
-                          'LNfast',
-                          'LN2',
-                          'RLSM', 'SRFQI', 'SRLSM')
+  algos: Iterable[str] = ('RT',      # Thesis main algorithm
+                          'RLSM',    # Randomized LSM baseline
+                          'LSM',     # Classical LSM
+                          'FQI',     # Fitted Q-Iteration
+                          'RFQI',    # Randomized FQI
+                          'DOS',     # Deep Optimal Stopping
+                          'NLSM',    # Neural LSM
+                          'EOP',     # European Option Price benchmark
+                          'SRLSM', 'SRFQI', 'RRLSM')
   dividends: Iterable[float] = (0.0,)
   nb_dates: Iterable[int] = (10,)
   drift: Iterable[float] = (0.06,)  # Drift = risk-free rate for derivatives pricing
@@ -1646,7 +1650,7 @@ test_lsm = _DefaultConfig(
 # ==============================================================================
 # STORED PATHS TESTS
 # ==============================================================================
-# NOTE: First store paths using: python -m optimal_stopping.data.store_paths
+# NOTE: First store paths using: python -m optimal_stopping.storage.store_paths
 # Then update the storage ID below and run experiments
 
 # Example stored paths config - UPDATE THE STORAGE ID!

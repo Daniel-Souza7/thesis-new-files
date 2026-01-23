@@ -19,14 +19,14 @@ from absl import app, flags
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from optimal_stopping.optimization import HyperparameterOptimizer
-from optimal_stopping.data import stock_model
+from optimization import HyperparameterOptimizer
+from optimal_stopping.models import stock_model
 from optimal_stopping.payoffs import _PAYOFF_REGISTRY
-from optimal_stopping.algorithms.standard.rlsm import RLSM
-from optimal_stopping.algorithms.standard.rt import RT
-from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
-from optimal_stopping.algorithms.standard.rfqi import RFQI
-from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
+from optimal_stopping.algorithms.core.rlsm import RLSM
+from optimal_stopping.algorithms.core.rt import RT
+from optimal_stopping.algorithms.core.rfqi import RFQI
+from optimal_stopping.algorithms.recurrent.srlsm import SRLSM
+from optimal_stopping.algorithms.recurrent.srfqi import SRFQI
 from optimal_stopping.utilities import configs_getter
 
 FLAGS = flags.FLAGS

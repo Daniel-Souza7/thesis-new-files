@@ -18,41 +18,40 @@ import numpy as np
 import joblib
 
 from optimal_stopping.utilities import configs_getter
-from optimal_stopping.data import stock_model
+from optimal_stopping.models import stock_model
 
 # NEW IMPORTS - Use payoff registry system with all 408 payoffs
 from optimal_stopping.payoffs import get_payoff_class, _PAYOFF_REGISTRY
-# NEW IMPORTS - Restructured algorithms
-from optimal_stopping.algorithms.standard.rlsm import RLSM
-from optimal_stopping.algorithms.standard.rfqi import RFQI
-from optimal_stopping.algorithms.standard.rt import RT
-from optimal_stopping.algorithms.path_dependent.srlsm import SRLSM
-from optimal_stopping.algorithms.path_dependent.srfqi import SRFQI
-from optimal_stopping.algorithms.path_dependent.rrlsm import RRLSM
 
-# BENCHMARK ALGORITHMS - Simple implementations for comparison
-from optimal_stopping.algorithms.standard.lsm import LeastSquaresPricer, LeastSquarePricerDeg1, LeastSquarePricerLaguerre
-from optimal_stopping.algorithms.standard.fqi import FQIFast
-from optimal_stopping.algorithms.standard.nlsm import NeuralNetworkPricer
-from optimal_stopping.algorithms.standard.dos import DeepOptimalStopping
-from optimal_stopping.algorithms.standard.eop import EuropeanOptionPrice
+# CORE ALGORITHMS - Thesis main methods
+from optimal_stopping.algorithms.core.rlsm import RLSM
+from optimal_stopping.algorithms.core.rfqi import RFQI
+from optimal_stopping.algorithms.core.rt import RT
+from optimal_stopping.algorithms.core.lsm import LeastSquaresPricer, LeastSquarePricerDeg1, LeastSquarePricerLaguerre
+from optimal_stopping.algorithms.core.fqi import FQIFast
+from optimal_stopping.algorithms.core.eop import EuropeanOptionPrice
+
+# DEEP LEARNING ALGORITHMS
+from optimal_stopping.algorithms.deep.nlsm import NeuralNetworkPricer
+from optimal_stopping.algorithms.deep.dos import DeepOptimalStopping
+
+# RECURRENT ALGORITHMS - Path-dependent options
+from optimal_stopping.algorithms.recurrent.srlsm import SRLSM
+from optimal_stopping.algorithms.recurrent.srfqi import SRFQI
+from optimal_stopping.algorithms.recurrent.rrlsm import RRLSM
+
+# EXPERIMENTAL ALGORITHMS
+from optimal_stopping.algorithms.experimental.zap_q import ZapQ
+from optimal_stopping.algorithms.experimental.rzapq import RZapQ
+from optimal_stopping.algorithms.experimental.dkl import DKL_LSM
+from optimal_stopping.algorithms.experimental.rdkl import RandDKL_LSM
+from optimal_stopping.algorithms.experimental.SRFQI_RBF import SRFQI_RBF
+from optimal_stopping.algorithms.experimental.stochastic_mesh import StochasticMesh
+from optimal_stopping.algorithms.experimental.randomized_stochastic_mesh1 import RandomizedStochasticMesh1
+from optimal_stopping.algorithms.experimental.randomized_stochastic_mesh2 import RandomizedStochasticMesh2
 
 from optimal_stopping.run import write_figures
 from optimal_stopping.run import configs
-
-from optimal_stopping.algorithms.testing.zap_q import ZapQ
-from optimal_stopping.algorithms.testing.rzapq import RZapQ
-from optimal_stopping.algorithms.testing.dkl import DKL_LSM
-from optimal_stopping.algorithms.testing.rdkl import RandDKL_LSM
-from optimal_stopping.algorithms.testing.SRFQI_RBF import SRFQI_RBF
-
-# STOCHASTIC MESH ALGORITHMS - Broadie & Glasserman (2004)
-from optimal_stopping.algorithms.testing.stochastic_mesh import StochasticMesh
-from optimal_stopping.algorithms.testing.randomized_stochastic_mesh1 import RandomizedStochasticMesh1
-from optimal_stopping.algorithms.testing.randomized_stochastic_mesh2 import RandomizedStochasticMesh2
-
-from optimal_stopping.algorithms.deep_neural_networks.DOS import DeepOptimalStopping
-from optimal_stopping.algorithms.deep_neural_networks.NLSM import NeuralLSM
 
 # GLOBAL CLASSES
 class SendBotMessage:

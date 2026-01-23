@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import warnings
 from typing import List, Optional, Tuple
-from optimal_stopping.data.stock_model import Model
+from optimal_stopping.models.stock_model import Model
 
 
 class RealDataModel(Model):

@@ -1,7 +1,7 @@
 import torch
 import gpytorch
 import numpy as np
-from optimal_stopping.algorithms.testing.dkl import DKL_LSM, LargeFeatureExtractor, GPRegressionModel
+from optimal_stopping.algorithms.experimental.dkl import DKL_LSM, LargeFeatureExtractor, GPRegressionModel
 
 
 class RandDKL_LSM(DKL_LSM):

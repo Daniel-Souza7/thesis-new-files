@@ -94,7 +94,7 @@ def store_paths(
         ... )
         >>> print(f"Use 'RealDataStored{storage_id}' in your config")
     """
-    from optimal_stopping.data.stock_model import STOCK_MODELS
+    from optimal_stopping.models.stock_model import STOCK_MODELS
 
     _ensure_storage_dir()
 

@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optimal_stopping"
+version = "1.0.0"
+description = "RT Algorithm: Randomized Neural Networks for High-Dimensional American Option Pricing"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Daniel Souza"}
+]
+keywords = [
+    "american-options",
+    "optimal-stopping",
+    "randomized-neural-networks",
+    "monte-carlo",
+    "quantitative-finance",
+    "derivative-pricing",
+    "machine-learning"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "torch>=1.9.0",
+    "matplotlib>=3.4.0",
+    "pandas>=1.3.0",
+    "scikit-learn>=0.24.0",
+    "joblib>=1.0.0",
+    "tqdm>=4.60.0",
+    "h5py>=3.0.0",
+    "openpyxl>=3.0.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "tensorflow>=2.6.0",
+    "yfinance>=0.1.70",
+    "fbm>=0.3.0",
+    "optuna>=3.0.0",
+    "plotly>=5.0.0",
+    "kaleido>=0.2.0",
+    "psutil>=5.8.0",
+]
+dev = [
+    "pytest>=6.0.0",
+    "pytest-cov>=2.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "flake8>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Daniel-Souza7/thesis-new-files"
+Documentation = "https://github.com/Daniel-Souza7/thesis-new-files#readme"
+Repository = "https://github.com/Daniel-Souza7/thesis-new-files"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["optimal_stopping*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.tex", "*.md"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100

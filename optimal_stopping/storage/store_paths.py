@@ -2,10 +2,10 @@
 
 Usage:
     # Store RealData paths
-    python -m optimal_stopping.data.store_paths --stock_model=BlackScholes --nb_stocks=50 --nb_paths=100000 --nb_dates=100 --maturity=1.0 --drift=0.08 --volatility=0.2
+    python -m optimal_stopping.storage.store_paths --stock_model=BlackScholes --nb_stocks=50 --nb_paths=100000 --nb_dates=100 --maturity=1.0 --drift=0.08 --volatility=0.2
 
     # Store RoughHeston paths (New Example)
-    python -m optimal_stopping.data.store_paths \
+    python -m optimal_stopping.storage.store_paths \
         --stock_model=RoughHeston \
         --nb_stocks=10 \
         --nb_paths=10000 \
@@ -20,15 +20,15 @@ Usage:
         --hurst=0.1
 
     # List all stored paths
-    python -m optimal_stopping.data.store_paths --list
+    python -m optimal_stopping.storage.store_paths --list
 
     # Delete stored paths
-    python -m optimal_stopping.data.store_paths --delete=RealDataStored1700000000123
+    python -m optimal_stopping.storage.store_paths --delete=RealDataStored1700000000123
 """
 
 import argparse
 import sys
-from optimal_stopping.data.path_storage import store_paths, list_stored_paths, delete_stored_paths
+from optimal_stopping.storage.path_storage import store_paths, list_stored_paths, delete_stored_paths
 
 # Telegram setup
 try:

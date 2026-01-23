@@ -26,7 +26,7 @@ Usage in configs:
 
 import numpy as np
 from typing import Optional, Tuple
-from optimal_stopping.data.stock_model import Model
+from optimal_stopping.models.stock_model import Model
 
 
 class StoredPathsModel(Model):
@@ -86,7 +86,7 @@ class StoredPathsModel(Model):
         self.start_index = start_index  # Store the offset
 
         # Open HDF5 file and validate (but don't load into memory yet)
-        from optimal_stopping.data.path_storage import STORAGE_DIR
+        from optimal_stopping.storage.path_storage import STORAGE_DIR
         import h5py
 
         filename = f"{base_model}_{storage_id}.h5"
