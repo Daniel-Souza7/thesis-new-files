@@ -47,23 +47,21 @@ thesis-new-files/
 │   │   ├── core/               # RT, RLSM, LSM, FQI, RFQI, EOP
 │   │   ├── deep/               # DOS, NLSM (deep learning baselines)
 │   │   ├── recurrent/          # RRLSM, SRLSM, SRFQI (path-dependent)
-│   │   ├── experimental/       # Research algorithms
+│   │   ├── experimental/       # Research algorithms (SM, ZAPQ, DKL)
 │   │   └── utils/              # Neural network utilities
 │   ├── models/                 # Stochastic process models
-│   │   ├── geometric_brownian.py   # GBM (Black-Scholes)
-│   │   ├── heston.py               # Heston stochastic volatility
-│   │   ├── fractional.py           # Fractional BM, Rough Heston
-│   │   └── bootstrap.py            # Stationary Block Bootstrap
+│   │   ├── stock_model.py      # GBM, Heston, FBM, Rough Heston
+│   │   └── real_data.py        # Stationary Block Bootstrap
 │   ├── payoffs/                # 360 payoff structures
 │   │   ├── basket_*.py         # Multi-asset payoffs
 │   │   ├── single_*.py         # Single-asset payoffs
 │   │   └── barrier_wrapper.py  # Barrier conditions
-│   └── storage/                # Path caching utilities
-├── experiments/                # Experiment scripts
+│   ├── storage/                # Path caching utilities
+│   ├── run/                    # Execution scripts
+│   └── utilities/              # Analysis and plotting tools
+├── experiments/                # Thesis experiment configurations
 │   ├── configs/                # Configuration files
-│   ├── runners/                # Execution scripts
-│   ├── visualization/          # Plotting utilities
-│   └── analysis/               # Result analysis
+│   └── results/                # Output directory
 ├── optimization/               # Hyperparameter optimization (Optuna)
 ├── data/                       # Pre-computed path datasets
 └── docs/                       # Documentation and LaTeX files
@@ -128,20 +126,17 @@ print(f"Option Price: ${price:.4f} +/- ${std_error:.4f}")
 
 ### Running Experiments via Command Line
 
-The main entry point for experiments is `experiments/runners/run_algo.py`:
+The main entry point for experiments is `optimal_stopping/run/run_algo.py`:
 
 ```bash
 # Run with a predefined configuration
-python -m experiments.runners.run_algo --config thesis_basket_call
+python -m optimal_stopping.run.run_algo --config thesis_basket_call
 
-# Run with custom parameters
-python -m experiments.runners.run_algo \
-    --algos RT RLSM LSM \
-    --payoff BasketCall \
-    --nb_stocks 50 \
-    --nb_paths 1000000 \
-    --nb_dates 100
+# Run with custom parameters (modify configs.py or use flags)
+python -m optimal_stopping.run.run_algo --config my_config
 ```
+
+See [optimal_stopping/run/README.md](optimal_stopping/run/README.md) for detailed usage.
 
 ### Using Pre-computed Paths
 
@@ -399,24 +394,19 @@ For exact reproduction, download pre-computed path datasets:
 ### Convergence Plots
 
 ```bash
-python -m experiments.visualization.plot_convergence \
-    --results results/my_experiment.csv \
-    --output figures/convergence.png
+python -m optimal_stopping.run.plot_convergence --config my_convergence_config
 ```
 
 ### Exercise Boundary Videos
 
 ```bash
-python -m experiments.visualization.create_video \
-    --algo RT \
-    --payoff BasketPut \
-    --output videos/exercise_boundary.mp4
+python -m optimal_stopping.run.create_video --config my_video_config
 ```
 
 ### Comparison Tables
 
 ```bash
-python -m experiments.analysis.comparison_table \
+python -m optimal_stopping.utilities.comparison_table \
     --results results/ \
     --output tables/comparison.tex
 ```

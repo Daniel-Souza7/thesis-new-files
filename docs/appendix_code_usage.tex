@@ -1,0 +1,444 @@
+% Appendix: How to Run the Code
+% This appendix provides step-by-step instructions for reproducing the experimental results
+% presented in this thesis using the RT algorithm implementation.
+
+\chapter{How to Run the Code}
+\label{appendix:code}
+
+This appendix provides comprehensive instructions for setting up and running the RT algorithm implementation. The codebase accompanies Chapter~4's experimental validation and enables reproduction of all benchmark results.
+
+\section{Repository Structure}
+
+The implementation is organized as follows:
+
+\begin{verbatim}
+thesis-new-files/
+├── optimal_stopping/           # Core library (pip installable)
+│   ├── algorithms/             # Pricing algorithms
+│   │   ├── core/               # RT, RLSM, LSM, FQI, RFQI, EOP
+│   │   ├── deep/               # DOS, NLSM (deep learning baselines)
+│   │   ├── recurrent/          # RRLSM, SRLSM, SRFQI (path-dependent)
+│   │   └── experimental/       # Research algorithms
+│   ├── models/                 # Stochastic process models
+│   ├── payoffs/                # 360 payoff structures
+│   ├── storage/                # Path caching utilities
+│   └── run/                    # Execution scripts
+├── experiments/                # Thesis experiment configurations
+├── optimization/               # Hyperparameter optimization (Optuna)
+└── data/                       # Pre-computed path datasets
+\end{verbatim}
+
+\section{Installation}
+
+\subsection{System Requirements}
+
+\begin{itemize}
+    \item Python 3.8 or later
+    \item 16GB RAM (recommended for $d \geq 100$)
+    \item CUDA-capable GPU (optional, for deep learning baselines)
+\end{itemize}
+
+\subsection{Setup Instructions}
+
+\begin{enumerate}
+    \item \textbf{Clone the repository:}
+    \begin{verbatim}
+    git clone https://github.com/Daniel-Souza7/thesis-new-files.git
+    cd thesis-new-files
+    \end{verbatim}
+
+    \item \textbf{Create a virtual environment:}
+    \begin{verbatim}
+    python -m venv venv
+    source venv/bin/activate  # Linux/Mac
+    # or: venv\Scripts\activate  # Windows
+    \end{verbatim}
+
+    \item \textbf{Install the package:}
+    \begin{verbatim}
+    pip install -e ".[full]"
+    \end{verbatim}
+
+    This installs all dependencies including:
+    \begin{itemize}
+        \item \texttt{numpy}, \texttt{scipy} -- Numerical computing
+        \item \texttt{torch} -- Neural network operations
+        \item \texttt{h5py} -- HDF5 path storage
+        \item \texttt{optuna} -- Hyperparameter optimization
+        \item \texttt{yfinance} -- Historical market data (for \texttt{RealDataModel})
+    \end{itemize}
+\end{enumerate}
+
+\section{Basic Usage}
+
+\subsection{Pricing a Single Option}
+
+The following example demonstrates pricing a 10-dimensional basket call option using the RT algorithm:
+
+\begin{verbatim}
+from optimal_stopping.algorithms import RT
+from optimal_stopping.models import BlackScholes
+from optimal_stopping.payoffs import BasketCall
+
+# Define the payoff: g(S) = max(0, (1/d) * sum(S_i) - K)
+payoff = BasketCall(strike=100)
+
+# Configure the stochastic model
+model = BlackScholes(
+    drift=0.05,           # Risk-free rate r
+    volatility=0.2,       # Volatility sigma
+    nb_stocks=10,         # Number of assets d
+    nb_paths=100000,      # Monte Carlo paths m
+    nb_dates=50,          # Exercise dates N
+    maturity=1.0,         # Time to maturity T (years)
+    spot=100,             # Initial spot price S_0
+)
+
+# Price with RT algorithm
+rt = RT(
+    model=model,
+    payoff=payoff,
+    hidden_size=20,           # Number of hidden neurons K
+    activation='leakyrelu',   # Activation function
+    use_payoff_as_input=True, # Payoff augmentation
+    train_ITM_only=True       # Filter OTM paths
+)
+
+price, path_gen_time = rt.price()
+print(f"Option Price: ${price:.4f}")
+\end{verbatim}
+
+\subsection{Comparing Multiple Algorithms}
+
+\begin{verbatim}
+from optimal_stopping.algorithms import RT, RLSM, LSM, DOS
+
+algorithms = {
+    'RT': RT(model, payoff, hidden_size=20, activation='leakyrelu'),
+    'RLSM': RLSM(model, payoff, hidden_size=20),
+    'LSM': LSM(model, payoff),
+    'DOS': DOS(model, payoff, nb_epochs=100, hidden_size=50),
+}
+
+for name, algo in algorithms.items():
+    price, _ = algo.price()
+    print(f"{name}: ${price:.4f}")
+\end{verbatim}
+
+\section{Reproducing Thesis Results}
+
+\subsection{Chapter 4 Experiments}
+
+The thesis benchmark experiments are configured in \texttt{experiments/configs/thesis\_chapter4.py}. To reproduce specific tables:
+
+\begin{verbatim}
+# Table 4.2: Algorithmic comparison across dimensions
+python -m optimal_stopping.run.run_algo --configs=thesis_table_4_2
+
+# Table 4.3: MaxCall activation function validation
+python -m optimal_stopping.run.run_algo --configs=thesis_table_4_3
+
+# Tables 4.5-4.7: Barrier option validation
+python -m optimal_stopping.run.run_algo --configs=thesis_barriers
+
+# Table 4.8: Path-dependent performance (RT vs RRLSM)
+python -m optimal_stopping.run.run_algo --configs=thesis_path_dependent
+\end{verbatim}
+
+\subsection{Configuration Details}
+
+Table~\ref{tab:thesis_configs} summarizes the thesis experiment configurations.
+
+\begin{table}[h]
+\centering
+\caption{Thesis Experiment Configurations}
+\label{tab:thesis_configs}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Config} & \textbf{Dimensions} & \textbf{Paths} & \textbf{Dates} & \textbf{Algorithms} \\
+\midrule
+\texttt{thesis\_table\_4\_2} & 1, 2, 7, 50, 500 & 8--14M & 100 & RT, RLSM, LSM, DOS, NLSM, FQI, EOP \\
+\texttt{thesis\_table\_4\_3} & 5, 25, 250 & 10M & 100 & RT, RLSM, EOP \\
+\texttt{thesis\_barriers} & 5, 25 & 10M & 100 & RT, EOP \\
+\texttt{thesis\_path\_dependent} & 1--500 & 10M & 100 & RT, RRLSM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Using Pre-computed Paths}
+
+For exact reproduction of thesis results, use pre-computed Monte Carlo paths:
+
+\begin{verbatim}
+from optimal_stopping.storage import StoredPathsModel
+
+# Load pre-computed BlackScholes paths (d=50)
+model = StoredPathsModel(
+    base_model='BlackScholes',
+    storage_id='thesis_BS_50',  # Replace with actual ID
+    nb_stocks=50,
+    nb_paths=1000000,
+    nb_dates=100,
+    maturity=1.0,
+    spot=100
+)
+
+paths, _ = model.generate_paths()
+\end{verbatim}
+
+Pre-computed path datasets are available at: \texttt{[Google Drive link -- see README.md]}
+
+\section{Algorithm Parameters}
+
+\subsection{RT Algorithm}
+
+The RT algorithm accepts the following parameters (see Section~3.1 of the thesis):
+
+\begin{table}[h]
+\centering
+\caption{RT Algorithm Parameters}
+\label{tab:rt_params}
+\begin{tabular}{lcp{7cm}}
+\toprule
+\textbf{Parameter} & \textbf{Default} & \textbf{Description} \\
+\midrule
+\texttt{hidden\_size} & 20 & Number of hidden neurons $K$. Use adaptive sizing for high dimensions. \\
+\texttt{activation} & \texttt{'leakyrelu'} & Activation function $\sigma(\cdot)$. Options: \texttt{'relu'}, \texttt{'tanh'}, \texttt{'elu'}, \texttt{'leakyrelu'} \\
+\texttt{use\_payoff\_as\_input} & \texttt{True} & Payoff augmentation: use $\tilde{x}_n = (x^\top, g(x))^\top$ \\
+\texttt{train\_ITM\_only} & \texttt{True} & Filter out-of-the-money paths during training \\
+\texttt{ridge\_coeff} & $10^{-3}$ & Ridge regularization coefficient $\lambda$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Activation Function Selection}
+
+As discussed in Section~3.1.2, activation function choice depends on payoff regularity:
+
+\begin{itemize}
+    \item \textbf{LeakyReLU} (default): Best for smooth payoffs (BasketCall, BasketPut, GeometricCall)
+    \item \textbf{ELU}: Best for non-smooth payoffs (MaxCall, MinPut, Rainbow options)
+\end{itemize}
+
+\begin{verbatim}
+# For smooth payoffs
+rt = RT(model, payoff, activation='leakyrelu')
+
+# For non-smooth payoffs (MaxCall, MinPut)
+rt = RT(model, payoff, activation='elu')
+\end{verbatim}
+
+\section{Payoff Library}
+
+The implementation includes 360 unique payoff structures constructed from 30 base payoffs and 12 barrier conditions.
+
+\subsection{Base Payoffs}
+
+\begin{verbatim}
+# Basket options (multi-asset)
+from optimal_stopping.payoffs import (
+    BasketCall, BasketPut,           # Arithmetic average
+    GeometricCall, GeometricPut,     # Geometric average
+    MaxCall, MinPut,                 # Rainbow options
+)
+
+# Asian options (path-dependent)
+from optimal_stopping.payoffs import (
+    AsianFixedStrikeCall, AsianFixedStrikePut,
+    AsianFloatingStrikeCall, AsianFloatingStrikePut,
+)
+
+# Lookback options (path-dependent)
+from optimal_stopping.payoffs import (
+    LookbackFixedCall, LookbackFixedPut,
+    LookbackFloatCall, LookbackFloatPut,
+)
+\end{verbatim}
+
+\subsection{Barrier Options}
+
+Barrier conditions are applied using the naming convention \texttt{<Barrier>\_<BasePayoff>}:
+
+\begin{verbatim}
+from optimal_stopping.payoffs import get_payoff_class
+
+# Up-and-Out Basket Call
+UO_BasketCall = get_payoff_class('UO_BasketCall')
+payoff = UO_BasketCall(strike=100, barrier=120)
+
+# Double Knock-Out Max Call
+UODO_MaxCall = get_payoff_class('UODO_MaxCall')
+payoff = UODO_MaxCall(strike=100, barrier_up=130, barrier_down=80)
+\end{verbatim}
+
+Available barrier types: \texttt{UO}, \texttt{DO}, \texttt{UI}, \texttt{DI}, \texttt{UODO}, \texttt{UIDI}, \texttt{UIDO}, \texttt{UODI}, \texttt{PTB}, \texttt{StepB}, \texttt{DStepB}.
+
+\section{Stochastic Models}
+
+\subsection{Black-Scholes (GBM)}
+
+\begin{verbatim}
+from optimal_stopping.models import BlackScholes
+
+model = BlackScholes(
+    drift=0.05,           # Risk-free rate r
+    volatility=0.2,       # Volatility sigma
+    dividend=0.0,         # Dividend yield q
+    correlation=0.3,      # Cross-asset correlation rho
+    nb_stocks=10,
+    nb_paths=100000,
+    nb_dates=50,
+    maturity=1.0,
+    spot=100
+)
+\end{verbatim}
+
+\subsection{Heston Stochastic Volatility}
+
+\begin{verbatim}
+from optimal_stopping.models import Heston
+
+model = Heston(
+    drift=0.05,
+    volatility=0.3,       # Vol-of-vol xi
+    mean=0.04,            # Long-run variance v_bar
+    speed=1.5,            # Mean reversion kappa
+    correlation=-0.7,     # Leverage rho
+    nb_stocks=1,
+    nb_paths=100000,
+    nb_dates=50,
+    maturity=1.0,
+    spot=100
+)
+\end{verbatim}
+
+\subsection{Rough Heston}
+
+\begin{verbatim}
+from optimal_stopping.models import RoughHeston
+
+model = RoughHeston(
+    drift=0.02,
+    volatility=0.3,
+    mean=0.04,
+    speed=2.0,
+    correlation=-0.7,
+    hurst=0.1,            # Hurst parameter H in (0, 0.5)
+    nb_stocks=5,
+    nb_paths=100000,
+    nb_dates=20,
+    maturity=0.5,
+    spot=100
+)
+\end{verbatim}
+
+\subsection{Real Market Data (Stationary Block Bootstrap)}
+
+\begin{verbatim}
+from optimal_stopping.models import RealDataModel
+
+model = RealDataModel(
+    tickers=['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
+    start_date='2010-01-01',
+    end_date='2024-01-01',
+    exclude_crisis=False,
+    nb_stocks=5,
+    nb_paths=100000,
+    nb_dates=50,
+    maturity=1.0,
+    spot=100
+)
+\end{verbatim}
+
+\section{Hyperparameter Optimization}
+
+The implementation includes Bayesian hyperparameter optimization via Optuna:
+
+\begin{verbatim}
+from optimization import HyperparameterOptimizer
+
+optimizer = HyperparameterOptimizer(
+    algo_name='RT',
+    payoff='MaxCall',
+    model='BlackScholes',
+    method='tpe',        # Tree-structured Parzen Estimator
+    timeout=3600,        # 1 hour
+    n_trials=100
+)
+
+best_params = optimizer.optimize()
+print(f"Best hidden_size: {best_params['hidden_size']}")
+print(f"Best activation: {best_params['activation']}")
+\end{verbatim}
+
+\section{Output and Results}
+
+\subsection{CSV Output}
+
+Results are saved to \texttt{output/metrics\_draft/<timestamp>.csv} with columns:
+
+\begin{itemize}
+    \item \texttt{algo}, \texttt{model}, \texttt{payoff} -- Experiment identifiers
+    \item \texttt{price} -- Estimated option price
+    \item \texttt{duration} -- Total runtime (seconds)
+    \item \texttt{comp\_time} -- Computation time (excluding path generation)
+    \item \texttt{exercise\_time} -- Mean optimal exercise time
+\end{itemize}
+
+\subsection{Generating LaTeX Tables}
+
+\begin{verbatim}
+# Run experiments and generate LaTeX tables
+python -m optimal_stopping.run.run_algo --generate_pdf=True
+\end{verbatim}
+
+Tables are output to \texttt{output/figures/}.
+
+\section{Troubleshooting}
+
+\subsection{Common Issues}
+
+\begin{enumerate}
+    \item \textbf{Memory Error}: Reduce \texttt{nb\_paths} or use stored paths for large dimensions.
+
+    \item \textbf{Import Error}: Ensure the package is installed:
+    \begin{verbatim}
+    pip install -e ".[full]"
+    \end{verbatim}
+
+    \item \textbf{Algorithm-Payoff Mismatch}: Use path-dependent algorithms (\texttt{SRLSM}, \texttt{SRFQI}) for barrier/lookback options, or use RT (universal).
+
+    \item \textbf{yfinance Error}: For \texttt{RealDataModel}, ensure internet connectivity and update yfinance:
+    \begin{verbatim}
+    pip install --upgrade yfinance
+    \end{verbatim}
+\end{enumerate}
+
+\subsection{Debug Mode}
+
+For detailed error messages:
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo --DEBUG=True --print_errors=True
+\end{verbatim}
+
+\section{Citation}
+
+If you use this code in your research, please cite:
+
+\begin{verbatim}
+@mastersthesis{souza2025rt,
+  title={The RT Algorithm: Randomized Neural Networks
+         for High-Dimensional American Option Pricing},
+  author={Souza, Daniel},
+  year={2025},
+  school={[Your University]}
+}
+\end{verbatim}
+
+\section{Contact and Support}
+
+\begin{itemize}
+    \item Repository: \url{https://github.com/Daniel-Souza7/thesis-new-files}
+    \item Issues: \url{https://github.com/Daniel-Souza7/thesis-new-files/issues}
+\end{itemize}
