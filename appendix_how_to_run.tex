@@ -1,0 +1,613 @@
+\chapter{How to Run the Code}
+\label{appendix:code}
+
+This appendix provides comprehensive instructions for reproducing the experimental results presented in this thesis. The \texttt{optimal\_stopping} software framework implements all algorithms, payoff structures, and stochastic process models described in the preceding chapters. Complete source code is available at:
+
+\begin{center}
+\url{https://github.com/Daniel-Souza7/thesis-new-files}
+\end{center}
+
+\section{Installation and Setup}
+\label{sec:installation}
+
+\subsection{System Requirements}
+
+The software requires the following minimum specifications:
+\begin{itemize}
+    \item \textbf{Python:} Version 3.8 or higher
+    \item \textbf{Memory:} 8 GB RAM minimum; 32+ GB recommended for high-dimensional experiments ($d \geq 50$)
+    \item \textbf{Storage:} 10 GB for pre-computed path datasets
+    \item \textbf{GPU:} CUDA-compatible GPU optional (for deep learning methods DOS and NLSM only)
+\end{itemize}
+
+\subsection{Installation Procedure}
+
+\begin{enumerate}
+    \item \textbf{Clone the repository:}
+    \begin{verbatim}
+    git clone https://github.com/Daniel-Souza7/thesis-new-files.git
+    cd thesis-new-files
+    \end{verbatim}
+
+    \item \textbf{Create a virtual environment (recommended):}
+    \begin{verbatim}
+    python -m venv venv
+    source venv/bin/activate  # Linux/macOS
+    venv\Scripts\activate     # Windows
+    \end{verbatim}
+
+    \item \textbf{Install dependencies:}
+    \begin{verbatim}
+    pip install -r requirements.txt
+    \end{verbatim}
+
+    \item \textbf{Verify installation:}
+    \begin{verbatim}
+    python -c "from optimal_stopping.payoffs import list_payoffs; \
+               print(f'Loaded {len(list_payoffs())} payoffs')"
+    \end{verbatim}
+    Expected output: \texttt{Loaded 360 payoffs}
+\end{enumerate}
+
+\section{Configuration System}
+\label{sec:config-system}
+
+The experimental framework employs a declarative configuration system where all parameters are specified in \texttt{optimal\_stopping/run/configs.py}. Each configuration is defined as a Python dataclass with parameters specified as iterables, enabling automatic grid search over all parameter combinations.
+
+\subsection{Configuration Structure}
+
+A minimal configuration has the following structure:
+
+\begin{verbatim}
+from dataclasses import dataclass
+
+@dataclass
+class my_experiment(_DefaultConfig):
+    # Algorithm selection
+    algos: tuple = ('RT', 'RLSM', 'LSM')
+
+    # Problem specification
+    payoffs: tuple = ('BasketCall', 'BasketPut')
+    stock_models: tuple = ('BlackScholes',)
+    nb_stocks: tuple = (5, 50)           # Dimension d
+
+    # Market parameters (as in Section 3.2)
+    drift: tuple = (0.05,)               # Risk-free rate r
+    volatilities: tuple = (0.2,)         # Volatility sigma
+    spots: tuple = (100,)                # Initial price S_0
+    strikes: tuple = (100,)              # Strike price K
+    maturities: tuple = (1.0,)           # Time to maturity T
+
+    # Simulation parameters
+    nb_paths: tuple = (1000000,)         # Monte Carlo paths m
+    nb_dates: tuple = (100,)             # Exercise dates N
+    nb_runs: int = 5                     # Repetitions
+
+    # Algorithm hyperparameters (as in Section 3.1)
+    hidden_size: tuple = (75,)           # Hidden neurons K
+    activation: tuple = ('leakyrelu',)   # Activation function
+    use_payoff_as_input: tuple = (True,) # Payoff augmentation
+    train_ITM_only: tuple = (True,)      # ITM filtering
+\end{verbatim}
+
+The configuration above generates $3 \times 2 \times 2 = 12$ experimental combinations (3 algorithms $\times$ 2 payoffs $\times$ 2 dimensions), each repeated 5 times.
+
+\subsection{Key Configuration Parameters}
+\label{subsec:config-params}
+
+Table~\ref{tab:config-params} summarizes the principal configuration parameters, with references to their theoretical definitions in the thesis.
+
+\begin{table}[htbp]
+\centering
+\caption{Configuration parameters and their correspondence to thesis notation.}
+\label{tab:config-params}
+\begin{tabular}{llll}
+\toprule
+\textbf{Parameter} & \textbf{Type} & \textbf{Thesis Symbol} & \textbf{Reference} \\
+\midrule
+\texttt{nb\_stocks} & \texttt{int} & $d$ & Sec.~2.1.1 \\
+\texttt{nb\_paths} & \texttt{int} & $m$ & Sec.~4.1.2 \\
+\texttt{nb\_dates} & \texttt{int} & $N$ & Sec.~2.1.1 \\
+\texttt{drift} & \texttt{float} & $r$ & Eq.~(3.4) \\
+\texttt{volatilities} & \texttt{float} & $\sigma$ & Eq.~(3.4) \\
+\texttt{spots} & \texttt{float} & $S_0$ & Sec.~2.1.1 \\
+\texttt{strikes} & \texttt{float} & $K$ & Sec.~2.1.1 \\
+\texttt{maturities} & \texttt{float} & $T$ & Sec.~2.1.1 \\
+\texttt{hidden\_size} & \texttt{int} & $K$ & Sec.~2.3.1 \\
+\texttt{activation} & \texttt{str} & $\sigma(\cdot)$ & Sec.~2.3.1 \\
+\texttt{barriers} & \texttt{float} & $B$ & Sec.~3.3.2 \\
+\texttt{barriers\_up} & \texttt{float} & $B_U$ & Sec.~3.3.2 \\
+\texttt{barriers\_down} & \texttt{float} & $B_L$ & Sec.~3.3.2 \\
+\texttt{hurst} & \texttt{float} & $H$ & Sec.~3.2.3 \\
+\texttt{mean} & \texttt{float} & $\theta$ & Eq.~(3.8) \\
+\texttt{speed} & \texttt{float} & $\kappa$ & Eq.~(3.8) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Running Experiments}
+\label{sec:running}
+
+\subsection{Basic Execution}
+
+Once a configuration is defined in \texttt{configs.py}, experiments are executed via the command line:
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo --configs=my_experiment
+\end{verbatim}
+
+Results are automatically saved to \texttt{optimal\_stopping/run/results/my\_experiment/}.
+
+\subsection{Results Aggregation}
+
+To aggregate results into an Excel file with summary statistics:
+
+\begin{verbatim}
+python -m optimal_stopping.run.write_excel --configs=my_experiment
+\end{verbatim}
+
+This generates \texttt{my\_experiment\_summary.xlsx} containing mean prices, standard deviations, and execution times for each configuration.
+
+\subsection{Command-Line Options}
+
+The execution script supports several options for filtering and customization:
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo --configs=my_experiment \
+    --nb_jobs=8 \              # Parallel CPU workers
+    --algos=RT,RLSM \          # Filter algorithms
+    --nb_stocks=50 \           # Filter dimensions
+    --path_gen_seed=42 \       # Reproducible paths
+    --print_errors             # Show full error traces
+\end{verbatim}
+
+\section{Reproducing Thesis Results}
+\label{sec:reproducing}
+
+This section provides the exact configurations needed to reproduce the principal experimental results presented in Chapter~4.
+
+\subsection{Table 4.2: Dimensional Scalability Benchmark}
+
+To reproduce the cross-algorithm benchmark across dimensions $d \in \{1, 2, 7, 50, 500\}$:
+
+\begin{verbatim}
+@dataclass
+class table_4_2_dimensional_scalability(_DefaultConfig):
+    """Reproduce Table 4.2: Algorithmic comparison."""
+    algos: tuple = ('RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP')
+    payoffs: tuple = ('BasketCall',)
+    stock_models: tuple = ('BlackScholes',)
+
+    nb_stocks: tuple = (1, 2, 7, 50, 500)
+    nb_paths: tuple = (10000000,)
+    nb_dates: tuple = (100,)
+    nb_runs: int = 5
+
+    drift: tuple = (0.08,)
+    volatilities: tuple = (0.2,)
+    dividends: tuple = (0.0,)
+    spots: tuple = (100,)
+    strikes: tuple = (100,)
+    maturities: tuple = (1.0,)
+
+    hidden_size: tuple = (75,)
+    activation: tuple = ('leakyrelu',)
+    use_payoff_as_input: tuple = (True,)
+    dtype: tuple = ('float32',)
+\end{verbatim}
+
+Execute with:
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo \
+    --configs=table_4_2_dimensional_scalability
+python -m optimal_stopping.run.write_excel \
+    --configs=table_4_2_dimensional_scalability
+\end{verbatim}
+
+\subsection{Table 4.3: MaxCall Activation Function Validation}
+
+To reproduce the activation function comparison on MaxCall options:
+
+\begin{verbatim}
+@dataclass
+class table_4_3_maxcall_activation(_DefaultConfig):
+    """Reproduce Table 4.3: MaxCall RT vs RLSM."""
+    algos: tuple = ('RT', 'RLSM')
+    payoffs: tuple = ('MaxCall',)
+    stock_models: tuple = ('BlackScholes',)
+
+    nb_stocks: tuple = (5, 25, 250)
+    nb_paths: tuple = (5000000,)
+    nb_dates: tuple = (100,)
+    nb_runs: int = 5
+
+    drift: tuple = (0.08,)
+    volatilities: tuple = (0.2,)
+    spots: tuple = (100,)
+    strikes: tuple = (100,)
+    maturities: tuple = (1.0,)
+
+    # RT uses adaptive activation (ELU for MaxCall)
+    activation: tuple = ('elu', 'leakyrelu')
+    hidden_size: tuple = (50,)
+\end{verbatim}
+
+\subsection{Table 4.8: Path-Dependent Performance (RT vs RRLSM)}
+
+To reproduce the path-dependent option comparison:
+
+\begin{verbatim}
+@dataclass
+class table_4_8_path_dependent(_DefaultConfig):
+    """Reproduce Table 4.8: RT vs RRLSM."""
+    algos: tuple = ('RT', 'RRLSM')
+    payoffs: tuple = (
+        'LookbackFixedCall',
+        'LookbackFloatPut',
+        'AsianFixedStrikePut',
+        'AsianFloatingStrikeCall',
+        'UO-DispersionCall',
+        'DO-BestOfKCall',
+        'UI-MinPut',
+        'DI-MaxCall'
+    )
+    stock_models: tuple = ('BlackScholes',)
+
+    nb_stocks: tuple = (1, 5, 25, 50, 250, 500)
+    nb_paths: tuple = (2000000,)
+    nb_dates: tuple = (50,)
+
+    # Barrier parameters
+    barriers: tuple = (150,)
+    barriers_up: tuple = (150,)
+    barriers_down: tuple = (70,)
+
+    # Rank parameters for BestOfK
+    k: tuple = (2,)
+    weights: tuple = ((0.5, 0.5),)
+
+    activation: tuple = ('elu',)
+\end{verbatim}
+
+\subsection{Table 4.5: Barrier Option Convergence}
+
+To validate barrier option convergence under extreme thresholds:
+
+\begin{verbatim}
+@dataclass
+class table_4_5_barrier_convergence(_DefaultConfig):
+    """Reproduce Table 4.5: Barrier convergence."""
+    algos: tuple = ('RT',)
+    payoffs: tuple = ('UO-BasketCall', 'DO-MaxCall')
+    stock_models: tuple = ('BlackScholes',)
+
+    nb_stocks: tuple = (5, 25)
+    nb_paths: tuple = (5000000,)
+
+    # Extreme barriers for convergence validation
+    barriers: tuple = (1000, 0.001)  # Far OTM barriers
+
+    spots: tuple = (90, 100, 110)  # OTM, ATM, ITM
+    strikes: tuple = (100,)
+\end{verbatim}
+
+\section{Configuring Barrier Options}
+\label{sec:barrier-config}
+
+Barrier options are specified using a prefix notation in the payoff name. The naming convention follows the pattern \texttt{\{BARRIER\}-\{BASE\_PAYOFF\}}.
+
+\subsection{Single Barrier Configuration}
+
+\begin{verbatim}
+@dataclass
+class single_barrier_example(_DefaultConfig):
+    algos: tuple = ('RT', 'SRLSM')
+    payoffs: tuple = (
+        'UO-BasketCall',    # Up-and-Out
+        'DO-MaxCall',       # Down-and-Out
+        'UI-MinPut',        # Up-and-In
+        'DI-GeometricPut'   # Down-and-In
+    )
+
+    barriers: tuple = (120,)  # Single barrier level B
+    spots: tuple = (100,)
+    strikes: tuple = (100,)
+\end{verbatim}
+
+\subsection{Double Barrier Configuration}
+
+\begin{verbatim}
+@dataclass
+class double_barrier_example(_DefaultConfig):
+    algos: tuple = ('RT',)
+    payoffs: tuple = (
+        'UODO-BasketCall',  # Double Knock-Out
+        'UIDI-MinPut',      # Double Knock-In
+        'UIDO-MaxCall',     # Up-In-Down-Out
+        'UODI-GeometricCall' # Up-Out-Down-In
+    )
+
+    barriers_up: tuple = (150,)    # Upper barrier B_U
+    barriers_down: tuple = (70,)   # Lower barrier B_L
+\end{verbatim}
+
+\subsection{Step Barrier Configuration}
+
+\begin{verbatim}
+@dataclass
+class step_barrier_example(_DefaultConfig):
+    algos: tuple = ('RT',)
+    payoffs: tuple = (
+        'StepB-BasketCall',   # Single step barrier
+        'DStepB-MinPut'       # Double step barrier
+    )
+
+    # Step barrier parameters
+    step_param1: tuple = (100,)  # B(0) start level
+    step_param2: tuple = (150,)  # B(T) end level
+    step_param3: tuple = (80,)   # Lower B(0) for double
+    step_param4: tuple = (60,)   # Lower B(T) for double
+\end{verbatim}
+
+\section{Configuring Stochastic Processes}
+\label{sec:process-config}
+
+The framework supports five stochastic process models as described in Section~3.2.
+
+\subsection{Black-Scholes (GBM)}
+
+\begin{verbatim}
+@dataclass
+class blackscholes_config(_DefaultConfig):
+    stock_models: tuple = ('BlackScholes',)
+
+    drift: tuple = (0.05,)        # r
+    volatilities: tuple = (0.2,)  # sigma
+    correlation: tuple = (0.3,)   # rho (cross-asset)
+    dividends: tuple = (0.0,)     # q
+\end{verbatim}
+
+\subsection{Heston Stochastic Volatility}
+
+\begin{verbatim}
+@dataclass
+class heston_config(_DefaultConfig):
+    stock_models: tuple = ('Heston',)
+
+    drift: tuple = (0.05,)        # r
+    volatilities: tuple = (0.2,)  # sqrt(v_0)
+    mean: tuple = (0.04,)         # theta (long-run variance)
+    speed: tuple = (2.0,)         # kappa (mean reversion)
+    correlation: tuple = (-0.7,)  # rho (leverage effect)
+\end{verbatim}
+
+\subsection{Fractional Brownian Motion}
+
+\begin{verbatim}
+@dataclass
+class fbm_config(_DefaultConfig):
+    stock_models: tuple = ('FractionalBrownianMotion',)
+
+    hurst: tuple = (0.3, 0.5, 0.7)  # H parameter
+    drift: tuple = (0.05,)
+    volatilities: tuple = (0.2,)
+\end{verbatim}
+
+\subsection{Rough Heston}
+
+\begin{verbatim}
+@dataclass
+class rough_heston_config(_DefaultConfig):
+    stock_models: tuple = ('RoughHeston',)
+
+    hurst: tuple = (0.1,)          # H (roughness)
+    mean: tuple = (0.3,)           # theta
+    speed: tuple = (0.15,)         # kappa
+    correlation: tuple = (-0.7,)   # rho
+\end{verbatim}
+
+\subsection{Stationary Block Bootstrap (Real Data)}
+
+\begin{verbatim}
+@dataclass
+class real_data_config(_DefaultConfig):
+    stock_models: tuple = ('RealData',)
+
+    nb_stocks: tuple = (5, 10, 25)
+    nb_paths: tuple = (500000,)
+    maturities: tuple = (0.5,)
+    # Uses S&P 500 historical data via Yahoo Finance
+\end{verbatim}
+
+\section{Algorithm-Specific Configuration}
+\label{sec:algo-config}
+
+\subsection{RT Algorithm (Proposed)}
+
+The RT algorithm (Section~3.1) accepts the following hyperparameters:
+
+\begin{verbatim}
+hidden_size: tuple = (75,)           # K neurons
+activation: tuple = ('leakyrelu',)   # sigma(.)
+use_payoff_as_input: tuple = (True,) # Payoff augmentation
+train_ITM_only: tuple = (True,)      # ITM filtering
+dropout: tuple = (0.0,)              # Dropout probability
+\end{verbatim}
+
+The dimension-adaptive heuristic from Equation~(3.1) suggests:
+\begin{itemize}
+    \item $d \leq 9$: $K = \max(2d, 5)$
+    \item $10 \leq d \leq 49$: $K = 1.5d$
+    \item $d \geq 500$: $K = 1.2d$
+\end{itemize}
+
+For path-dependent or non-smooth payoffs (MaxCall, MinPut, barriers), use \texttt{activation='elu'}.
+
+\subsection{RLSM Algorithm (Baseline)}
+
+\begin{verbatim}
+hidden_size: tuple = (20,)           # Original fixed size
+activation: tuple = ('leakyrelu',)
+ridge_coeff: tuple = (0.0,)          # L2 regularization
+\end{verbatim}
+
+\subsection{LSM Algorithm (Classical)}
+
+The classical LSM algorithm (Section~2.2) uses polynomial basis functions and does not require neural network hyperparameters.
+
+\subsection{Deep Learning Algorithms (DOS, NLSM)}
+
+\begin{verbatim}
+hidden_size: tuple = (40,)
+nb_epochs: tuple = (30,)             # Training epochs
+\end{verbatim}
+
+\section{Output and Results}
+\label{sec:output}
+
+\subsection{Output Directory Structure}
+
+Results are organized as follows:
+
+\begin{verbatim}
+optimal_stopping/run/results/
+  my_experiment/
+    my_experiment.csv           # Raw results
+    my_experiment_summary.xlsx  # Aggregated statistics
+    figures/                    # Generated plots
+\end{verbatim}
+
+\subsection{CSV Output Format}
+
+The raw CSV file contains one row per experimental run with columns:
+
+\begin{table}[htbp]
+\centering
+\caption{CSV output columns.}
+\begin{tabular}{ll}
+\toprule
+\textbf{Column} & \textbf{Description} \\
+\midrule
+\texttt{algo} & Algorithm name \\
+\texttt{payoff} & Payoff structure \\
+\texttt{nb\_stocks} & Dimension $d$ \\
+\texttt{nb\_paths} & Monte Carlo paths $m$ \\
+\texttt{price} & Computed option price $\hat{p}_0$ \\
+\texttt{time} & Execution time (seconds) \\
+\texttt{run\_id} & Run number \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Hyperparameter Optimization}
+\label{sec:hpo}
+
+For automated hyperparameter search (Appendix~B), configure as follows:
+
+\begin{verbatim}
+@dataclass
+class hpo_experiment(_DefaultConfig):
+    algos: tuple = ('RT',)
+    payoffs: tuple = ('BasketCall',)
+
+    enable_hyperopt: bool = True
+    hyperopt_method: str = 'tpe'        # Bayesian optimization
+    hyperopt_timeout: float = 3600      # 1 hour
+    hyperopt_n_trials: int = 100
+    hyperopt_fidelity_factor: int = 4   # Use m/4 paths
+    hyperopt_variance_penalty: float = 0.1
+\end{verbatim}
+
+Execute with:
+\begin{verbatim}
+python -m optimal_stopping.run.run_hyperopt --configs=hpo_experiment
+\end{verbatim}
+
+\section{Pre-Computed Path Datasets}
+\label{sec:datasets}
+
+To ensure exact reproducibility, pre-computed path datasets used in Chapter~4 are available at:
+
+\begin{center}
+\url{https://drive.google.com/drive/folders/thesis-datasets}
+\end{center}
+
+\subsection{Available Datasets}
+
+\begin{table}[htbp]
+\centering
+\caption{Pre-computed path datasets.}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{ID} & \textbf{Model} & $\mathbf{d}$ & $\mathbf{m}$ & \textbf{Parameters} \\
+\midrule
+\texttt{BS\_1.h5} & BlackScholes & 1 & 8M & $r=0.08$, $\sigma=0.2$ \\
+\texttt{BS\_2.h5} & BlackScholes & 2 & 8M & $r=0.08$, $\sigma=0.2$ \\
+\texttt{BS\_7.h5} & BlackScholes & 7 & 14M & $r=0.08$, $\sigma=0.2$ \\
+\texttt{BS\_50.h5} & BlackScholes & 50 & 10M & $r=0.08$, $\sigma=0.2$ \\
+\texttt{BS\_500.h5} & BlackScholes & 500 & 10M & $r=0.08$, $\sigma=0.2$ \\
+\texttt{RH\_5.h5} & RoughHeston & 5 & 10M & $H=0.75$, $\kappa=0.15$ \\
+\texttt{SBB\_25.h5} & RealData & 25 & 10M & Historical S\&P 500 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Using Stored Paths}
+
+Download the datasets and place them in \texttt{optimal\_stopping/data/stored\_paths/}. Configure experiments to use stored paths:
+
+\begin{verbatim}
+@dataclass
+class stored_paths_experiment(_DefaultConfig):
+    stock_models: tuple = ('StoredPaths',)
+    stored_paths_id: str = 'BS_50'  # Use BS_50.h5
+\end{verbatim}
+
+\section{Troubleshooting}
+\label{sec:troubleshooting}
+
+\subsection{Memory Issues}
+
+For high-dimensional problems ($d \geq 100$) or large path counts ($m \geq 10^7$):
+
+\begin{verbatim}
+# Use single precision
+dtype: tuple = ('float32',)
+
+# Reduce path count
+nb_paths: tuple = (1000000,)
+
+# Reduce parallelism
+python -m optimal_stopping.run.run_algo --configs=exp --nb_jobs=4
+\end{verbatim}
+
+\subsection{Algorithm Not Found}
+
+Ensure algorithm names are spelled correctly (case-sensitive):
+
+\begin{verbatim}
+algos: tuple = ('RT', 'RLSM', 'LSM')  # Correct
+algos: tuple = ('rt', 'rlsm', 'lsm')  # Incorrect
+\end{verbatim}
+
+\subsection{Reproducibility}
+
+For exact reproducibility across runs:
+
+\begin{verbatim}
+python -m optimal_stopping.run.run_algo --configs=exp --path_gen_seed=42
+\end{verbatim}
+
+\section{Summary}
+\label{sec:summary}
+
+The \texttt{optimal\_stopping} framework provides a complete infrastructure for American option pricing research. Key usage patterns:
+
+\begin{enumerate}
+    \item Define configuration in \texttt{configs.py}
+    \item Execute: \texttt{python -m optimal\_stopping.run.run\_algo --configs=name}
+    \item Aggregate: \texttt{python -m optimal\_stopping.run.write\_excel --configs=name}
+    \item Analyze results in \texttt{results/name/}
+\end{enumerate}
+
+For questions or issues, consult the repository documentation or contact the author.
