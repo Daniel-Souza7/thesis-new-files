@@ -110,9 +110,14 @@ This architecture transforms the non-convex deep learning optimization into a **
 The RT algorithm introduces several structural improvements:
 
 1. **Dimension-Adaptive Neuron Allocation** (Eq. 3.1 in thesis):
-   - Low dimensions ($d \leq 9$): $K = \max(2d, 5)$
-   - Medium dimensions ($10 \leq d \leq 49$): $K = 1.5d$
-   - High dimensions ($d \geq 500$): $K = 1.2d$
+   - $d \in [1, 9]$: $K = \max(2d, 5)$
+   - $d \in [10, 49]$: $K = 1.5d$
+   - $d \in [50, 99]$: $K = 1.4d$
+   - $d \in [100, 249]$: $K = 1.3d$
+   - $d \in [250, 499]$: $K = 1.25d$
+   - $d \geq 500$: $K = 1.2d$
+
+   When `hidden_size=None`, the algorithm automatically applies this heuristic.
 
 2. **Adaptive Activation Function Selection**:
    - LeakyReLU for smooth payoffs
@@ -283,39 +288,40 @@ All experiments are defined in `optimal_stopping/run/configs.py` using a declara
 
 ### Creating a Configuration
 
+Configurations are created by instantiating `_DefaultConfig` with parameter overrides. Any parameter not specified uses its default value.
+
 ```python
 # In configs.py
-from dataclasses import dataclass
 
-@dataclass
-class my_experiment(_DefaultConfig):
+my_experiment = _DefaultConfig(
     # Algorithm selection
-    algos: tuple = ('RT', 'RLSM', 'LSM')
+    algos=['RT', 'RLSM', 'LSM'],
 
     # Problem specification
-    payoffs: tuple = ('BasketCall', 'BasketPut')
-    nb_stocks: tuple = (5, 25, 50)
+    payoffs=['BasketCall', 'BasketPut'],
+    nb_stocks=[5, 25, 50],
 
-    # Market parameters
-    drift: tuple = (0.05,)
-    volatilities: tuple = (0.2,)
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-    maturities: tuple = (1.0,)
+    # Market parameters (defaults: r=0.08, σ=0.2)
+    drift=[0.05],
+    volatilities=[0.2],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
 
-    # Simulation parameters
-    nb_paths: tuple = (500000,)
-    nb_dates: tuple = (50,)
-    nb_runs: int = 5
+    # Simulation parameters (default: 8M paths)
+    nb_paths=[500000],
+    nb_dates=[50],
+    nb_runs=5,
 
     # Algorithm hyperparameters
-    hidden_size: tuple = (75,)
-    activation: tuple = ('leakyrelu',)
-    use_payoff_as_input: tuple = (True,)
-    train_ITM_only: tuple = (True,)
+    hidden_size=[None],           # None = use dimension heuristic
+    activation=['leakyrelu'],
+    use_payoff_as_input=[True],
+    train_ITM_only=[True],
 
     # Precision
-    dtype: tuple = ('float32',)
+    dtype=['float32'],
+)
 ```
 
 ### Key Configuration Parameters
@@ -340,13 +346,13 @@ For barrier options, use the barrier prefix naming convention:
 
 ```python
 barrier_experiment = _DefaultConfig(
-    algos=('RT', 'SRLSM'),
-    payoffs=('UO-BasketCall', 'DI-MinPut'),  # Barrier prefix
-    barriers=(120,),                          # Single barrier level
+    algos=['RT', 'SRLSM'],
+    payoffs=['UO-BasketCall', 'DI-MinPut'],  # Barrier prefix
+    barriers=[120],                           # Single barrier level
     # For double barriers:
-    # payoffs=('UODO-BasketCall',),
-    # barriers_up=(150,),
-    # barriers_down=(70,)
+    # payoffs=['UODO-BasketCall'],
+    # barriers_up=[150],
+    # barriers_down=[70],
 )
 ```
 
@@ -511,10 +517,10 @@ barrier_payoff = UO_BasketCall(strike=100, barrier=120)
 
 # In configs.py
 my_config = _DefaultConfig(
-    payoffs=('BasketCall', 'UO-BasketCall', 'UODO-MinPut'),
-    barriers=(120,),
-    barriers_up=(150,),
-    barriers_down=(70,)
+    payoffs=['BasketCall', 'UO-BasketCall', 'UODO-MinPut'],
+    barriers=[120],
+    barriers_up=[150],
+    barriers_down=[70],
 )
 ```
 
@@ -538,34 +544,34 @@ my_config = _DefaultConfig(
 ```python
 # Black-Scholes (GBM) with correlation
 bs_config = _DefaultConfig(
-    stock_models=('BlackScholes',),
-    drift=(0.05,),
-    volatilities=(0.2,),
-    correlation=(0.3,),  # Cross-asset correlation
-    nb_stocks=(50,)
+    stock_models=['BlackScholes'],
+    drift=[0.05],
+    volatilities=[0.2],
+    correlation=[0.3],  # Cross-asset correlation
+    nb_stocks=[50],
 )
 
 # Heston stochastic volatility
 heston_config = _DefaultConfig(
-    stock_models=('Heston',),
-    drift=(0.05,),
-    volatilities=(0.2,),      # Initial volatility v_0
-    mean=(0.04,),             # Long-run variance theta
-    speed=(2.0,),             # Mean reversion kappa
-    correlation=(-0.7,)       # Leverage effect rho
+    stock_models=['Heston'],
+    drift=[0.05],
+    volatilities=[0.2],      # Initial volatility sqrt(v_0)
+    mean=[0.04],             # Long-run variance theta
+    speed=[2.0],             # Mean reversion kappa
+    correlation=[-0.7],      # Leverage effect rho
 )
 
-# Rough Heston
+# Rough Heston (Note: slow path generation, consider storing paths)
 rough_config = _DefaultConfig(
-    stock_models=('RoughHeston',),
-    hurst=(0.1,),             # Roughness parameter H
-    mean=(0.04,),
-    speed=(0.3,)
+    stock_models=['RoughHeston'],
+    hurst=[0.1],             # Roughness parameter H
+    mean=[0.3],
+    speed=[0.15],
 )
 
 # Real market data (Stationary Block Bootstrap)
 real_config = _DefaultConfig(
-    stock_models=('RealData',),
+    stock_models=['RealData'],
     # Downloads from Yahoo Finance automatically
 )
 ```

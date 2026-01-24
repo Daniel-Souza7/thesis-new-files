@@ -48,49 +48,57 @@ All experiments are defined in `configs.py` using Python dataclasses. Each param
 
 ### Basic Configuration Structure
 
+Configurations are created by instantiating `_DefaultConfig` with parameter overrides. Any parameter not specified uses its default value (see default values in table below).
+
 ```python
-from dataclasses import dataclass
+# In configs.py
 
-@dataclass
-class my_experiment(_DefaultConfig):
-    """My custom experiment configuration."""
-
+my_experiment = _DefaultConfig(
     # Algorithm selection
-    algos: tuple = ('RT', 'RLSM', 'LSM')
+    algos=['RT', 'RLSM', 'LSM'],
 
     # Problem specification
-    payoffs: tuple = ('BasketCall', 'BasketPut')
-    stock_models: tuple = ('BlackScholes',)
+    payoffs=['BasketCall', 'BasketPut'],
+    stock_models=['BlackScholes'],
 
     # Dimensions to test
-    nb_stocks: tuple = (5, 25, 50, 100)
+    nb_stocks=[5, 25, 50, 100],
 
-    # Market parameters
-    drift: tuple = (0.05,)
-    volatilities: tuple = (0.2,)
-    correlation: tuple = (0.0,)
-    dividends: tuple = (0.0,)
+    # Market parameters (override defaults if needed)
+    drift=[0.05],
+    volatilities=[0.2],
+    correlation=[0.0],
+    dividends=[0.0],
 
     # Option parameters
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-    maturities: tuple = (1.0,)
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
 
-    # Simulation parameters
-    nb_paths: tuple = (1000000,)
-    nb_dates: tuple = (100,)
-    nb_runs: int = 5              # Repetitions per configuration
+    # Simulation parameters (default: 8M paths)
+    nb_paths=[1000000],
+    nb_dates=[100],
+    nb_runs=5,              # Repetitions per configuration
 
     # Algorithm hyperparameters
-    hidden_size: tuple = (75,)
-    activation: tuple = ('leakyrelu',)
-    use_payoff_as_input: tuple = (True,)
-    train_ITM_only: tuple = (True,)
-    dropout: tuple = (0.0,)
+    hidden_size=[None],     # None = use dimension heuristic
+    activation=['leakyrelu'],
+    use_payoff_as_input=[True],
+    train_ITM_only=[True],
+    dropout=[0.0],
 
     # Precision
-    dtype: tuple = ('float32',)
+    dtype=['float32'],
+)
 ```
+
+**Neuron Heuristic:** When `hidden_size=[None]`, the RT algorithm uses:
+- $d \in [1, 9]$: $K = \max(2d, 5)$
+- $d \in [10, 49]$: $K = 1.5d$
+- $d \in [50, 99]$: $K = 1.4d$
+- $d \in [100, 249]$: $K = 1.3d$
+- $d \in [250, 499]$: $K = 1.25d$
+- $d \geq 500$: $K = 1.2d$
 
 ### Grid Search Behavior
 
@@ -288,99 +296,99 @@ python -m optimal_stopping.run.write_figures --configs=my_experiment
 ### Dimensional Scalability Study
 
 ```python
-@dataclass
-class dimensional_study(_DefaultConfig):
-    """Replicate Table 4.2 from thesis."""
-    algos: tuple = ('RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP')
-    payoffs: tuple = ('BasketCall',)
-    stock_models: tuple = ('BlackScholes',)
+dimensional_study = _DefaultConfig(
+    # Replicate Table 4.2 from thesis
+    algos=['RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP'],
+    payoffs=['BasketCall'],
+    stock_models=['BlackScholes'],
 
-    nb_stocks: tuple = (1, 2, 7, 50, 500)
-    nb_paths: tuple = (10000000,)
-    nb_dates: tuple = (100,)
-    nb_runs: int = 5
+    nb_stocks=[1, 2, 7, 50, 500],
+    nb_paths=[10000000],
+    nb_dates=[100],
+    nb_runs=5,
 
-    drift: tuple = (0.08,)
-    volatilities: tuple = (0.2,)
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-    maturities: tuple = (1.0,)
+    drift=[0.08],
+    volatilities=[0.2],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
 
-    hidden_size: tuple = (75,)
-    activation: tuple = ('leakyrelu',)
+    hidden_size=[None],  # Use heuristic
+    activation=['leakyrelu'],
+)
 ```
 
 ### Barrier Option Study
 
 ```python
-@dataclass
-class barrier_study(_DefaultConfig):
-    """Barrier option monotonicity validation."""
-    algos: tuple = ('RT', 'SRLSM')
-    payoffs: tuple = ('UO-BasketCall', 'DO-MaxCall', 'DI-MinPut')
-    stock_models: tuple = ('BlackScholes',)
+barrier_study = _DefaultConfig(
+    # Barrier option monotonicity validation
+    algos=['RT', 'SRLSM'],
+    payoffs=['UO-BasketCall', 'DO-MaxCall', 'DI-MinPut'],
+    stock_models=['BlackScholes'],
 
-    nb_stocks: tuple = (5, 25)
-    nb_paths: tuple = (1000000,)
-    nb_dates: tuple = (50,)
+    nb_stocks=[5, 25],
+    nb_paths=[1000000],
+    nb_dates=[50],
 
     # Barrier sweep
-    barriers: tuple = (80, 90, 100, 110, 120, 130, 140, 150)
+    barriers=[80, 90, 100, 110, 120, 130, 140, 150],
 
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
+    spots=[100],
+    strikes=[100],
+)
 ```
 
 ### Path-Dependent Comparison
 
 ```python
-@dataclass
-class path_dependent_study(_DefaultConfig):
-    """RT vs RRLSM on path-dependent options."""
-    algos: tuple = ('RT', 'RRLSM', 'SRLSM')
-    payoffs: tuple = (
+path_dependent_study = _DefaultConfig(
+    # RT vs RRLSM on path-dependent options
+    algos=['RT', 'RRLSM', 'SRLSM'],
+    payoffs=[
         'LookbackFixedCall',
         'LookbackFloatPut',
         'AsianFixedStrikeCall',
         'AsianFloatingStrikePut',
         'UI-MinPut',
-        'DO-MaxCall'
-    )
+        'DO-MaxCall',
+    ],
 
-    nb_stocks: tuple = (1, 5, 25)
-    activation: tuple = ('elu',)  # ELU for path-dependent
+    nb_stocks=[1, 5, 25],
+    activation=['elu'],  # ELU for path-dependent
+)
 ```
 
 ### Activation Function Study
 
 ```python
-@dataclass
-class activation_study(_DefaultConfig):
-    """Validate activation function selection."""
-    algos: tuple = ('RT',)
-    payoffs: tuple = ('MaxCall', 'MinPut', 'BasketCall')
+activation_study = _DefaultConfig(
+    # Validate activation function selection
+    algos=['RT'],
+    payoffs=['MaxCall', 'MinPut', 'BasketCall'],
 
-    nb_stocks: tuple = (5, 25, 250)
+    nb_stocks=[5, 25, 250],
 
     # Grid over activations
-    activation: tuple = ('relu', 'leakyrelu', 'tanh', 'elu')
-    hidden_size: tuple = (50, 100, 150)
+    activation=['relu', 'leakyrelu', 'tanh', 'elu'],
+    hidden_size=[50, 100, 150],
+)
 ```
 
 ### Real Data Validation
 
 ```python
-@dataclass
-class real_data_study(_DefaultConfig):
-    """Validation with historical market data."""
-    algos: tuple = ('RT', 'RLSM')
-    payoffs: tuple = ('BasketCall', 'BasketPut', 'MaxCall')
-    stock_models: tuple = ('RealData',)
+real_data_study = _DefaultConfig(
+    # Validation with historical market data
+    algos=['RT', 'RLSM'],
+    payoffs=['BasketCall', 'BasketPut', 'MaxCall'],
+    stock_models=['RealData'],
 
-    nb_stocks: tuple = (5, 10, 25)
-    nb_paths: tuple = (500000,)
-    nb_dates: tuple = (50,)
-    maturities: tuple = (0.5,)
+    nb_stocks=[5, 10, 25],
+    nb_paths=[500000],
+    nb_dates=[50],
+    maturities=[0.5],
+)
 ```
 
 ---
@@ -454,19 +462,21 @@ python -m optimal_stopping.run.run_hyperopt --configs=my_experiment
 ### Configuration
 
 ```python
-@dataclass
-class hpo_experiment(_DefaultConfig):
-    algos: tuple = ('RT',)
-    payoffs: tuple = ('BasketCall',)
+hpo_experiment = _DefaultConfig(
+    algos=['RT'],
+    payoffs=['BasketCall'],
+    nb_stocks=[50],
+    nb_paths=[1000000],
 
     # Enable hyperparameter optimization
-    enable_hyperopt: bool = True
-    hyperopt_method: str = 'tpe'           # Bayesian optimization
-    hyperopt_timeout: float = 3600         # 1 hour
-    hyperopt_n_trials: int = 100
-    hyperopt_fidelity_factor: int = 4      # Use 1/4 of paths
-    hyperopt_variance_penalty: float = 0.1
-    hyperopt_output_dir: str = 'hpo_results'
+    enable_hyperopt=True,
+    hyperopt_method='tpe',           # Bayesian optimization
+    hyperopt_timeout=3600,           # 1 hour
+    hyperopt_n_trials=100,
+    hyperopt_fidelity_factor=4,      # Use 1/4 of paths
+    hyperopt_variance_penalty=0.1,
+    hyperopt_output_dir='hpo_results',
+)
 ```
 
 See `optimization/README.md` for detailed hyperparameter optimization documentation.
