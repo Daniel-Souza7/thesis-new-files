@@ -1,14 +1,3 @@
-\chapter{How to Run the Code}
-\label{appendix:code}
-
-% ============================================================================
-% REQUIRED PACKAGES (add to your main thesis preamble if not already present):
-% ----------------------------------------------------------------------------
-% \usepackage{listings}
-% \usepackage{xcolor}
-%
-% LISTINGS CONFIGURATION (add to preamble):
-% ----------------------------------------------------------------------------
 \definecolor{codebg}{RGB}{248,248,248}
 \definecolor{codeframe}{RGB}{200,200,200}
 \definecolor{codekeyword}{RGB}{0,112,32}
@@ -38,11 +27,13 @@
 }
 % ============================================================================
 
-This appendix provides comprehensive instructions for reproducing the experimental results presented in this thesis. The \texttt{optimal\_stopping} software framework implements all algorithms, payoff structures, and stochastic process models described in the preceding chapters. Complete source code is available at:
+\chapter{How to Run the Code}
+\label{appendix:code}
+
+This appendix provides comprehensive instructions for running the software presented in this thesis. The \texttt{optimal\_stopping} software framework implements all algorithms, payoff structures, and stochastic processes described in the preceding chapters. The complete source code is available at:
+
 \begin{center}
-\vspace{-4pt}
 \url{https://github.com/Daniel-Souza7/thesis-new-files}
-\vspace{-2pt}
 \end{center}
 
 \section{Installation and Setup}
@@ -55,10 +46,10 @@ The software requires the following minimum specifications:
 \vspace{-4pt}
 \begin{itemize}
     \setlength{\itemsep}{1pt}
-    \item \textbf{Python:} Version 3.8 or higher
-    \item \textbf{Memory:} 8 GB RAM minimum; 32+ GB recommended for high-dimensional experiments ($d \geq 50$)
-    \item \textbf{Storage:} 10 GB for pre-computed path datasets
-    \item \textbf{GPU:} CUDA-compatible GPU optional (for deep learning methods DOS and NLSM only)
+    \item \textbf{Python:} Version 3.8 or higher (3.13 is recommended)
+    \item \textbf{Memory:} 8 GB RAM minimum; 32+ GB recommended for high-dimensional runs ($d \geq 100$)
+    \item \textbf{Storage:} 16 GB+ for pre-computed path datasets (optional)
+    \item \textbf{GPU:} CUDA-compatible GPU (optional; for deep learning methods DOS and NLSM only)
 \end{itemize}
 
 \subsection{Installation Procedure}
@@ -104,83 +95,147 @@ python -c "from optimal_stopping.payoffs import list_payoffs; \
 \label{sec:config-system}
 \vspace{-4pt}
 
-The experimental framework employs a declarative configuration system where all parameters are specified in \texttt{optimal\_stopping/run/configs.py}. Each configuration is defined as a Python dataclass with parameters specified as iterables, enabling automatic grid search over all parameter combinations.
+The framework employs a declarative configuration system where all parameters are specified in \texttt{optimal\_stopping/run/configs.py}. Each configuration is defined as a Python dataclass with parameters specified as iterables, enabling automatic grid search over all parameter combinations.
 
-\subsection{Configuration Structure}
+\subsection{Default Configuration Parameters}
+\label{subsec:default-params}
 \vspace{-4pt}
 
-A minimal configuration has the following structure:
-\vspace{-2pt}
-\begin{lstlisting}[language=Python]
-from dataclasses import dataclass
-
-@dataclass
-class my_experiment(_DefaultConfig):
-    # Algorithm selection
-    algos: tuple = ('RT', 'RLSM', 'LSM')
-
-    # Problem specification
-    payoffs: tuple = ('BasketCall', 'BasketPut')
-    stock_models: tuple = ('BlackScholes',)
-    nb_stocks: tuple = (5, 50)           # Dimension d
-
-    # Market parameters (as in Section 3.2)
-    drift: tuple = (0.05,)               # Risk-free rate r
-    volatilities: tuple = (0.2,)         # Volatility sigma
-    spots: tuple = (100,)                # Initial price S_0
-    strikes: tuple = (100,)              # Strike price K
-    maturities: tuple = (1.0,)           # Time to maturity T
-
-    # Simulation parameters
-    nb_paths: tuple = (1000000,)         # Monte Carlo paths m
-    nb_dates: tuple = (100,)             # Exercise dates N
-    nb_runs: int = 5                     # Repetitions
-
-    # Algorithm hyperparameters (as in Section 3.1)
-    hidden_size: tuple = (75,)           # Hidden neurons K
-    activation: tuple = ('leakyrelu',)   # Activation function
-    use_payoff_as_input: tuple = (True,) # Payoff augmentation
-    train_ITM_only: tuple = (True,)      # ITM filtering
-\end{lstlisting}
-
-\vspace{-2pt}
-The configuration above generates $3 \times 2 \times 2 = 12$ experimental combinations (3 algorithms $\times$ 2 payoffs $\times$ 2 dimensions), each repeated 5 times.
-
-\subsection{Key Configuration Parameters}
-\label{subsec:config-params}
-\vspace{-4pt}
-
-Table~\ref{tab:config-params} summarizes the principal configuration parameters, with references to their theoretical definitions in the thesis.
+Table~\ref{tab:default-params} summarizes all configuration parameters alongside their default values and references to thesis definitions. When building a configuration using \texttt{\_DefaultConfig()} without specifying a parameter, it falls back to its default value. Parameters are grouped by category for clarity.
 
 \vspace{-4pt}
 \begin{table}[htbp]
 \centering
-\caption{Configuration parameters and their correspondence to thesis notation.}
-\label{tab:config-params}
+\caption{Core configuration parameters and their default values.}
+\label{tab:default-params}
 \vspace{-4pt}
-\begin{tabular}{llll}
+\scriptsize
+\begin{tabular}{llllll}
 \toprule
-\textbf{Parameter} & \textbf{Type} & \textbf{Thesis Symbol} & \textbf{Reference} \\
+\textbf{Parameter} & \textbf{Type} & \textbf{Symbol} & \textbf{Default} & \textbf{Ref.} & \textbf{Notes} \\
 \midrule
-\texttt{nb\_stocks} & \texttt{int} & $d$ & Sec.~2.1.1 \\
-\texttt{nb\_paths} & \texttt{int} & $m$ & Sec.~4.1.2 \\
-\texttt{nb\_dates} & \texttt{int} & $N$ & Sec.~2.1.1 \\
-\texttt{drift} & \texttt{float} & $r$ & Eq.~(3.4) \\
-\texttt{volatilities} & \texttt{float} & $\sigma$ & Eq.~(3.4) \\
-\texttt{spots} & \texttt{float} & $S_0$ & Sec.~2.1.1 \\
-\texttt{strikes} & \texttt{float} & $K$ & Sec.~2.1.1 \\
-\texttt{maturities} & \texttt{float} & $T$ & Sec.~2.1.1 \\
-\texttt{hidden\_size} & \texttt{int} & $K$ & Sec.~2.3.1 \\
-\texttt{activation} & \texttt{str} & $\sigma(\cdot)$ & Sec.~2.3.1 \\
-\texttt{barriers} & \texttt{float} & $B$ & Sec.~3.3.2 \\
-\texttt{barriers\_up} & \texttt{float} & $B_U$ & Sec.~3.3.2 \\
-\texttt{barriers\_down} & \texttt{float} & $B_L$ & Sec.~3.3.2 \\
-\texttt{hurst} & \texttt{float} & $H$ & Sec.~3.2.3 \\
-\texttt{mean} & \texttt{float} & $\theta$ & Eq.~(3.8) \\
-\texttt{speed} & \texttt{float} & $\kappa$ & Eq.~(3.8) \\
+\multicolumn{6}{l}{\textit{Algorithm Selection}} \\
+\texttt{algos} & \texttt{str} & --- & \texttt{('RT','RLSM')} & \ref{sec:algorithms} & Algorithm names \\
+\texttt{hidden\_size} & \texttt{int} & $K$ & \texttt{(None,)} & \ref{subsec:neuron_allocation} & \texttt{None} $\rightarrow$ heuristic \\
+\texttt{activation} & \texttt{str} & $\sigma(\cdot)$ & \texttt{('leakyrelu',)} & \ref{subsec:activation} & \texttt{'relu','elu','tanh'} \\
+\texttt{dropout} & \texttt{float} & --- & \texttt{(0.0,)} & \ref{subsec:regularization} & Dropout probability \\
+\texttt{ridge\_coeff} & \texttt{float} & $\lambda$ & \texttt{(1e-3,)} & \ref{subsec:regularization} & L2 regularization \\
+\texttt{train\_ITM\_only} & \texttt{bool} & --- & \texttt{(True,)} & \ref{subsec:itm_filtering} & Train on ITM paths \\
+\texttt{use\_payoff\_as\_input} & \texttt{bool} & --- & \texttt{(False,)} & \ref{subsec:payoff_augmentation} & Payoff augmentation \\
+\texttt{nb\_epochs} & \texttt{int} & --- & \texttt{(30,)} & \ref{subsec:deep_learning} & Epochs (DOS/NLSM) \\
+\midrule
+\multicolumn{6}{l}{\textit{Problem Specification}} \\
+\texttt{payoffs} & \texttt{str} & --- & \texttt{('BskCall',)} & \ref{sec:payoffs} & Payoff structure \\
+\texttt{stock\_models} & \texttt{str} & --- & \texttt{('BlackScholes',)} & \ref{sec:stock_models} & Stochastic model \\
+\texttt{nb\_stocks} & \texttt{int} & $d$ & \texttt{(1,)} & \ref{subsec:dimension} & Number of assets \\
+\midrule
+\multicolumn{6}{l}{\textit{Market Parameters}} \\
+\texttt{drift} & \texttt{float} & $r$ & \texttt{(0.08,)} & \ref{subsec:gbm} & Risk-free rate \\
+\texttt{volatilities} & \texttt{float} & $\sigma$ & \texttt{(0.2,)} & \ref{subsec:gbm} & Volatility \\
+\texttt{dividends} & \texttt{float} & $q$ & \texttt{(0.0,)} & \ref{subsec:gbm} & Dividend yield \\
+\texttt{correlation} & \texttt{float} & $\rho$ & \texttt{(0.0,)} & \ref{subsec:correlation} & Cross-asset corr. \\
+\texttt{spots} & \texttt{float} & $S_0$ & \texttt{(100,)} & \ref{subsec:option_params} & Initial price \\
+\texttt{strikes} & \texttt{float} & $K$ & \texttt{(100,)} & \ref{subsec:option_params} & Strike price \\
+\texttt{maturities} & \texttt{float} & $T$ & \texttt{(1,)} & \ref{subsec:option_params} & Maturity (years) \\
+\midrule
+\multicolumn{6}{l}{\textit{Simulation Parameters}} \\
+\texttt{nb\_paths} & \texttt{int} & $m$ & \texttt{(8000000,)} & \ref{subsec:monte_carlo} & Monte Carlo paths \\
+\texttt{nb\_dates} & \texttt{int} & $N$ & \texttt{(100,)} & \ref{subsec:time_discretization} & Exercise dates \\
+\texttt{nb\_runs} & \texttt{int} & --- & \texttt{1} & --- & Repetitions \\
+\texttt{dtype} & \texttt{str} & --- & \texttt{('float32',)} & \ref{subsec:float} & Precision \\
+\midrule
+\multicolumn{6}{l}{\textit{Stochastic Volatility (Heston/Rough Heston)}} \\
+\texttt{mean} & \texttt{float} & $\theta$ & \texttt{(0.3,)} & \ref{subsec:heston} & Long-run variance \\
+\texttt{speed} & \texttt{float} & $\kappa$ & \texttt{(0.15,)} & \ref{subsec:heston} & Mean reversion \\
+\texttt{hurst} & \texttt{float} & $H$ & \texttt{(0.75,)} & \ref{subsec:rough_heston} & Hurst parameter \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\vspace{-4pt}
+\begin{table}[htbp]
+\centering
+\caption{Barrier and path-dependent configuration parameters.}
+\label{tab:barrier-params}
+\vspace{-4pt}
+\scriptsize
+\begin{tabular}{llllll}
+\toprule
+\textbf{Parameter} & \textbf{Type} & \textbf{Symbol} & \textbf{Default} & \textbf{Ref.} & \textbf{Notes} \\
+\midrule
+\multicolumn{6}{l}{\textit{Barrier Options}} \\
+\texttt{barriers} & \texttt{float} & $B$ & \texttt{(100000,)} & \ref{subsec:barriers} & Single barrier \\
+\texttt{barriers\_up} & \texttt{float} & $B_U$ & \texttt{(100000,)} & \ref{subsec:double_barriers} & Upper barrier \\
+\texttt{barriers\_down} & \texttt{float} & $B_L$ & \texttt{(1,)} & \ref{subsec:double_barriers} & Lower barrier \\
+\texttt{use\_barrier\_as\_input} & \texttt{bool} & --- & \texttt{(False,)} & \ref{subsec:barrier_features} & Barrier augmentation \\
+\midrule
+\multicolumn{6}{l}{\textit{Rank-Based Payoffs}} \\
+\texttt{k} & \texttt{int} & $k$ & \texttt{(2,)} & \ref{subsec:rank_payoffs} & Best/Worst of $k$ \\
+\texttt{weights} & \texttt{tuple} & $w$ & \texttt{(None,)} & \ref{subsec:rank_payoffs} & Custom weights \\
+\texttt{factors} & \texttt{tuple} & --- & \texttt{((1,1,1),)} & \ref{subsec:factors} & Asset weights \\
+\midrule
+\multicolumn{6}{l}{\textit{Step Barriers}} \\
+\texttt{step\_param1} & \texttt{float} & $B(0)$ & \texttt{(None,)} & \ref{subsec:step_barriers} & Start level \\
+\texttt{step\_param2} & \texttt{float} & $B(T)$ & \texttt{(None,)} & \ref{subsec:step_barriers} & End level \\
+\texttt{step\_param3} & \texttt{float} & $B_L(0)$ & \texttt{(None,)} & \ref{subsec:step_barriers} & Lower start \\
+\texttt{step\_param4} & \texttt{float} & $B_L(T)$ & \texttt{(None,)} & \ref{subsec:step_barriers} & Lower end \\
+\midrule
+\multicolumn{6}{l}{\textit{Path-Dependent}} \\
+\texttt{use\_path} & \texttt{bool} & --- & \texttt{(False,)} & \ref{subsec:path_dependent} & Path tracking \\
+\midrule
+\multicolumn{6}{l}{\textit{Data Sources}} \\
+\texttt{user\_data\_file} & \texttt{str} & --- & \texttt{None} & \ref{subsec:user_data} & CSV filename \\
+\texttt{representations} & \texttt{str} & --- & \texttt{('TablePrice} & --- & Output format \\
+& & & \texttt{Duration',)} & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Important:} When \texttt{hidden\_size} is set to \texttt{None}, the RT algorithm uses the dimension-adaptive heuristic from Equation~\eqref{eq:neuron_heuristic}:
+\begin{equation}
+\label{eq:neuron_heuristic}
+\begin{split}
+K(d) = \max(2d, 5) \cdot \mathbbm{1}_{\{1 \le d \le 9\}} + 1.5d \cdot \mathbbm{1}_{\{10 \le d \le 49\}} + 1.4d \cdot \mathbbm{1}_{\{50 \le d \le 99\}} \\
++ 1.3d \cdot \mathbbm{1}_{\{100 \le d \le 249\}} + 1.25d \cdot \mathbbm{1}_{\{250 \le d \le 499\}} + 1.2d \cdot \mathbbm{1}_{\{d \ge 500\}}.
+\end{split}
+\end{equation}
+
+\subsection{Configuration Structure}
+\vspace{-4pt}
+
+A minimal configuration is created by instantiating \texttt{\_DefaultConfig} with the desired parameter overrides:
+\vspace{-2pt}
+\begin{lstlisting}[language=Python]
+# In optimal_stopping/run/configs.py
+
+my_experiment = _DefaultConfig(
+    # Algorithm selection
+    algos=['RT', 'RLSM', 'LSM'],
+
+    # Problem specification
+    payoffs=['BasketCall', 'BasketPut'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5, 50],
+
+    # Market parameters (override defaults)
+    drift=[0.05],
+    volatilities=[0.2],
+
+    # Simulation parameters
+    nb_paths=[100000],
+    nb_dates=[100],
+    nb_runs=5,
+
+    # Algorithm hyperparameters
+    hidden_size=[75],
+    activation=['leakyrelu'],
+    use_payoff_as_input=[True],
+    train_ITM_only=[True],
+)
+\end{lstlisting}
+
+\vspace{-2pt}
+\noindent The configuration above generates $3 \times 2 \times 2 = 12$ experimental combinations (3 algorithms $\times$ 2 payoffs $\times$ 2 dimensions), each repeated 5 times (\texttt{nb\_runs}). This totals $12 \times 5 = 60$ Monte Carlo training runs and another $60$ independent evaluation runs, each with $\texttt{nb\_paths} = 100\,000$ paths.
 
 \section{Running Experiments}
 \label{sec:running}
@@ -195,19 +250,19 @@ python -m optimal_stopping.run.run_algo --configs=my_experiment
 \end{lstlisting}
 
 \vspace{-4pt}
-Results are automatically saved to \texttt{optimal\_stopping/run/results/my\_experiment/}.
+\noindent The results are automatically saved to \texttt{optimal\_stopping/run/results/my\_experiment.csv}.
 
 \subsection{Results Aggregation}
 \vspace{-4pt}
 
-To aggregate results into an Excel file with summary statistics:
+To aggregate results into an Excel file with summary statistics (recommended):
 \vspace{-2pt}
 \begin{lstlisting}[language=bash]
 python -m optimal_stopping.run.write_excel --configs=my_experiment
 \end{lstlisting}
 
 \vspace{-4pt}
-This generates \texttt{my\_experiment\_summary.xlsx} containing mean prices, standard deviations, and execution times for each configuration.
+\noindent This generates \texttt{my\_experiment\_summary.xlsx} containing mean prices, standard deviations, and execution times for each configuration. Only execute after obtaining results from \texttt{run\_algo}.
 
 \subsection{Command-Line Options}
 \vspace{-4pt}
@@ -223,433 +278,414 @@ python -m optimal_stopping.run.run_algo --configs=my_experiment \
     --print_errors             # Show full error traces
 \end{lstlisting}
 
+\vspace{-4pt}
+\noindent Multiple configurations can be run simultaneously:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
+python -m optimal_stopping.run.run_algo --configs=exp1,exp2,exp3
+\end{lstlisting}
+
 \section{Reproducing Thesis Results}
 \label{sec:reproducing}
 \vspace{-4pt}
 
-This section provides the exact configurations needed to reproduce the principal experimental results presented in Chapter~4.
+This section provides instructions to reproduce the principal experimental results presented in Chapter~\ref{ch:results}. The experiments require pre-computed path datasets to ensure exact reproducibility. These datasets are available at:
 
-\subsection{Table 4.2: Dimensional Scalability Benchmark}
+\begin{center}
+\vspace{-4pt}
+\url{https://drive.google.com/drive/u/0/folders/1QVHAzgOZjcE3zN3rTba81LQ-GmGk5wWx}
+\vspace{-2pt}
+\end{center}
+
+\noindent Download the required \texttt{.h5} files and place them in the \texttt{optimal\_stopping/data/user\_data/} folder. The framework reads these via \texttt{stock\_models=['UserData']} with the corresponding \texttt{user\_data\_file} parameter.
+
+\noindent\textbf{Alternative:} To run experiments with freshly generated paths (without stored data), replace \texttt{stock\_models=['UserData']} with \texttt{stock\_models=['BlackScholes']} and remove the \texttt{user\_data\_file} parameter.
+
+\subsection{Table~\ref{tab:dimensional}: Dimensional Scalability Benchmark}
 \vspace{-4pt}
 
-To reproduce the cross-algorithm benchmark across dimensions $d \in \{1, 2, 7, 50, 500\}$:
+To reproduce the cross-algorithm benchmark across dimensions $d \in \{1, 2, 7, 50, 500\}$, the following datasets are required:
+
+\vspace{-4pt}
+\begin{table}[htbp]
+\centering
+\caption{Required datasets for Table~\ref{tab:dimensional}.}
+\vspace{-4pt}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{File} & $\mathbf{d}$ & $\mathbf{m}$ & \textbf{Parameters} \\
+\midrule
+\texttt{BS\_1.h5} & 1 & 8M & $r=0.08$, $\sigma=0.2$, $T=1$ \\
+\texttt{BS\_2.h5} & 2 & 8M & $r=0.08$, $\sigma=0.2$, $T=1$ \\
+\texttt{BS\_7.h5} & 7 & 14M & $r=0.08$, $\sigma=0.2$, $T=1$ \\
+\texttt{BS\_50.h5} & 50 & 10M & $r=0.08$, $\sigma=0.2$, $T=1$ \\
+\texttt{BS\_500.h5} & 500 & 10M & $r=0.08$, $\sigma=0.2$, $T=1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{-4pt}
+\noindent Create separate configurations for each dimension:
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-@dataclass
-class table_4_2_dimensional_scalability(_DefaultConfig):
-    """Reproduce Table 4.2: Algorithmic comparison."""
-    algos: tuple = ('RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP')
-    payoffs: tuple = ('BasketCall',)
-    stock_models: tuple = ('BlackScholes',)
+# In optimal_stopping/run/configs.py
 
-    nb_stocks: tuple = (1, 2, 7, 50, 500)
-    nb_paths: tuple = (10000000,)
-    nb_dates: tuple = (100,)
-    nb_runs: int = 5
+table_dim_d1 = _DefaultConfig(
+    algos=['RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP'],
+    payoffs=['BasketCall'],
+    stock_models=['UserData'],
+    user_data_file='BS_1.h5',
+    nb_stocks=[1],
+    nb_paths=[8000000],
+    nb_dates=[100],
+    nb_runs=5,
+    drift=[0.08],
+    volatilities=[0.2],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
+    hidden_size=[None],  # Uses heuristic
+    activation=['leakyrelu'],
+    use_payoff_as_input=[True],
+    dtype=['float32'],
+)
 
-    drift: tuple = (0.08,)
-    volatilities: tuple = (0.2,)
-    dividends: tuple = (0.0,)
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-    maturities: tuple = (1.0,)
+table_dim_d2 = _DefaultConfig(
+    algos=['RT', 'RLSM', 'LSM', 'DOS', 'NLSM', 'EOP'],
+    payoffs=['BasketCall'],
+    stock_models=['UserData'],
+    user_data_file='BS_2.h5',
+    nb_stocks=[2],
+    nb_paths=[8000000],
+    nb_dates=[100],
+    nb_runs=5,
+    # ... same market parameters ...
+)
 
-    hidden_size: tuple = (75,)
-    activation: tuple = ('leakyrelu',)
-    use_payoff_as_input: tuple = (True,)
-    dtype: tuple = ('float32',)
+# Similarly for d=7, d=50, d=500 with corresponding files
 \end{lstlisting}
 
 \vspace{-2pt}
-Execute with:
+\noindent Execute all configurations:
 \vspace{-2pt}
 \begin{lstlisting}[language=bash]
 python -m optimal_stopping.run.run_algo \
-    --configs=table_4_2_dimensional_scalability
+    --configs=table_dim_d1,table_dim_d2,table_dim_d7,table_dim_d50,table_dim_d500
+
 python -m optimal_stopping.run.write_excel \
-    --configs=table_4_2_dimensional_scalability
+    --configs=table_dim_d1,table_dim_d2,table_dim_d7,table_dim_d50,table_dim_d500
 \end{lstlisting}
 
-\subsection{Table 4.3: MaxCall Activation Function Validation}
+\section{Example Configurations}
+\label{sec:examples}
 \vspace{-4pt}
 
-To reproduce the activation function comparison on MaxCall options:
+This section provides ready-to-use configurations for common experimental scenarios.
+
+\subsection{Fresh Black-Scholes Paths}
+\vspace{-4pt}
+
+Run experiments with freshly generated GBM paths (no stored data required):
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-@dataclass
-class table_4_3_maxcall_activation(_DefaultConfig):
-    """Reproduce Table 4.3: MaxCall RT vs RLSM."""
-    algos: tuple = ('RT', 'RLSM')
-    payoffs: tuple = ('MaxCall',)
-    stock_models: tuple = ('BlackScholes',)
-
-    nb_stocks: tuple = (5, 25, 250)
-    nb_paths: tuple = (5000000,)
-    nb_dates: tuple = (100,)
-    nb_runs: int = 5
-
-    drift: tuple = (0.08,)
-    volatilities: tuple = (0.2,)
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-    maturities: tuple = (1.0,)
-
-    # RT uses adaptive activation (ELU for MaxCall)
-    activation: tuple = ('elu', 'leakyrelu')
-    hidden_size: tuple = (50,)
+fresh_bs_experiment = _DefaultConfig(
+    algos=['RT', 'RLSM'],
+    payoffs=['BasketCall', 'MaxCall'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5, 25, 50],
+    nb_paths=[1000000],
+    nb_dates=[100],
+    nb_runs=3,
+    drift=[0.05],
+    volatilities=[0.2],
+    correlation=[0.0],
+    spots=[100],
+    strikes=[100],
+    maturities=[1.0],
+)
 \end{lstlisting}
 
-\subsection{Table 4.8: Path-Dependent Performance (RT vs RRLSM)}
+\subsection{Real Market Data (Stationary Block Bootstrap)}
 \vspace{-4pt}
 
-To reproduce the path-dependent option comparison:
+Validate algorithms using historical S\&P 500 data:
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-@dataclass
-class table_4_8_path_dependent(_DefaultConfig):
-    """Reproduce Table 4.8: RT vs RRLSM."""
-    algos: tuple = ('RT', 'RRLSM')
-    payoffs: tuple = (
+real_data_experiment = _DefaultConfig(
+    algos=['RT', 'RLSM'],
+    payoffs=['BasketCall', 'BasketPut', 'MaxCall'],
+    stock_models=['RealData'],
+    nb_stocks=[5, 10, 25],
+    nb_paths=[500000],
+    nb_dates=[50],
+    nb_runs=3,
+    maturities=[0.5],
+    spots=[100],
+    strikes=[90, 100, 110],
+)
+\end{lstlisting}
+
+\vspace{-4pt}
+\noindent The \texttt{RealData} model automatically downloads historical data from Yahoo Finance and applies stationary block bootstrap to generate paths.
+
+\subsection{Barrier Options}
+\vspace{-4pt}
+
+Configure single and double barrier options:
+\vspace{-2pt}
+\begin{lstlisting}[language=Python]
+# Single barrier (Up-and-Out, Down-and-In)
+single_barrier_exp = _DefaultConfig(
+    algos=['RT', 'SRLSM'],
+    payoffs=['UO-BasketCall', 'DI-MaxCall'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5, 25],
+    barriers=[120],  # Single barrier level B
+    spots=[100],
+    strikes=[100],
+)
+
+# Double barrier (Up-Out-Down-Out)
+double_barrier_exp = _DefaultConfig(
+    algos=['RT', 'SRLSM'],
+    payoffs=['UODO-BasketCall', 'UIDI-MinPut'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[5, 25],
+    barriers_up=[150],   # Upper barrier B_U
+    barriers_down=[70],  # Lower barrier B_L
+    spots=[100],
+    strikes=[100],
+)
+\end{lstlisting}
+
+\subsection{Path-Dependent Options}
+\vspace{-4pt}
+
+Configure Asian and lookback options:
+\vspace{-2pt}
+\begin{lstlisting}[language=Python]
+path_dependent_exp = _DefaultConfig(
+    algos=['RT', 'RRLSM'],
+    payoffs=[
         'LookbackFixedCall',
         'LookbackFloatPut',
-        'AsianFixedStrikePut',
-        'AsianFloatingStrikeCall',
-        'UO-DispersionCall',
-        'DO-BestOfKCall',
-        'UI-MinPut',
-        'DI-MaxCall'
-    )
-    stock_models: tuple = ('BlackScholes',)
-
-    nb_stocks: tuple = (1, 5, 25, 50, 250, 500)
-    nb_paths: tuple = (2000000,)
-    nb_dates: tuple = (50,)
-
-    # Barrier parameters
-    barriers: tuple = (150,)
-    barriers_up: tuple = (150,)
-    barriers_down: tuple = (70,)
-
-    # Rank parameters for BestOfK
-    k: tuple = (2,)
-    weights: tuple = ((0.5, 0.5),)
-
-    activation: tuple = ('elu',)
-\end{lstlisting}
-
-\subsection{Table 4.5: Barrier Option Convergence}
-\vspace{-4pt}
-
-To validate barrier option convergence under extreme thresholds:
-\vspace{-2pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class table_4_5_barrier_convergence(_DefaultConfig):
-    """Reproduce Table 4.5: Barrier convergence."""
-    algos: tuple = ('RT',)
-    payoffs: tuple = ('UO-BasketCall', 'DO-MaxCall')
-    stock_models: tuple = ('BlackScholes',)
-
-    nb_stocks: tuple = (5, 25)
-    nb_paths: tuple = (5000000,)
-
-    # Extreme barriers for convergence validation
-    barriers: tuple = (1000, 0.001)  # Far OTM barriers
-
-    spots: tuple = (90, 100, 110)  # OTM, ATM, ITM
-    strikes: tuple = (100,)
-\end{lstlisting}
-
-\section{Configuring Barrier Options}
-\label{sec:barrier-config}
-\vspace{-4pt}
-
-Barrier options are specified using a prefix notation in the payoff name. The naming convention follows the pattern \texttt{\{BARRIER\}-\{BASE\_PAYOFF\}}.
-
-\subsection{Single Barrier Configuration}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class single_barrier_example(_DefaultConfig):
-    algos: tuple = ('RT', 'SRLSM')
-    payoffs: tuple = (
-        'UO-BasketCall',    # Up-and-Out
-        'DO-MaxCall',       # Down-and-Out
-        'UI-MinPut',        # Up-and-In
-        'DI-GeometricPut'   # Down-and-In
-    )
-
-    barriers: tuple = (120,)  # Single barrier level B
-    spots: tuple = (100,)
-    strikes: tuple = (100,)
-\end{lstlisting}
-
-\subsection{Double Barrier Configuration}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class double_barrier_example(_DefaultConfig):
-    algos: tuple = ('RT',)
-    payoffs: tuple = (
-        'UODO-BasketCall',  # Double Knock-Out
-        'UIDI-MinPut',      # Double Knock-In
-        'UIDO-MaxCall',     # Up-In-Down-Out
-        'UODI-GeometricCall' # Up-Out-Down-In
-    )
-
-    barriers_up: tuple = (150,)    # Upper barrier B_U
-    barriers_down: tuple = (70,)   # Lower barrier B_L
-\end{lstlisting}
-
-\subsection{Step Barrier Configuration}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class step_barrier_example(_DefaultConfig):
-    algos: tuple = ('RT',)
-    payoffs: tuple = (
-        'StepB-BasketCall',   # Single step barrier
-        'DStepB-MinPut'       # Double step barrier
-    )
-
-    # Step barrier parameters
-    step_param1: tuple = (100,)  # B(0) start level
-    step_param2: tuple = (150,)  # B(T) end level
-    step_param3: tuple = (80,)   # Lower B(0) for double
-    step_param4: tuple = (60,)   # Lower B(T) for double
-\end{lstlisting}
-
-\section{Configuring Stochastic Processes}
-\label{sec:process-config}
-\vspace{-4pt}
-
-The framework supports five stochastic process models as described in Section~3.2.
-
-\subsection{Black-Scholes (GBM)}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class blackscholes_config(_DefaultConfig):
-    stock_models: tuple = ('BlackScholes',)
-
-    drift: tuple = (0.05,)        # r
-    volatilities: tuple = (0.2,)  # sigma
-    correlation: tuple = (0.3,)   # rho (cross-asset)
-    dividends: tuple = (0.0,)     # q
+        'AsianFixedStrikeCall',
+        'AsianFloatingStrikePut',
+    ],
+    stock_models=['BlackScholes'],
+    nb_stocks=[1, 5, 25],
+    nb_paths=[2000000],
+    nb_dates=[50],
+    activation=['elu'],  # ELU recommended for path-dependent
+    use_path=[True],
+)
 \end{lstlisting}
 
 \subsection{Heston Stochastic Volatility}
 \vspace{-4pt}
 \begin{lstlisting}[language=Python]
-@dataclass
-class heston_config(_DefaultConfig):
-    stock_models: tuple = ('Heston',)
-
-    drift: tuple = (0.05,)        # r
-    volatilities: tuple = (0.2,)  # sqrt(v_0)
-    mean: tuple = (0.04,)         # theta (long-run variance)
-    speed: tuple = (2.0,)         # kappa (mean reversion)
-    correlation: tuple = (-0.7,)  # rho (leverage effect)
-\end{lstlisting}
-
-\subsection{Fractional Brownian Motion}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class fbm_config(_DefaultConfig):
-    stock_models: tuple = ('FractionalBrownianMotion',)
-
-    hurst: tuple = (0.3, 0.5, 0.7)  # H parameter
-    drift: tuple = (0.05,)
-    volatilities: tuple = (0.2,)
+heston_experiment = _DefaultConfig(
+    algos=['RT', 'RLSM'],
+    payoffs=['BasketCall'],
+    stock_models=['Heston'],
+    nb_stocks=[5, 25],
+    drift=[0.05],
+    volatilities=[0.2],      # Initial volatility sqrt(v_0)
+    mean=[0.04],             # Long-run variance theta
+    speed=[2.0],             # Mean reversion kappa
+    correlation=[-0.7],      # Leverage effect rho
+)
 \end{lstlisting}
 
 \subsection{Rough Heston}
 \vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class rough_heston_config(_DefaultConfig):
-    stock_models: tuple = ('RoughHeston',)
 
-    hurst: tuple = (0.1,)          # H (roughness)
-    mean: tuple = (0.3,)           # theta
-    speed: tuple = (0.15,)         # kappa
-    correlation: tuple = (-0.7,)   # rho
-\end{lstlisting}
-
-\subsection{Stationary Block Bootstrap (Real Data)}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class real_data_config(_DefaultConfig):
-    stock_models: tuple = ('RealData',)
-
-    nb_stocks: tuple = (5, 10, 25)
-    nb_paths: tuple = (500000,)
-    maturities: tuple = (0.5,)
-    # Uses S&P 500 historical data via Yahoo Finance
-\end{lstlisting}
-
-\section{Algorithm-Specific Configuration}
-\label{sec:algo-config}
-
-\subsection{RT Algorithm (Proposed)}
-\vspace{-4pt}
-
-The RT algorithm (Section~3.1) accepts the following hyperparameters:
+\noindent\textbf{Note:} Rough Heston path generation is computationally expensive. It is strongly recommended to use stored paths (see Section~\ref{sec:store-paths}).
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-hidden_size: tuple = (75,)           # K neurons
-activation: tuple = ('leakyrelu',)   # sigma(.)
-use_payoff_as_input: tuple = (True,) # Payoff augmentation
-train_ITM_only: tuple = (True,)      # ITM filtering
-dropout: tuple = (0.0,)              # Dropout probability
+rough_heston_experiment = _DefaultConfig(
+    algos=['RT', 'RLSM'],
+    payoffs=['BasketCall'],
+    stock_models=['RoughHeston'],
+    nb_stocks=[5],
+    hurst=[0.1],             # Roughness parameter H
+    mean=[0.3],              # theta
+    speed=[0.15],            # kappa
+    correlation=[-0.7],      # rho
+    nb_paths=[100000],       # Reduced due to slow generation
+)
 \end{lstlisting}
 
-\vspace{-2pt}
-The dimension-adaptive heuristic from Equation~(3.1) suggests:
+\section{Additional Functionalities}
+\label{sec:functionalities}
 \vspace{-4pt}
+
+The framework provides several additional tools for analysis and visualization.
+
+\subsection{Convergence Plots}
+\vspace{-4pt}
+
+Generate plots showing how option prices converge with respect to a varying parameter:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
+python -m optimal_stopping.run.plot_convergence --configs=my_experiment
+\end{lstlisting}
+
+\vspace{-4pt}
+\noindent This produces publication-quality figures with:
 \begin{itemize}
     \setlength{\itemsep}{1pt}
-    \item $d \leq 9$: $K = \max(2d, 5)$
-    \item $10 \leq d \leq 49$: $K = 1.5d$
-    \item $d \geq 500$: $K = 1.2d$
+    \item Price convergence over Monte Carlo paths
+    \item 95\% confidence intervals (t-distribution)
+    \item Algorithm comparison across dimensions
 \end{itemize}
 
+\subsection{Exercise Policy Videos}
+\vspace{-4pt}
+
+Create animated visualizations of optimal exercise decisions:
 \vspace{-2pt}
-For path-dependent or non-smooth payoffs (MaxCall, MinPut, barriers), use \texttt{activation='elu'}.
-
-\subsection{RLSM Algorithm (Baseline)}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-hidden_size: tuple = (20,)           # Original fixed size
-activation: tuple = ('leakyrelu',)
-ridge_coeff: tuple = (0.0,)          # L2 regularization
+\begin{lstlisting}[language=bash]
+python -m optimal_stopping.run.create_video \
+    --config=my_experiment \
+    --nb_paths_to_plot=100
 \end{lstlisting}
 
-\subsection{LSM Algorithm (Classical)}
+\vspace{-4pt}
+\noindent The video shows:
+\begin{itemize}
+    \setlength{\itemsep}{1pt}
+    \item Stock price paths evolving over time
+    \item Exercise decisions marked with red dots
+    \item Paths grayed out after exercise
+    \item Running statistics and payoff evolution
+\end{itemize}
+
+\subsection{Store Paths for Reproducibility}
+\label{sec:store-paths}
 \vspace{-4pt}
 
-The classical LSM algorithm (Section~2.2) uses polynomial basis functions and does not require neural network hyperparameters.
-
-\subsection{Deep Learning Algorithms (DOS, NLSM)}
-\vspace{-4pt}
-\begin{lstlisting}[language=Python]
-hidden_size: tuple = (40,)
-nb_epochs: tuple = (30,)             # Training epochs
-\end{lstlisting}
-
-\section{Output and Results}
-\label{sec:output}
-
-\subsection{Output Directory Structure}
-\vspace{-4pt}
-
-Results are organized as follows:
+Pre-generate and store paths for exact reproducibility, particularly important for slow models like Rough Heston:
 \vspace{-2pt}
-\begin{lstlisting}
-optimal_stopping/run/results/
-  my_experiment/
-    my_experiment.csv           # Raw results
-    my_experiment_summary.xlsx  # Aggregated statistics
-    figures/                    # Generated plots
+\begin{lstlisting}[language=bash]
+# Store RealData paths
+python -m optimal_stopping.data.store_paths \
+    --stock_model=RealData \
+    --nb_stocks=50 \
+    --nb_paths=100000 \
+    --nb_dates=252 \
+    --maturity=1.0
+
+# Store Rough Heston paths (slow, do once)
+python -m optimal_stopping.data.store_paths \
+    --stock_model=RoughHeston \
+    --nb_stocks=5 \
+    --nb_paths=100000 \
+    --nb_dates=100 \
+    --maturity=1.0 \
+    --hurst=0.1
+
+# List stored paths
+python -m optimal_stopping.data.store_paths --list
 \end{lstlisting}
 
-\subsection{CSV Output Format}
+\vspace{-4pt}
+\noindent Use stored paths in configurations:
+\vspace{-2pt}
+\begin{lstlisting}[language=Python]
+stored_paths_exp = _DefaultConfig(
+    stock_models=['RealDataStored1732000000123'],  # Use storage ID
+    nb_stocks=[10],      # Can use subset
+    nb_paths=[50000],    # Can use subset
+    nb_dates=[252],      # Must match exactly
+    maturities=[1.0],    # Must match exactly
+    spots=[90, 100],     # Can rescale
+)
+\end{lstlisting}
+
+\subsection{Results to Excel}
 \vspace{-4pt}
 
-The raw CSV file contains one row per experimental run with columns:
+Aggregate raw CSV results into formatted Excel files:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
+python -m optimal_stopping.run.write_excel --configs=my_experiment
+\end{lstlisting}
+
+\vspace{-4pt}
+\noindent Output file \texttt{my\_experiment\_summary.xlsx} contains:
+\begin{itemize}
+    \setlength{\itemsep}{1pt}
+    \item Mean prices per configuration
+    \item Standard deviations and confidence intervals
+    \item Execution times
+    \item Relative errors (when benchmark available)
+\end{itemize}
+
+\subsection{Paper-Quality Figures}
+\vspace{-4pt}
+
+Generate publication-ready figures and compile to PDF:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
+python -m optimal_stopping.run.write_figures --configs=my_experiment
+\end{lstlisting}
+
+\section{Hyperparameter Optimization}
+\label{sec:hyperopt}
+\vspace{-4pt}
+
+The framework includes Bayesian hyperparameter optimization via Optuna. Table~\ref{tab:hyperopt-params} summarizes the optimization parameters.
 
 \vspace{-4pt}
 \begin{table}[htbp]
 \centering
-\caption{CSV output columns.}
+\caption{Hyperparameter optimization configuration.}
+\label{tab:hyperopt-params}
 \vspace{-4pt}
-\begin{tabular}{ll}
+\small
+\begin{tabular}{llll}
 \toprule
-\textbf{Column} & \textbf{Description} \\
+\textbf{Parameter} & \textbf{Type} & \textbf{Default} & \textbf{Description} \\
 \midrule
-\texttt{algo} & Algorithm name \\
-\texttt{payoff} & Payoff structure \\
-\texttt{nb\_stocks} & Dimension $d$ \\
-\texttt{nb\_paths} & Monte Carlo paths $m$ \\
-\texttt{price} & Computed option price $\hat{p}_0$ \\
-\texttt{time} & Execution time (seconds) \\
-\texttt{run\_id} & Run number \\
+\texttt{enable\_hyperopt} & \texttt{bool} & \texttt{False} & Enable optimization \\
+\texttt{hyperopt\_method} & \texttt{str} & \texttt{'tpe'} & \texttt{'tpe'} or \texttt{'random'} \\
+\texttt{hyperopt\_timeout} & \texttt{float} & \texttt{1200} & Timeout (seconds) \\
+\texttt{hyperopt\_n\_trials} & \texttt{int} & \texttt{None} & Max trials (\texttt{None} = timeout) \\
+\texttt{hyperopt\_fidelity\_factor} & \texttt{int} & \texttt{4} & Use $m/4$ paths \\
+\texttt{hyperopt\_variance\_penalty} & \texttt{float} & \texttt{0.1} & Variance penalty $\lambda$ \\
+\texttt{hyperopt\_output\_dir} & \texttt{str} & \texttt{'hyperopt\_results'} & Output directory \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Hyperparameter Optimization}
-\label{sec:hpo}
 \vspace{-4pt}
-
-For automated hyperparameter search (Appendix~B), configure as follows:
+\noindent Configure and run hyperparameter optimization:
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-@dataclass
-class hpo_experiment(_DefaultConfig):
-    algos: tuple = ('RT',)
-    payoffs: tuple = ('BasketCall',)
+hpo_experiment = _DefaultConfig(
+    algos=['RT'],
+    payoffs=['BasketCall'],
+    stock_models=['BlackScholes'],
+    nb_stocks=[50],
+    nb_paths=[1000000],
 
-    enable_hyperopt: bool = True
-    hyperopt_method: str = 'tpe'        # Bayesian optimization
-    hyperopt_timeout: float = 3600      # 1 hour
-    hyperopt_n_trials: int = 100
-    hyperopt_fidelity_factor: int = 4   # Use m/4 paths
-    hyperopt_variance_penalty: float = 0.1
+    # Enable hyperparameter optimization
+    enable_hyperopt=True,
+    hyperopt_method='tpe',          # Bayesian optimization
+    hyperopt_timeout=3600,          # 1 hour
+    hyperopt_n_trials=100,
+    hyperopt_fidelity_factor=4,     # Use 1/4 of paths
+    hyperopt_variance_penalty=0.1,
+)
 \end{lstlisting}
 
 \vspace{-2pt}
-Execute with:
+\noindent Execute optimization:
 \vspace{-2pt}
 \begin{lstlisting}[language=bash]
 python -m optimal_stopping.run.run_hyperopt --configs=hpo_experiment
-\end{lstlisting}
-
-\section{Pre-Computed Path Datasets}
-\label{sec:datasets}
-\vspace{-4pt}
-
-To ensure exact reproducibility, pre-computed path datasets used in Chapter~4 are available at:
-\begin{center}
-\vspace{-4pt}
-\url{https://drive.google.com/drive/folders/thesis-datasets}
-\vspace{-2pt}
-\end{center}
-
-\subsection{Available Datasets}
-\vspace{-4pt}
-
-\begin{table}[htbp]
-\centering
-\caption{Pre-computed path datasets.}
-\vspace{-4pt}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{ID} & \textbf{Model} & $\mathbf{d}$ & $\mathbf{m}$ & \textbf{Parameters} \\
-\midrule
-\texttt{BS\_1.h5} & BlackScholes & 1 & 8M & $r=0.08$, $\sigma=0.2$ \\
-\texttt{BS\_2.h5} & BlackScholes & 2 & 8M & $r=0.08$, $\sigma=0.2$ \\
-\texttt{BS\_7.h5} & BlackScholes & 7 & 14M & $r=0.08$, $\sigma=0.2$ \\
-\texttt{BS\_50.h5} & BlackScholes & 50 & 10M & $r=0.08$, $\sigma=0.2$ \\
-\texttt{BS\_500.h5} & BlackScholes & 500 & 10M & $r=0.08$, $\sigma=0.2$ \\
-\texttt{RH\_5.h5} & RoughHeston & 5 & 10M & $H=0.75$, $\kappa=0.15$ \\
-\texttt{SBB\_25.h5} & RealData & 25 & 10M & Historical S\&P 500 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Using Stored Paths}
-\vspace{-4pt}
-
-Download the datasets and place them in \texttt{optimal\_stopping/data/stored\_paths/}. Configure experiments to use stored paths:
-\vspace{-2pt}
-\begin{lstlisting}[language=Python]
-@dataclass
-class stored_paths_experiment(_DefaultConfig):
-    stock_models: tuple = ('StoredPaths',)
-    stored_paths_id: str = 'BS_50'  # Use BS_50.h5
 \end{lstlisting}
 
 \section{Troubleshooting}
@@ -661,24 +697,27 @@ class stored_paths_experiment(_DefaultConfig):
 For high-dimensional problems ($d \geq 100$) or large path counts ($m \geq 10^7$):
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-# Use single precision
-dtype: tuple = ('float32',)
+memory_efficient_exp = _DefaultConfig(
+    dtype=['float32'],           # Use single precision
+    nb_paths=[1000000],          # Reduce path count
+)
+\end{lstlisting}
 
-# Reduce path count
-nb_paths: tuple = (1000000,)
-
-# Reduce parallelism
+\vspace{-4pt}
+\noindent Reduce parallelism:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
 python -m optimal_stopping.run.run_algo --configs=exp --nb_jobs=4
 \end{lstlisting}
 
 \subsection{Algorithm Not Found}
 \vspace{-4pt}
 
-Ensure algorithm names are spelled correctly (case-sensitive):
+Algorithm names are case-sensitive:
 \vspace{-2pt}
 \begin{lstlisting}[language=Python]
-algos: tuple = ('RT', 'RLSM', 'LSM')  # Correct
-algos: tuple = ('rt', 'rlsm', 'lsm')  # Incorrect
+algos=['RT', 'RLSM', 'LSM']  # Correct
+algos=['rt', 'rlsm', 'lsm']  # Incorrect
 \end{lstlisting}
 
 \subsection{Reproducibility}
@@ -690,19 +729,33 @@ For exact reproducibility across runs:
 python -m optimal_stopping.run.run_algo --configs=exp --path_gen_seed=42
 \end{lstlisting}
 
+\subsection{Slow Path Generation}
+\vspace{-4pt}
+
+For computationally expensive models (Rough Heston, RealData), store paths once and reuse:
+\vspace{-2pt}
+\begin{lstlisting}[language=bash]
+# Generate once
+python -m optimal_stopping.data.store_paths --stock_model=RoughHeston ...
+
+# Reuse in experiments
+stock_models=['RoughHestonStored{ID}']
+\end{lstlisting}
+
 \section{Summary}
 \label{sec:summary}
 \vspace{-4pt}
 
-The \texttt{optimal\_stopping} framework provides a complete infrastructure for American option pricing research. Key usage patterns:
+The \texttt{optimal\_stopping} framework provides complete infrastructure for American option pricing research. Key usage patterns:
 \vspace{-4pt}
 \begin{enumerate}
     \setlength{\itemsep}{1pt}
-    \item Define configuration in \texttt{configs.py}
-    \item Execute: \texttt{python -m optimal\_stopping.run.run\_algo --configs=name}
-    \item Aggregate: \texttt{python -m optimal\_stopping.run.write\_excel --configs=name}
-    \item Analyze results in \texttt{results/name/}
+    \item Define configuration: \texttt{my\_exp = \_DefaultConfig(...)}
+    \item Execute: \texttt{python -m optimal\_stopping.run.run\_algo --configs=my\_exp}
+    \item Aggregate: \texttt{python -m optimal\_stopping.run.write\_excel --configs=my\_exp}
+    \item Visualize: \texttt{python -m optimal\_stopping.run.plot\_convergence --configs=my\_exp}
+    \item Analyze results in \texttt{results/my\_exp/}
 \end{enumerate}
 
 \vspace{-2pt}
-For questions or issues, consult the repository documentation or contact the author.
+\noindent For questions or issues, consult the repository documentation or open an issue on GitHub.
