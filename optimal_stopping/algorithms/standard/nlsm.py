@@ -48,6 +48,9 @@ class NeuralNetworkPricer:
         self.model = model
         self.payoff = payoff
         self.nb_epochs = nb_epochs
+        # NLSM uses fixed hidden_size=10 as default
+        if hidden_size is None:
+            hidden_size = 10
         self.hidden_size = hidden_size
         self.train_ITM_only = train_ITM_only
         self.use_payoff_as_input = use_payoff_as_input

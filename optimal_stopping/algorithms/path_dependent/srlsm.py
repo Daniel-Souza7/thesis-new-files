@@ -56,6 +56,9 @@ class SRLSM:
         """
         self.model = model
         self.payoff = payoff
+        # SRLSM uses fixed hidden_size=100 as default for path-dependent options
+        if hidden_size is None:
+            hidden_size = 100
         self.hidden_size = hidden_size
         self.factors = factors
         self.train_ITM_only = train_ITM_only

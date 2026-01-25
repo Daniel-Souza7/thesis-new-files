@@ -59,6 +59,9 @@ class DeepOptimalStopping:
                  **kwargs):
         self.model = model
         self.payoff = payoff
+        # DOS uses fixed hidden_size=40 as default
+        if hidden_size is None:
+            hidden_size = 40
         self.hidden_size = hidden_size
         self.nb_paths = nb_paths
         self.nb_epochs = nb_epochs

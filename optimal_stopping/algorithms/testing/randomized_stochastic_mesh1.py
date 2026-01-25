@@ -21,6 +21,9 @@ class RandomizedStochasticMesh1:
                  use_payoff_as_input=False, **kwargs):
         self.model = model
         self.payoff = payoff
+        # RSM1 uses fixed hidden_size=20 as default
+        if hidden_size is None:
+            hidden_size = 20
         self.hidden_size = hidden_size
         self.nb_paths = nb_paths
         self.use_payoff_as_input = use_payoff_as_input
