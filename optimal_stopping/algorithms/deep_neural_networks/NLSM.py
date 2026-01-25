@@ -20,6 +20,9 @@ class NeuralLSM:
                  train_ITM_only=True, batch_size=512, **kwargs):
         self.model = model
         self.payoff = payoff
+        # NLSM uses fixed hidden_size=20 as default
+        if hidden_size is None:
+            hidden_size = 20
         self.hidden_size = hidden_size
         self.nb_paths = nb_paths
 

@@ -21,6 +21,9 @@ class RRLSM:
         """
         self.model = model
         self.payoff = payoff
+        # RRLSM uses fixed hidden_size=20 as default
+        if hidden_size is None:
+            hidden_size = 20
         self.hidden_size = hidden_size
         self.factors = factors
         self.train_ITM_only = train_ITM_only
@@ -29,7 +32,7 @@ class RRLSM:
         # Check for variance paths (needed for Rough Heston)
         self.use_var = getattr(model, 'return_var', False)
 
-        # Initialize hidden size default
+        # Initialize hidden size default (for negative values)
         if hidden_size < 0:
             hidden_size = 50 + abs(hidden_size) * model.nb_stocks
 

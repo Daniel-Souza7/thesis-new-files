@@ -89,7 +89,9 @@ class SRFQI:
         self.nb_barriers = len(self.barrier_values)
 
         # Initialize randomized neural network (same as RFQI)
-        # Use exact hidden_size from config (no modifications)
+        # SRFQI uses fixed hidden_size=20 as default
+        if hidden_size is None:
+            hidden_size = 20
         self.dim_out = hidden_size
         self.nb_base_fcts = self.dim_out + 1
 

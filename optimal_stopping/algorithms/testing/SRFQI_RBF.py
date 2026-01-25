@@ -46,6 +46,9 @@ class SRFQI_RBF:
         self.is_path_dependent = getattr(payoff, 'is_path_dependent', False)
 
         # Initialize randomized neural network
+        # SRFQI_RBF uses fixed hidden_size=100 as default
+        if hidden_size is None:
+            hidden_size = 100
         if hidden_size < 0:
             hidden_size = max(model.nb_stocks * abs(hidden_size), 5)
 

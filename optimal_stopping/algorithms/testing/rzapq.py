@@ -30,6 +30,9 @@ class RZapQ:
         self.use_var = getattr(model, 'return_var', False)
 
         # RNN Hyperparameters
+        # RZapQ uses fixed hidden_size=100 as default
+        if hidden_size is None:
+            hidden_size = 100
         self.hidden_size = hidden_size
         self.factors = factors
 

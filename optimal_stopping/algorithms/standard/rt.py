@@ -24,6 +24,38 @@ from optimal_stopping.run import configs
 from optimal_stopping.algorithms.utils import randomized_neural_networks
 
 
+def compute_hidden_size_heuristic(d):
+    """
+    Compute hidden layer size using dimension-adaptive heuristic.
+
+    Based on Equation (3.1) in thesis:
+    K(d) = max(2d, 5)       if 1 <= d <= 9
+         = 1.5d             if 10 <= d <= 49
+         = 1.4d             if 50 <= d <= 99
+         = 1.3d             if 100 <= d <= 249
+         = 1.25d            if 250 <= d <= 499
+         = 1.2d             if d >= 500
+
+    Args:
+        d: Number of assets (dimension)
+
+    Returns:
+        int: Recommended number of hidden neurons K
+    """
+    if d <= 9:
+        return max(2 * d, 5)
+    elif d <= 49:
+        return int(1.5 * d)
+    elif d <= 99:
+        return int(1.4 * d)
+    elif d <= 249:
+        return int(1.3 * d)
+    elif d <= 499:
+        return int(1.25 * d)
+    else:
+        return int(1.2 * d)
+
+
 class RT:
     """
     RT: Randomized Neural Networks Algorithm for Thesis.
@@ -32,7 +64,7 @@ class RT:
     Uses randomized neural networks as basis functions for regression.
     """
 
-    def __init__(self, model, payoff, hidden_size=20, factors=(1., 1.),
+    def __init__(self, model, payoff, hidden_size=None, factors=(1., 1.),
                  train_ITM_only=True, use_payoff_as_input=True,
                  use_barrier_as_input=False, activation='leakyrelu', dropout=0.0,
                  **kwargs):
@@ -42,7 +74,8 @@ class RT:
         Args:
             model: Stock model
             payoff: Payoff function (path-dependent or non-path-dependent)
-            hidden_size: Number of neurons in hidden layer (default: 20)
+            hidden_size: Number of neurons in hidden layer. If None, uses
+                         dimension-adaptive heuristic from Eq. (3.1) in thesis.
             factors: Tuple of (activation_slope, weight_scale, ...)
             train_ITM_only: If True, only use in-the-money paths for training
             use_payoff_as_input: If True, include payoff in state
@@ -52,6 +85,11 @@ class RT:
         """
         self.model = model
         self.payoff = payoff
+
+        # Apply dimension-adaptive heuristic if hidden_size is None
+        if hidden_size is None:
+            hidden_size = compute_hidden_size_heuristic(model.nb_stocks)
+
         self.hidden_size = hidden_size
         self.factors = factors
         self.train_ITM_only = train_ITM_only

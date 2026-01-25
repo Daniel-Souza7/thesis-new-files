@@ -55,6 +55,11 @@ class RLSM:
         """
         self.model = model
         self.payoff = payoff
+
+        # RLSM uses fixed hidden_size=20 as default (original paper specification)
+        if hidden_size is None:
+            hidden_size = 20
+
         self.hidden_size = hidden_size
         self.factors = factors
         self.train_ITM_only = train_ITM_only

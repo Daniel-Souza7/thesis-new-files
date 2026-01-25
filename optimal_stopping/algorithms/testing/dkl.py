@@ -56,6 +56,9 @@ class DKL_LSM:
         self.model = model
         self.payoff = payoff
         self.nb_epochs = nb_epochs
+        # DKL uses fixed hidden_size=50 as default
+        if hidden_size is None:
+            hidden_size = 50
         self.hidden_size = hidden_size
         self.feature_dim = feature_dim
         self.train_ITM_only = train_ITM_only
