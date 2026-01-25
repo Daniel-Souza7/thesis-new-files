@@ -54,7 +54,7 @@ class _DefaultConfig:
   dropout: Iterable[float] = (0.0,)  # Dropout probability (0.0 = no dropout)
   train_ITM_only: Iterable[bool] = (True,)
   use_path: Iterable[bool] = (False,)
-  use_payoff_as_input: Iterable[bool] = (False,)
+  use_payoff_as_input: Iterable[bool] = (True,)
   use_barrier_as_input: Iterable[bool] = (False,)  # If True, include barrier values as input to algorithms
   barriers: Iterable[float] = (100000,)  # Barrier level (100000 = standard payoff, lower values activate barriers)
   barriers_up: Iterable[float] = (100000,)  # Upper barrier level for double barriers
