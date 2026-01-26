@@ -26,6 +26,7 @@ CSV Format Requirements:
 import numpy as np
 import pandas as pd
 import warnings
+import h5py
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 from optimal_stopping.data.stock_model import Model
@@ -192,22 +193,51 @@ class UserDataModel(Model):
         file_ext = file_path.suffix.lower()
         try:
             if file_ext in ['.h5', '.hdf5', '.hdf']:
-                # Load HDF5 file - try different approaches
-                try:
-                    # Try reading without key first (single table)
-                    df = pd.read_hdf(file_path)
-                except (KeyError, TypeError):
-                    # If that fails, try to find available keys and use the first one
-                    import h5py
-                    with h5py.File(file_path, 'r') as f:
-                        # List all keys in the file
-                        keys = list(f.keys())
-                        if keys:
-                            # Try reading with the first key
-                            df = pd.read_hdf(file_path, key=keys[0])
-                            print(f"   Using HDF5 key: '{keys[0]}'")
+                # Load HDF5 file using h5py (like stored_paths does)
+                with h5py.File(file_path, 'r') as f:
+                    # List all keys in the file
+                    keys = list(f.keys())
+                    print(f"   HDF5 file keys: {keys}")
+
+                    if not keys:
+                        raise ValueError(f"HDF5 file has no datasets. Keys: {keys}")
+
+                    # Try to find the main dataset
+                    # Common names: 'data', 'df', 'table', or use first key
+                    dataset_key = None
+                    for common_name in ['data', 'df', 'table', 'dataframe']:
+                        if common_name in keys:
+                            dataset_key = common_name
+                            break
+
+                    if dataset_key is None:
+                        dataset_key = keys[0]
+
+                    print(f"   Using dataset: '{dataset_key}'")
+
+                    # Read the dataset
+                    dataset = f[dataset_key]
+
+                    # Check if it's a pandas table (has specific structure)
+                    if hasattr(dataset, 'dtype') and dataset.dtype.names:
+                        # It's a structured array (pandas table format)
+                        data = dataset[:]
+                        df = pd.DataFrame(data)
+                    else:
+                        # Try to read as regular numpy array and convert to DataFrame
+                        data = np.array(dataset)
+
+                        # Check if there are column names stored as attributes
+                        if 'columns' in dataset.attrs:
+                            columns = dataset.attrs['columns']
+                            if isinstance(columns, bytes):
+                                columns = columns.decode('utf-8').split(',')
+                            df = pd.DataFrame(data, columns=columns)
                         else:
-                            raise ValueError(f"HDF5 file has no readable data tables. Keys: {keys}")
+                            # No column info, assume it's already in the right format
+                            # or try to infer structure
+                            df = pd.DataFrame(data)
+
             elif file_ext == '.csv':
                 # Load CSV file
                 df = pd.read_csv(file_path)
