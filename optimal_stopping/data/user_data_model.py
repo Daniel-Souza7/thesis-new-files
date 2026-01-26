@@ -1,11 +1,15 @@
 """User Data Model with Stationary Block Bootstrap.
 
-This module provides a stock model based on user-provided CSV data:
-- Loads price/return data from CSV files in user_data/ folder
+This module provides a stock model based on user-provided data:
+- Loads price/return data from CSV or HDF5 files in user_data/ folder
 - Implements stationary block bootstrap (same as RealDataModel)
 - Preserves autocorrelation, volatility clustering, and fat tails
 - Automatic block length selection based on autocorrelation decay
 - Supports arbitrary number of stocks with consistent date ranges
+
+Supported File Formats:
+- CSV (.csv): Text format with comma-separated values
+- HDF5 (.h5, .hdf5, .hdf): Binary format for large datasets
 
 CSV Format Requirements:
 - Columns: date, ticker, price (or return)
@@ -161,12 +165,12 @@ class UserDataModel(Model):
         print(f"   Block length: {self.avg_block_length} days")
 
     def _load_data(self):
-        """Load price/return data from CSV file."""
+        """Load price/return data from CSV or HDF5 file."""
         if self.data_file is None:
             raise ValueError(
                 "data_file must be specified. Either:\n"
-                "1. Pass data_file='mydata.csv' to UserDataModel(...)\n"
-                "2. Set user_data_file='mydata.csv' in config"
+                "1. Pass data_file='mydata.csv' (or .h5) to UserDataModel(...)\n"
+                "2. Set user_data_file='mydata.csv' (or .h5) in config"
             )
 
         # Construct full path
@@ -181,14 +185,39 @@ class UserDataModel(Model):
                 f"Data file not found: {file_path}\n"
                 f"Expected location: {self.data_folder / self.data_file}\n"
                 f"Available files in {self.data_folder}:\n"
-                f"{list(self.data_folder.glob('*.csv')) if self.data_folder.exists() else 'Folder does not exist'}"
+                f"{list(self.data_folder.glob('*')) if self.data_folder.exists() else 'Folder does not exist'}"
             )
 
-        # Load CSV
+        # Load data based on file extension
+        file_ext = file_path.suffix.lower()
         try:
-            df = pd.read_csv(file_path)
+            if file_ext in ['.h5', '.hdf5', '.hdf']:
+                # Load HDF5 file - try different approaches
+                try:
+                    # Try reading without key first (single table)
+                    df = pd.read_hdf(file_path)
+                except (KeyError, TypeError):
+                    # If that fails, try to find available keys and use the first one
+                    import h5py
+                    with h5py.File(file_path, 'r') as f:
+                        # List all keys in the file
+                        keys = list(f.keys())
+                        if keys:
+                            # Try reading with the first key
+                            df = pd.read_hdf(file_path, key=keys[0])
+                            print(f"   Using HDF5 key: '{keys[0]}'")
+                        else:
+                            raise ValueError(f"HDF5 file has no readable data tables. Keys: {keys}")
+            elif file_ext == '.csv':
+                # Load CSV file
+                df = pd.read_csv(file_path)
+            else:
+                raise ValueError(
+                    f"Unsupported file format: {file_ext}\n"
+                    f"Supported formats: .csv, .h5, .hdf5, .hdf"
+                )
         except Exception as e:
-            raise ValueError(f"Failed to read CSV file {file_path}: {e}")
+            raise ValueError(f"Failed to read file {file_path}: {e}")
 
         # Validate required columns
         required_cols = [self.date_column, self.ticker_column, self.value_column]
