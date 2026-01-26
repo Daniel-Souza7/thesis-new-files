@@ -29,24 +29,24 @@ path_gen_seed = Seed()
 
 @dataclass
 class _DefaultConfig:
-  algos: Iterable[str] = ('RT', 'RLSM')
+  algos: Iterable[str] = ('NLSM', 'LSM', 'DOS', 'FQI', 'RFQI', 'LNfast', 'LN2', 'RLSM', 'SRFQI', 'SRLSM')
   dividends: Iterable[float] = (0.0,)
-  nb_dates: Iterable[int] = (100,)
-  drift: Iterable[float] = (0.08,)  # Drift = risk-free rate for derivatives pricing
-  mean: Iterable[float] = (0.3,)
-  speed: Iterable[float] = (0.15,)
-  correlation: Iterable[float] = (0.0,)
+  nb_dates: Iterable[int] = (10,)
+  drift: Iterable[float] = (0.06,)  # Drift = risk-free rate for derivatives pricing
+  mean: Iterable[float] = (0.01,)
+  speed: Iterable[float] = (2,)
+  correlation: Iterable[float] = (-0.3,)
   hurst: Iterable[float] = (0.75,)
   stock_models: Iterable[str] = ('BlackScholes',)
   strikes: Iterable[float] = (100,)
   maturities: Iterable[float] = (1,)
-  nb_paths: Iterable[int] = (8000000,)
-  nb_runs: int = 1
+  nb_paths: Iterable[int] = (20000,)
+  nb_runs: int = 10
   nb_stocks: Iterable[int] = (1,)
-  payoffs: Iterable[str] = ('BskCall',)
+  payoffs: Iterable[str] = ('MaxCall',)
   spots: Iterable[float] = (100,)
   volatilities: Iterable[float] = (0.2,)
-  hidden_size: Iterable[int] = (None,)  # None = use dimension-adaptive heuristic (see RT algorithm)
+  hidden_size: Iterable[int] = (20,)
   nb_epochs: Iterable[int] = (30,)
   factors: Iterable[Iterable[float]] = ((1.,1.,1.),)
   ridge_coeff: Iterable[float] = (1e-3,)  # L2 regularization coefficient
