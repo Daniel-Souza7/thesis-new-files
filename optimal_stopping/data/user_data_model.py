@@ -218,6 +218,19 @@ class UserDataModel(Model):
                     # Read the dataset
                     dataset = f[dataset_key]
 
+                    # Check if it's a stored paths file (3D array format)
+                    if len(dataset.shape) == 3:
+                        # This is a stored paths file (nb_paths, nb_stocks, nb_dates+1)
+                        raise ValueError(
+                            f"HDF5 file contains stored paths (3D array: {dataset.shape}).\n"
+                            f"This appears to be a file created by store_paths().\n\n"
+                            f"UserDataModel expects historical price/return data in tabular format.\n"
+                            f"To use this file, either:\n"
+                            f"  1. Use StoredPathsModel instead of UserDataModel\n"
+                            f"  2. Or provide a CSV/HDF5 file with columns: date, ticker, price\n\n"
+                            f"See stored_model.py for how to use stored paths."
+                        )
+
                     # Check if it's a pandas table (has specific structure)
                     if hasattr(dataset, 'dtype') and dataset.dtype.names:
                         # It's a structured array (pandas table format)
