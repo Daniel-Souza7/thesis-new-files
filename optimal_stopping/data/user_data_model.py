@@ -56,7 +56,7 @@ class UserDataModel(Model):
     def __init__(
         self,
         data_file: Optional[str] = None,
-        data_folder: str = '/home/user/thesis-new-files/optimal_stopping/data/user_data',
+        data_folder: str = str(Path(__file__).parent / "user_data"),
         tickers: Optional[List[str]] = None,
         date_column: str = 'date',
         ticker_column: str = 'ticker',
