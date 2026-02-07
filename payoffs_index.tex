@@ -1,16 +1,14 @@
 \documentclass{article}
-\usepackage{graphicx} % Required for inserting images
-\usepackage{booktabs} % For professional table rules (\toprule, \midrule, \bottomrule)
-\usepackage{multirow} % For cells spanning multiple rows
-\usepackage{geometry} % For adjusting page margins
-\usepackage{array} % For enhanced table formatting
-\usepackage{xcolor} % For colored text
-\usepackage{colortbl} % For colored cells
-\usepackage{amsmath} % For \begin{cases} ... \end{cases} in math mode
-\usepackage[dvipsnames]{xcolor} % To access some named colors used with \highLight
-% --- add this to the preamble with your other \usepackage lines ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{amsmath}
+\usepackage[dvipsnames]{xcolor}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
-% optional: control depth of the table of contents (0=chapter,1=section,2=subsection)
 \usepackage{lipsum}
 \setcounter{tocdepth}{2}
 \setcounter{section}{-1}
@@ -21,11 +19,16 @@
 \date{11th November 2025}
 \begin{document}
 
-\large Payoff Dictionary
+\noindent  \large \textbf{Payoff Dictionary}
 
-\textbf{Note:} All multi-asset options (d > 1) use absolute stock prices $S_i(t)$.
-If you need scale-invariant payoffs, normalize your data before inputting:
-use $S_i(t) / S_i(0)$ instead of $S_i(t)$ where $S_i(0)$ is the initial price.
+
+
+\small \noindent Part of the thesis \textit{Enhancing Randomized Neural Networks for Pricing Complex High-Dimensional American Equity Derivatives}
+
+\vspace{3pt}
+
+\footnotesize \noindent \textbf{Note:} All multi-asset options ($d > 1$) use scale-invariant payoffs. Normalize data before entering:
+use $S_i(t) / S_i(0)$ instead of $S_i(t)$ where $S_i(0)$ is the initial price for stock $i$. E.g., for a NVDA stock at $S_1(0)=200$, $S_1(1)=210$, $S_1(2)=205$ use $S_1(0)=1$, $S_1(1)=1.05$, $S_1(2)=1.25$.
 
 \section{Payoffs Before Barriers}
 \subsection{Simple $d>1$}
